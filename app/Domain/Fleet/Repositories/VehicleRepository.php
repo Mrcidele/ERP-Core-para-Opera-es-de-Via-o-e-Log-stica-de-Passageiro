@@ -10,9 +10,21 @@ interface VehicleRepository
 {
     public function nextIdentity(): string;
 
-    public function existsByPlate(string $plate): bool;
+    /**
+     * Veículos ordenados por placa.
+     *
+     * @return list<Vehicle>
+     */
+    public function all(): array;
 
-    public function existsByChassis(string $chassis): bool;
+    public function findById(string $id): ?Vehicle;
+
+    /** $exceptId ignora o próprio veículo ao validar uma edição. */
+    public function existsByPlate(string $plate, ?string $exceptId = null): bool;
+
+    public function existsByChassis(string $chassis, ?string $exceptId = null): bool;
 
     public function save(Vehicle $vehicle): void;
+
+    public function delete(string $id): void;
 }

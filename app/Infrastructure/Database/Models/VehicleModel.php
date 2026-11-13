@@ -6,7 +6,9 @@ namespace App\Infrastructure\Database\Models;
 
 use App\Domain\Fleet\Enums\VehicleClass;
 use App\Domain\Fleet\Enums\VehicleStatus;
+use Database\Factories\VehicleModelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -20,6 +22,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class VehicleModel extends Model
 {
+    /** @use HasFactory<VehicleModelFactory> */
+    use HasFactory;
+
     use HasUuids;
 
     protected $table = 'vehicles';
@@ -33,6 +38,11 @@ final class VehicleModel extends Model
         'status',
         'current_mileage',
     ];
+
+    protected static function newFactory(): VehicleModelFactory
+    {
+        return VehicleModelFactory::new();
+    }
 
     /**
      * @return array<string, string>

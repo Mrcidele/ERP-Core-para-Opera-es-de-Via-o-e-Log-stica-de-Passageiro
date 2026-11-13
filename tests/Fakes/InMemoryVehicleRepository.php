@@ -19,18 +19,37 @@ final class InMemoryVehicleRepository implements VehicleRepository
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
     }
 
-    public function existsByPlate(string $plate): bool
+    public function all(): array
     {
-        return array_any($this->vehicles, fn (Vehicle $v): bool => $v->plate === $plate);
+        $vehicles = array_values($this->vehicles);
+
+        usort($vehicles, fn (Vehicle $a, Vehicle $b): int => $a->plate <=> $b->plate);
+
+        return $vehicles;
     }
 
-    public function existsByChassis(string $chassis): bool
+    public function findById(string $id): ?Vehicle
     {
-        return array_any($this->vehicles, fn (Vehicle $v): bool => $v->chassis === $chassis);
+        return $this->vehicles[$id] ?? null;
+    }
+
+    public function existsByPlate(string $plate, ?string $exceptId = null): bool
+    {
+        return array_any($this->vehicles, fn (Vehicle $v): bool => $v->plate === $plate && $v->id !== $exceptId);
+    }
+
+    public function existsByChassis(string $chassis, ?string $exceptId = null): bool
+    {
+        return array_any($this->vehicles, fn (Vehicle $v): bool => $v->chassis === $chassis && $v->id !== $exceptId);
     }
 
     public function save(Vehicle $vehicle): void
     {
         $this->vehicles[$vehicle->id] = $vehicle;
+    }
+
+    public function delete(string $id): void
+    {
+        unset($this->vehicles[$id]);
     }
 }

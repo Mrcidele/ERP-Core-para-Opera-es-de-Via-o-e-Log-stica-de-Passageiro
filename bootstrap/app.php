@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Shared\Exceptions\DomainException;
+use App\Domain\Shared\Exceptions\NotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,4 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'message' => $e->getMessage(),
             'errors' => [$e->field => [$e->getMessage()]],
         ], 422));
+
+        $exceptions->render(fn (NotFoundException $e): JsonResponse => new JsonResponse([
+            'message' => $e->getMessage(),
+        ], 404));
     })->create();

@@ -16,14 +16,43 @@ final class EloquentVehicleRepository implements VehicleRepository
         return Str::orderedUuid()->toString();
     }
 
-    public function existsByPlate(string $plate): bool
+    public function all(): array
     {
-        return VehicleModel::query()->where('plate', $plate)->exists();
+        return array_values(
+            VehicleModel::query()
+                ->orderBy('plate')
+                ->get()
+                ->map(fn (VehicleModel $model): Vehicle => $this->toEntity($model))
+                ->all(),
+        );
     }
 
-    public function existsByChassis(string $chassis): bool
+    public function findById(string $id): ?Vehicle
     {
-        return VehicleModel::query()->where('chassis', $chassis)->exists();
+        // Um id fora do formato UUID quebraria a consulta no PostgreSQL.
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
+        $model = VehicleModel::query()->find($id);
+
+        return $model === null ? null : $this->toEntity($model);
+    }
+
+    public function existsByPlate(string $plate, ?string $exceptId = null): bool
+    {
+        return VehicleModel::query()
+            ->where('plate', $plate)
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->exists();
+    }
+
+    public function existsByChassis(string $chassis, ?string $exceptId = null): bool
+    {
+        return VehicleModel::query()
+            ->where('chassis', $chassis)
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->exists();
     }
 
     public function save(Vehicle $vehicle): void
@@ -38,6 +67,24 @@ final class EloquentVehicleRepository implements VehicleRepository
                 'status' => $vehicle->status,
                 'current_mileage' => $vehicle->currentMileage,
             ],
+        );
+    }
+
+    public function delete(string $id): void
+    {
+        VehicleModel::query()->whereKey($id)->delete();
+    }
+
+    private function toEntity(VehicleModel $model): Vehicle
+    {
+        return new Vehicle(
+            id: $model->id,
+            plate: $model->plate,
+            chassis: $model->chassis,
+            capacity: $model->capacity,
+            classType: $model->class_type,
+            status: $model->status,
+            currentMileage: $model->current_mileage,
         );
     }
 }
