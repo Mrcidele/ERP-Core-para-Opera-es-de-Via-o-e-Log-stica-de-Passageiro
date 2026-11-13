@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Infrastructure\Database\Models\EmployeeModel;
 
 /**
  * @param  array<string, mixed>  $overrides
@@ -89,7 +90,7 @@ it('rejects a duplicated license number', function (): void {
 it('allows registering again the CPF of a deleted employee', function (): void {
     $this->postJson('/api/v1/crew/employees', employeePayload())->assertCreated();
 
-    App\Infrastructure\Database\Models\EmployeeModel::query()->firstOrFail()->delete();
+    EmployeeModel::query()->firstOrFail()->delete();
 
     $this->postJson('/api/v1/crew/employees', employeePayload())->assertCreated();
 

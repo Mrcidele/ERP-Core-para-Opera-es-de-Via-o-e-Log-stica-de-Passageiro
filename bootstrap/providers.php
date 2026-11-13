@@ -1,8 +1,10 @@
 <?php
 
 declare(strict_types=1);
+use App\Infrastructure\Providers\AppServiceProvider;
+use App\Infrastructure\Providers\RepositoryServiceProvider;
 
 return [
-    App\Infrastructure\Providers\AppServiceProvider::class,
-    App\Infrastructure\Providers\RepositoryServiceProvider::class,
+    AppServiceProvider::class,
+    RepositoryServiceProvider::class,
 ];
