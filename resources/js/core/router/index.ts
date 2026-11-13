@@ -32,8 +32,8 @@ export const routes: RouteRecordRaw[] = [
     {
         path: '/tripulacao',
         name: 'crew',
-        component: ComingSoonPage,
-        meta: { title: 'Tripulação', upcoming: 'Motoristas, jornada e descanso, CNH e escalas.' },
+        component: () => import('@/modules/crew/pages/CrewPage.vue'),
+        meta: { title: 'Tripulação' },
     },
     {
         path: '/manutencao',
