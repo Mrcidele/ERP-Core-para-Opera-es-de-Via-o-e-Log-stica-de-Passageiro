@@ -70,6 +70,7 @@ final class EloquentVehicleRepository implements VehicleRepository
         );
     }
 
+    /** Exclusão lógica: o registro fica no banco para preservar o histórico. */
     public function delete(string $id): void
     {
         VehicleModel::query()->whereKey($id)->delete();

@@ -90,5 +90,28 @@ it('deletes a vehicle', function (): void {
 
     $this->deleteJson("/api/v1/vehicles/{$vehicle->id}")->assertNoContent();
 
-    $this->assertDatabaseMissing('vehicles', ['id' => $vehicle->id]);
+    $this->assertSoftDeleted('vehicles', ['id' => $vehicle->id]);
+});
+
+it('hides a deleted vehicle from listing and lookup', function (): void {
+    $vehicle = VehicleModel::factory()->create();
+    $vehicle->delete();
+
+    $this->getJson('/api/v1/vehicles')->assertOk()->assertJsonCount(0, 'data');
+    $this->getJson("/api/v1/vehicles/{$vehicle->id}")->assertNotFound();
+});
+
+it('allows registering again the plate and chassis of a deleted vehicle', function (): void {
+    $vehicle = VehicleModel::factory()->create();
+    $vehicle->delete();
+
+    $this->postJson('/api/v1/vehicles', [
+        'plate' => $vehicle->plate,
+        'chassis' => $vehicle->chassis,
+        'capacity' => 46,
+        'class_type' => 'executivo',
+        'current_mileage' => 0,
+    ])->assertCreated();
+
+    $this->assertDatabaseCount('vehicles', 2);
 });

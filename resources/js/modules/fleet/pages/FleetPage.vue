@@ -162,7 +162,7 @@ async function confirmRemove(): Promise<void> {
     <ConfirmDialog
         :open="removing !== null"
         :title="`Excluir ${removing?.plate ?? ''}?`"
-        message="O veículo sai da frota e a exclusão não pode ser desfeita."
+        message="O veículo sai da frota. O histórico dele é mantido."
         confirm-label="Excluir veículo"
         :busy="store.removeStatus === 'loading'"
         :error="store.removeError"

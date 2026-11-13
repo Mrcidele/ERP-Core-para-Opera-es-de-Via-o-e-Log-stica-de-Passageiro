@@ -63,7 +63,7 @@ resources/js/
 
 | Módulo | Fatia | Estado |
 | --- | --- | --- |
-| Fleet | CRUD de veículos (`/api/v1/vehicles`) com tela de listagem, cadastro, edição e exclusão | Implementado |
+| Fleet | CRUD de veículos (`/api/v1/vehicles`) com tela de listagem, cadastro, edição e exclusão lógica (soft delete) | Implementado |
 | Fleet | Paginação da listagem | Pendente |
 | Crew, Operations, Maintenance | — | Pendente |
 | — | Eventos de domínio entre módulos | Pendente |
