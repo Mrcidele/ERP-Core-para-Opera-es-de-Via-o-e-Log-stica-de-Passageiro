@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { VEHICLE_CLASSES } from '../types/vehicle';
+import { VEHICLE_CLASSES, VEHICLE_STATUSES } from '../types/vehicle';
 
-// Mesmas regras do CreateVehicleRequest do backend.
+// Mesmas regras de VehicleRequest, CreateVehicleRequest e UpdateVehicleRequest do backend.
 const normalize = (value: string): string => value.replace(/[\s-]/g, '').toUpperCase();
 
 export const createVehicleSchema = z.object({
@@ -29,5 +29,10 @@ export const createVehicleSchema = z.object({
         .min(0, 'A quilometragem não pode ser negativa.'),
 });
 
+export const updateVehicleSchema = createVehicleSchema.extend({
+    status: z.enum(VEHICLE_STATUSES, 'Selecione o status do veículo.'),
+});
+
 export type CreateVehiclePayload = z.output<typeof createVehicleSchema>;
-export type CreateVehicleField = keyof CreateVehiclePayload;
+export type UpdateVehiclePayload = z.output<typeof updateVehicleSchema>;
+export type VehicleField = keyof UpdateVehiclePayload;

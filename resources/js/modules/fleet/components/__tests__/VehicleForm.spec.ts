@@ -1,16 +1,27 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Vehicle } from '../../types/vehicle';
 import VehicleForm from '../VehicleForm.vue';
 
-const post = vi.hoisted(() => vi.fn());
+const http = vi.hoisted(() => ({ post: vi.fn(), put: vi.fn() }));
 
 vi.mock('@/core/api/http', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@/core/api/http')>()),
-    http: { post },
+    http,
 }));
 
-async function fillAndSubmit(wrapper: ReturnType<typeof mount>, plate = 'abc-1d23'): Promise<void> {
+const vehicle: Vehicle = {
+    id: 'uuid-1',
+    plate: 'ABC1D23',
+    chassis: '9BWZZZ377VT004251',
+    capacity: 46,
+    class_type: 'executivo',
+    status: 'active',
+    current_mileage: 120000,
+};
+
+async function fillAndSubmit(wrapper: VueWrapper, plate = 'abc-1d23'): Promise<void> {
     await wrapper.get('[data-test="plate"]').setValue(plate);
     await wrapper.get('[data-test="chassis"]').setValue('9BWZZZ377VT004251');
     await wrapper.get('[data-test="capacity"]').setValue(46);
@@ -23,71 +34,120 @@ async function fillAndSubmit(wrapper: ReturnType<typeof mount>, plate = 'abc-1d2
 describe('VehicleForm', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
-        post.mockReset();
+        http.post.mockReset();
+        http.put.mockReset();
     });
 
-    it('shows client validation errors and does not call the API', async () => {
-        const wrapper = mount(VehicleForm);
+    describe('create', () => {
+        it('shows client validation errors and does not call the API', async () => {
+            const wrapper = mount(VehicleForm);
 
-        await wrapper.get('form').trigger('submit');
-        await flushPromises();
+            await wrapper.get('form').trigger('submit');
+            await flushPromises();
 
-        expect(post).not.toHaveBeenCalled();
-        expect(wrapper.get('[data-test="plate-error"]').text()).toContain('ABC1234');
-        expect(wrapper.find('[data-test="chassis-error"]').exists()).toBe(true);
-        expect(wrapper.find('[data-test="capacity-error"]').exists()).toBe(true);
-        expect(wrapper.find('[data-test="class_type-error"]').exists()).toBe(true);
-    });
-
-    it('posts the normalized payload, shows success and resets the form', async () => {
-        post.mockResolvedValue({
-            data: {
-                data: {
-                    id: 'uuid',
-                    plate: 'ABC1D23',
-                    chassis: '9BWZZZ377VT004251',
-                    capacity: 46,
-                    class_type: 'executivo',
-                    status: 'active',
-                    current_mileage: 120000,
-                },
-            },
+            expect(http.post).not.toHaveBeenCalled();
+            expect(wrapper.get('[data-test="plate-error"]').text()).toContain('ABC1234');
+            expect(wrapper.find('[data-test="chassis-error"]').exists()).toBe(true);
+            expect(wrapper.find('[data-test="capacity-error"]').exists()).toBe(true);
+            expect(wrapper.find('[data-test="class_type-error"]').exists()).toBe(true);
+            expect(wrapper.emitted('saved')).toBeUndefined();
         });
-        const wrapper = mount(VehicleForm);
 
-        await fillAndSubmit(wrapper);
-
-        expect(post).toHaveBeenCalledWith('/vehicles', {
-            plate: 'ABC1D23',
-            chassis: '9BWZZZ377VT004251',
-            capacity: 46,
-            class_type: 'executivo',
-            current_mileage: 120000,
+        it('has no status field', () => {
+            expect(mount(VehicleForm).find('[data-test="status-active"]').exists()).toBe(false);
         });
-        expect(wrapper.get('[data-test="success"]').text()).toContain('ABC1D23');
-        expect((wrapper.get('[data-test="plate"]').element as HTMLInputElement).value).toBe('');
+
+        it('posts the normalized payload and emits the saved vehicle', async () => {
+            http.post.mockResolvedValue({ data: { data: vehicle } });
+            const wrapper = mount(VehicleForm);
+
+            await fillAndSubmit(wrapper);
+
+            expect(http.post).toHaveBeenCalledWith('/vehicles', {
+                plate: 'ABC1D23',
+                chassis: '9BWZZZ377VT004251',
+                capacity: 46,
+                class_type: 'executivo',
+                current_mileage: 120000,
+            });
+            expect(wrapper.emitted('saved')).toEqual([[vehicle]]);
+        });
+
+        it('shows validation errors returned by the API and keeps the form filled', async () => {
+            http.post.mockRejectedValue({
+                isAxiosError: true,
+                response: { status: 422, data: { errors: { plate: ['Já existe um veículo cadastrado com a placa ABC1D23.'] } } },
+            });
+            const wrapper = mount(VehicleForm);
+
+            await fillAndSubmit(wrapper);
+
+            expect(wrapper.get('[data-test="plate-error"]').text()).toContain('Já existe um veículo');
+            expect(wrapper.emitted('saved')).toBeUndefined();
+            expect((wrapper.get('[data-test="plate"]').element as HTMLInputElement).value).toBe('abc-1d23');
+        });
+
+        it('shows a generic message on unexpected failures', async () => {
+            http.post.mockRejectedValue(new Error('network'));
+            const wrapper = mount(VehicleForm);
+
+            await fillAndSubmit(wrapper);
+
+            expect(wrapper.get('[data-test="error"]').text()).toContain('Não foi possível cadastrar');
+        });
     });
 
-    it('shows validation errors returned by the API and keeps the form filled', async () => {
-        post.mockRejectedValue({
-            isAxiosError: true,
-            response: { status: 422, data: { errors: { plate: ['Já existe um veículo cadastrado com a placa ABC1D23.'] } } },
+    describe('edit', () => {
+        it('starts filled with the vehicle data', () => {
+            const wrapper = mount(VehicleForm, { props: { vehicle } });
+
+            expect((wrapper.get('[data-test="plate"]').element as HTMLInputElement).value).toBe('ABC1D23');
+            expect((wrapper.get('[data-test="capacity"]').element as HTMLInputElement).value).toBe('46');
+            expect((wrapper.get('[data-test="status-active"]').element as HTMLInputElement).checked).toBe(true);
         });
-        const wrapper = mount(VehicleForm);
 
-        await fillAndSubmit(wrapper);
+        it('puts the changes, including status, and emits the saved vehicle', async () => {
+            const updated: Vehicle = { ...vehicle, status: 'maintenance', current_mileage: 125000 };
+            http.put.mockResolvedValue({ data: { data: updated } });
+            const wrapper = mount(VehicleForm, { props: { vehicle } });
 
-        expect(wrapper.get('[data-test="plate-error"]').text()).toContain('Já existe um veículo');
-        expect(wrapper.find('[data-test="success"]').exists()).toBe(false);
-        expect((wrapper.get('[data-test="plate"]').element as HTMLInputElement).value).toBe('abc-1d23');
+            await wrapper.get('[data-test="status-maintenance"]').setValue();
+            await wrapper.get('[data-test="current_mileage"]').setValue(125000);
+            await wrapper.get('form').trigger('submit');
+            await flushPromises();
+
+            expect(http.post).not.toHaveBeenCalled();
+            expect(http.put).toHaveBeenCalledWith('/vehicles/uuid-1', {
+                plate: 'ABC1D23',
+                chassis: '9BWZZZ377VT004251',
+                capacity: 46,
+                class_type: 'executivo',
+                status: 'maintenance',
+                current_mileage: 125000,
+            });
+            expect(wrapper.emitted('saved')).toEqual([[updated]]);
+        });
+
+        it('shows the mileage rule returned by the API', async () => {
+            http.put.mockRejectedValue({
+                isAxiosError: true,
+                response: { status: 422, data: { errors: { current_mileage: ['A quilometragem não pode ser menor que a atual (120000 km).'] } } },
+            });
+            const wrapper = mount(VehicleForm, { props: { vehicle } });
+
+            await wrapper.get('[data-test="current_mileage"]').setValue(100);
+            await wrapper.get('form').trigger('submit');
+            await flushPromises();
+
+            expect(wrapper.get('[data-test="current_mileage-error"]').text()).toContain('não pode ser menor');
+        });
     });
 
-    it('shows a generic message on unexpected failures', async () => {
-        post.mockRejectedValue(new Error('network'));
+    it('emits cancel', async () => {
         const wrapper = mount(VehicleForm);
 
-        await fillAndSubmit(wrapper);
+        await wrapper.get('[data-test="cancel"]').trigger('click');
 
-        expect(wrapper.get('[data-test="error"]').text()).toContain('Não foi possível');
+        expect(wrapper.emitted('cancel')).toHaveLength(1);
     });
 });

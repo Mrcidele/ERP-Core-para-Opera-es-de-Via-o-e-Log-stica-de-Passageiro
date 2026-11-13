@@ -1,43 +1,106 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
-import type { CreateVehiclePayload } from '../schemas/createVehicleSchema';
+import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
+import type { CreateVehiclePayload, UpdateVehiclePayload } from '../schemas/createVehicleSchema';
 import type { Vehicle } from '../types/vehicle';
 
 export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
-export const useVehicleStore = defineStore('fleet/vehicles', () => {
-    const status = ref<RequestStatus>('idle');
-    const validationErrors = ref<ValidationErrors>({});
-    const errorMessage = ref<string | null>(null);
-    const lastCreated = ref<Vehicle | null>(null);
+const byPlate = (a: Vehicle, b: Vehicle): number => a.plate.localeCompare(b.plate);
 
-    async function create(payload: CreateVehiclePayload): Promise<Vehicle | null> {
-        status.value = 'loading';
-        validationErrors.value = {};
-        errorMessage.value = null;
+export const useVehicleStore = defineStore('fleet/vehicles', () => {
+    const vehicles = ref<Vehicle[]>([]);
+    const listStatus = ref<RequestStatus>('idle');
+
+    const saveStatus = ref<RequestStatus>('idle');
+    const validationErrors = ref<ValidationErrors>({});
+    const saveError = ref<string | null>(null);
+
+    const removeStatus = ref<RequestStatus>('idle');
+    const removeError = ref<string | null>(null);
+
+    async function fetchAll(): Promise<void> {
+        listStatus.value = 'loading';
 
         try {
-            const response = await http.post<{ data: Vehicle }>('/vehicles', payload);
+            const response = await http.get<{ data: Vehicle[] }>('/vehicles');
 
-            lastCreated.value = response.data.data;
-            status.value = 'success';
+            vehicles.value = response.data.data;
+            listStatus.value = 'success';
+        } catch {
+            listStatus.value = 'error';
+        }
+    }
 
-            return lastCreated.value;
+    function resetSaveState(): void {
+        saveStatus.value = 'idle';
+        validationErrors.value = {};
+        saveError.value = null;
+    }
+
+    async function save(request: () => Promise<{ data: { data: Vehicle } }>, failure: string): Promise<Vehicle | null> {
+        resetSaveState();
+        saveStatus.value = 'loading';
+
+        try {
+            const vehicle = (await request()).data.data;
+
+            vehicles.value = [...vehicles.value.filter((item) => item.id !== vehicle.id), vehicle].sort(byPlate);
+            saveStatus.value = 'success';
+
+            return vehicle;
         } catch (error) {
             const errors = extractValidationErrors(error);
 
             if (errors) {
                 validationErrors.value = errors;
             } else {
-                errorMessage.value = 'Não foi possível cadastrar o veículo. Tente novamente.';
+                saveError.value = extractErrorMessage(error, failure);
             }
 
-            status.value = 'error';
+            saveStatus.value = 'error';
 
             return null;
         }
     }
 
-    return { status, validationErrors, errorMessage, lastCreated, create };
+    const create = (payload: CreateVehiclePayload): Promise<Vehicle | null> =>
+        save(() => http.post('/vehicles', payload), 'Não foi possível cadastrar o veículo. Tente novamente.');
+
+    const update = (id: string, payload: UpdateVehiclePayload): Promise<Vehicle | null> =>
+        save(() => http.put(`/vehicles/${id}`, payload), 'Não foi possível salvar as alterações. Tente novamente.');
+
+    async function remove(id: string): Promise<boolean> {
+        removeStatus.value = 'loading';
+        removeError.value = null;
+
+        try {
+            await http.delete(`/vehicles/${id}`);
+
+            vehicles.value = vehicles.value.filter((item) => item.id !== id);
+            removeStatus.value = 'success';
+
+            return true;
+        } catch (error) {
+            removeError.value = extractErrorMessage(error, 'Não foi possível excluir o veículo. Tente novamente.');
+            removeStatus.value = 'error';
+
+            return false;
+        }
+    }
+
+    return {
+        vehicles,
+        listStatus,
+        saveStatus,
+        validationErrors,
+        saveError,
+        removeStatus,
+        removeError,
+        fetchAll,
+        resetSaveState,
+        create,
+        update,
+        remove,
+    };
 });

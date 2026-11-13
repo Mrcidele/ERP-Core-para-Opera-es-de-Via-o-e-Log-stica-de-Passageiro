@@ -1,67 +1,126 @@
 <script setup lang="ts">
+import { formatKm } from '@/core/utils/format';
 import { useVehicleForm } from '../composables/useVehicleForm';
-import { VEHICLE_CLASS_LABELS, VEHICLE_CLASSES } from '../types/vehicle';
+import { VEHICLE_CLASS_LABELS, VEHICLE_CLASSES, VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, type Vehicle } from '../types/vehicle';
 
-const { form, errors, submit, store } = useVehicleForm();
+const props = withDefaults(defineProps<{ vehicle?: Vehicle | null }>(), { vehicle: null });
+const emit = defineEmits<{ saved: [vehicle: Vehicle]; cancel: [] }>();
 
-const inputClass = 'mt-1 w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none';
+const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) => emit('saved', saved));
 </script>
 
 <template>
-    <form class="space-y-4 rounded-lg bg-white p-6 shadow" novalidate @submit.prevent="submit">
-        <p v-if="store.status === 'success' && store.lastCreated" data-test="success" class="rounded bg-green-50 p-3 text-green-800">
-            Veículo {{ store.lastCreated.plate }} cadastrado.
-        </p>
-        <p v-if="store.errorMessage" data-test="error" class="rounded bg-red-50 p-3 text-red-800">
-            {{ store.errorMessage }}
+    <form class="space-y-5" novalidate @submit.prevent="submit">
+        <p v-if="store.saveError" role="alert" data-test="error" class="rounded-md bg-brake-100 px-4 py-3 text-sm font-medium text-brake-700">
+            {{ store.saveError }}
         </p>
 
-        <label class="block">
-            <span class="text-sm font-medium">Placa</span>
-            <input v-model="form.plate" data-test="plate" :class="inputClass" maxlength="8" placeholder="ABC1D23" />
-            <span v-if="errors.plate" data-test="plate-error" class="text-sm text-red-600">{{ errors.plate }}</span>
-        </label>
+        <div>
+            <label class="field-label" for="vehicle-plate">Placa</label>
+            <input
+                id="vehicle-plate"
+                v-model="form.plate"
+                data-test="plate"
+                class="field-input font-display font-semibold uppercase tracking-widest"
+                maxlength="8"
+                placeholder="ABC1D23"
+                autocomplete="off"
+                :aria-invalid="Boolean(errors.plate)"
+            />
+            <p v-if="errors.plate" data-test="plate-error" class="field-error">{{ errors.plate }}</p>
+        </div>
 
-        <label class="block">
-            <span class="text-sm font-medium">Chassi</span>
-            <input v-model="form.chassis" data-test="chassis" :class="inputClass" maxlength="17" />
-            <span v-if="errors.chassis" data-test="chassis-error" class="text-sm text-red-600">{{ errors.chassis }}</span>
-        </label>
+        <div>
+            <label class="field-label" for="vehicle-chassis">Chassi</label>
+            <input
+                id="vehicle-chassis"
+                v-model="form.chassis"
+                data-test="chassis"
+                class="field-input uppercase tabular-nums"
+                maxlength="17"
+                autocomplete="off"
+                :aria-invalid="Boolean(errors.chassis)"
+            />
+            <p v-if="errors.chassis" data-test="chassis-error" class="field-error">{{ errors.chassis }}</p>
+            <p v-else class="field-hint">17 caracteres, sem as letras I, O e Q.</p>
+        </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <label class="block">
-                <span class="text-sm font-medium">Capacidade</span>
-                <input v-model.number="form.capacity" data-test="capacity" :class="inputClass" type="number" min="1" max="100" />
-                <span v-if="errors.capacity" data-test="capacity-error" class="text-sm text-red-600">{{ errors.capacity }}</span>
-            </label>
-
-            <label class="block">
-                <span class="text-sm font-medium">Classe</span>
-                <select v-model="form.class_type" data-test="class_type" :class="inputClass">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="field-label" for="vehicle-class">Classe</label>
+                <select
+                    id="vehicle-class"
+                    v-model="form.class_type"
+                    data-test="class_type"
+                    class="field-input"
+                    :aria-invalid="Boolean(errors.class_type)"
+                >
                     <option value="" disabled>Selecione</option>
                     <option v-for="vehicleClass in VEHICLE_CLASSES" :key="vehicleClass" :value="vehicleClass">
                         {{ VEHICLE_CLASS_LABELS[vehicleClass] }}
                     </option>
                 </select>
-                <span v-if="errors.class_type" data-test="class_type-error" class="text-sm text-red-600">{{ errors.class_type }}</span>
-            </label>
+                <p v-if="errors.class_type" data-test="class_type-error" class="field-error">{{ errors.class_type }}</p>
+            </div>
 
-            <label class="block">
-                <span class="text-sm font-medium">Quilometragem</span>
-                <input v-model.number="form.current_mileage" data-test="current_mileage" :class="inputClass" type="number" min="0" />
-                <span v-if="errors.current_mileage" data-test="current_mileage-error" class="text-sm text-red-600">
-                    {{ errors.current_mileage }}
-                </span>
-            </label>
+            <div>
+                <label class="field-label" for="vehicle-capacity">Capacidade (lugares)</label>
+                <input
+                    id="vehicle-capacity"
+                    v-model.number="form.capacity"
+                    data-test="capacity"
+                    class="field-input tabular-nums"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    max="100"
+                    :aria-invalid="Boolean(errors.capacity)"
+                />
+                <p v-if="errors.capacity" data-test="capacity-error" class="field-error">{{ errors.capacity }}</p>
+            </div>
         </div>
 
-        <button
-            type="submit"
-            data-test="submit"
-            class="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            :disabled="store.status === 'loading'"
-        >
-            {{ store.status === 'loading' ? 'Salvando…' : 'Cadastrar' }}
-        </button>
+        <div>
+            <label class="field-label" for="vehicle-mileage">Quilometragem (km)</label>
+            <input
+                id="vehicle-mileage"
+                v-model.number="form.current_mileage"
+                data-test="current_mileage"
+                class="field-input tabular-nums"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                :aria-invalid="Boolean(errors.current_mileage)"
+            />
+            <p v-if="errors.current_mileage" data-test="current_mileage-error" class="field-error">{{ errors.current_mileage }}</p>
+            <p v-else-if="vehicle" class="field-hint">Atual: {{ formatKm(vehicle.current_mileage) }}. O valor não pode diminuir.</p>
+        </div>
+
+        <fieldset v-if="vehicle">
+            <legend class="field-label">Status</legend>
+            <div class="mt-1.5 grid grid-cols-3 gap-2">
+                <label
+                    v-for="status in VEHICLE_STATUSES"
+                    :key="status"
+                    class="flex h-11 cursor-pointer items-center justify-center rounded-md border px-2 text-center text-sm font-medium transition-colors"
+                    :class="
+                        form.status === status
+                            ? 'border-ink-900 bg-ink-900 text-white'
+                            : 'border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-ink-50'
+                    "
+                >
+                    <input v-model="form.status" type="radio" name="vehicle-status" class="sr-only" :value="status" :data-test="`status-${status}`" />
+                    {{ VEHICLE_STATUS_LABELS[status] }}
+                </label>
+            </div>
+            <p v-if="errors.status" data-test="status-error" class="field-error">{{ errors.status }}</p>
+        </fieldset>
+
+        <div class="flex justify-end gap-3 border-t border-ink-100 pt-5">
+            <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
+                {{ store.saveStatus === 'loading' ? 'Salvando…' : vehicle ? 'Salvar alterações' : 'Cadastrar veículo' }}
+            </button>
+        </div>
     </form>
 </template>

@@ -21,3 +21,9 @@ export const VEHICLE_CLASS_LABELS: Record<VehicleClass, string> = {
     semi_leito: 'Semi-leito',
     executivo: 'Executivo',
 };
+
+export const VEHICLE_STATUS_LABELS: Record<VehicleStatus, string> = {
+    active: 'Ativo',
+    maintenance: 'Em manutenção',
+    inactive: 'Inativo',
+};

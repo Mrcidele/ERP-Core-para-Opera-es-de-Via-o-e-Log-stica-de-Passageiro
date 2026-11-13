@@ -1,64 +1,86 @@
 import { computed, reactive, ref } from 'vue';
-import { createVehicleSchema, type CreateVehicleField } from '../schemas/createVehicleSchema';
+import { createVehicleSchema, updateVehicleSchema, type VehicleField } from '../schemas/createVehicleSchema';
 import { useVehicleStore } from '../stores/vehicleStore';
-import type { VehicleClass } from '../types/vehicle';
+import type { Vehicle, VehicleClass, VehicleStatus } from '../types/vehicle';
 
 interface VehicleFormState {
     plate: string;
     chassis: string;
     capacity: number | null;
     class_type: VehicleClass | '';
+    status: VehicleStatus;
     current_mileage: number | null;
 }
 
-const initialState = (): VehicleFormState => ({
-    plate: '',
-    chassis: '',
-    capacity: null,
-    class_type: '',
-    current_mileage: 0,
+type FieldErrors = Partial<Record<VehicleField, string>>;
+
+const stateFrom = (vehicle: Vehicle | null): VehicleFormState => ({
+    plate: vehicle?.plate ?? '',
+    chassis: vehicle?.chassis ?? '',
+    capacity: vehicle?.capacity ?? null,
+    class_type: vehicle?.class_type ?? '',
+    status: vehicle?.status ?? 'active',
+    current_mileage: vehicle?.current_mileage ?? 0,
 });
 
-export function useVehicleForm() {
+/** Formulário de veículo: cadastro quando `vehicle` é null, edição caso contrário. */
+export function useVehicleForm(vehicle: Vehicle | null, onSaved: (saved: Vehicle) => void) {
     const store = useVehicleStore();
-    const form = reactive<VehicleFormState>(initialState());
-    const clientErrors = ref<Partial<Record<CreateVehicleField, string>>>({});
+    const form = reactive<VehicleFormState>(stateFrom(vehicle));
+    const clientErrors = ref<FieldErrors>({});
+
+    store.resetSaveState();
 
     /** Erro exibido por campo: validação local primeiro, depois a resposta da API. */
-    const errors = computed<Partial<Record<CreateVehicleField, string>>>(() => {
+    const errors = computed<FieldErrors>(() => {
         const merged = { ...clientErrors.value };
 
         for (const [field, messages] of Object.entries(store.validationErrors)) {
             const message = messages[0];
 
             if (message !== undefined && !(field in merged)) {
-                merged[field as CreateVehicleField] = message;
+                merged[field as VehicleField] = message;
             }
         }
 
         return merged;
     });
 
-    async function submit(): Promise<void> {
-        const result = createVehicleSchema.safeParse(form);
+    function collect(issues: { path: PropertyKey[]; message: string }[]): void {
+        const fieldErrors: FieldErrors = {};
 
-        if (!result.success) {
-            const fieldErrors: Partial<Record<CreateVehicleField, string>> = {};
-
-            for (const issue of result.error.issues) {
-                const field = issue.path[0] as CreateVehicleField;
-                fieldErrors[field] ??= issue.message;
-            }
-
-            clientErrors.value = fieldErrors;
-
-            return;
+        for (const issue of issues) {
+            fieldErrors[issue.path[0] as VehicleField] ??= issue.message;
         }
 
-        clientErrors.value = {};
+        clientErrors.value = fieldErrors;
+    }
 
-        if (await store.create(result.data)) {
-            Object.assign(form, initialState());
+    async function submit(): Promise<void> {
+        let saved: Vehicle | null;
+
+        if (vehicle) {
+            const result = updateVehicleSchema.safeParse(form);
+
+            if (!result.success) {
+                return collect(result.error.issues);
+            }
+
+            clientErrors.value = {};
+            saved = await store.update(vehicle.id, result.data);
+        } else {
+            const result = createVehicleSchema.safeParse(form);
+
+            if (!result.success) {
+                return collect(result.error.issues);
+            }
+
+            clientErrors.value = {};
+            saved = await store.create(result.data);
+        }
+
+        if (saved) {
+            onSaved(saved);
         }
     }
 
