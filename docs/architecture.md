@@ -46,18 +46,25 @@ resources/js/
 │   └── fleet/
 │       ├── components/
 │       ├── composables/
+│       ├── pages/           # telas ligadas às rotas
 │       ├── schemas/         # Zod
 │       ├── stores/          # Pinia
 │       └── types/
 └── core/
-    └── api/                 # Axios e tratamento de erros
+    ├── api/                 # Axios e tratamento de erros
+    ├── components/          # SlideOver, ConfirmDialog, AppIcon
+    ├── layout/              # AppShell (barra lateral + conteúdo)
+    ├── pages/
+    ├── router/              # Vue Router
+    └── utils/
 ```
 
 ## Status
 
 | Módulo | Fatia | Estado |
 | --- | --- | --- |
-| Fleet | Cadastro de veículo (`POST /api/v1/vehicles`) | Implementado |
-| Fleet | Edição, exclusão e listagem de veículos | Pendente |
+| Fleet | CRUD de veículos (`/api/v1/vehicles`) com tela de listagem, cadastro, edição e exclusão | Implementado |
+| Fleet | Paginação da listagem | Pendente |
 | Crew, Operations, Maintenance | — | Pendente |
+| — | Eventos de domínio entre módulos | Pendente |
 | — | Autenticação/autorização da API | Pendente |

@@ -20,10 +20,11 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
 
 - Composition API com `<script setup lang="ts">`; TypeScript em modo `strict`, sem `any`.
-- Um diretório por módulo em `modules/<módulo>/`: `components`, `composables`, `stores`, `schemas`, `types`.
+- Um diretório por módulo em `modules/<módulo>/`: `components`, `composables`, `pages`, `stores`, `schemas`, `types`. Rotas em `core/router`.
 - `types/` espelha os API Resources e Enums do backend; `schemas/` (Zod) espelha as regras dos FormRequests.
 - Estado de requisição em stores Pinia isoladas por módulo; HTTP somente via `core/api/http.ts`.
 - Erros 422 da API são exibidos por campo no formulário.
+- Visual: cores e fontes vêm dos tokens em `tailwind.config.js` (`ink`, `signal`, `road`, `brake`) e das classes de `resources/css/app.css` (`btn`, `field-*`). Formulários abrem em `SlideOver`; exclusões pedem confirmação em `ConfirmDialog`. Toda tela trata carregando, vazio e erro.
 
 ## Qualidade
 
