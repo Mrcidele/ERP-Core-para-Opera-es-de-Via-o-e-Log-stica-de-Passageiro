@@ -12,7 +12,7 @@
 ## Modelagem inicial (PostgreSQL)
 
 - `vehicles`: `id`, `plate`, `chassis`, `capacity`, `class_type`, `status`, `current_mileage`
-- `employees`: `id`, `role` (driver, mechanic, admin), `name`, `cnh_number`, `cnh_expiration`, `status`
+- `employees`: `id`, `name`, `cpf`, `role` (driver, mechanic, admin), `cnh_number`, `cnh_category`, `cnh_expiration_date`, `status` (active, on_leave, inactive)
 - `routes`: `id`, `origin_city_id`, `destination_city_id`, `estimated_duration`, `distance_km`
 - `trips`: `id`, `route_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time`, `status`
 - `maintenance_orders`: `id`, `vehicle_id`, `mechanic_id`, `description`, `cost`, `started_at`, `finished_at`, `status`
@@ -65,6 +65,8 @@ resources/js/
 | --- | --- | --- |
 | Fleet | CRUD de veículos (`/api/v1/vehicles`) com tela de listagem, cadastro, edição e exclusão lógica (soft delete) | Implementado |
 | Fleet | Paginação da listagem | Pendente |
-| Crew, Operations, Maintenance | — | Pendente |
+| Crew | Cadastro de funcionário (`POST /api/v1/crew/employees`) com formulário em painel lateral | Implementado |
+| Crew | Listagem, edição e exclusão de funcionários; jornada e escalas | Pendente |
+| Operations, Maintenance | — | Pendente |
 | — | Eventos de domínio entre módulos | Pendente |
 | — | Autenticação/autorização da API | Pendente |

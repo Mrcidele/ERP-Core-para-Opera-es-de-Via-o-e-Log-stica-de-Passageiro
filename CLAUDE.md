@@ -15,6 +15,8 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Saída sempre por API Resource; coleções tipadas (`@return list<...>` / `Collection<int, ...>`).
 - Classes `final` por padrão. Toda interface de repositório é ligada em `RepositoryServiceProvider`.
 - Migrations com chave primária UUID e chaves estrangeiras com integridade referencial.
+- Tabelas de cadastro usam soft delete; unicidade por índice único parcial em SQL (`WHERE deleted_at IS NULL`), nunca `->unique()`.
+- Regra que depende da data atual recebe `App\Domain\Shared\Contracts\Clock`; nos testes, `Tests\Fakes\FixedClock`.
 - Rotas de API em `routes/api.php`, prefixo `/api/v1`.
 
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
