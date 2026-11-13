@@ -4,4 +4,5 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'app');
+// SPA: o Vue Router resolve as rotas no navegador.
+Route::view('/{any?}', 'app')->where('any', '.*');

@@ -1,3 +1,78 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-canvas font-sans text-ink-900 antialiased;
+    }
+
+    :focus-visible {
+        @apply outline outline-2 outline-offset-2 outline-signal-500;
+    }
+}
+
+@layer components {
+    .btn {
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    .btn-primary {
+        @apply bg-ink-900 text-white hover:bg-ink-700;
+    }
+
+    .btn-quiet {
+        @apply border border-ink-200 bg-white text-ink-800 hover:border-ink-300 hover:bg-ink-50;
+    }
+
+    .btn-danger {
+        @apply bg-brake-600 text-white hover:bg-brake-700;
+    }
+
+    .icon-btn {
+        @apply inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900;
+    }
+
+    .nav-link {
+        @apply relative flex shrink-0 items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-ink-200 transition-colors hover:bg-ink-800 hover:text-white;
+    }
+
+    /* Item ativo: a faixa âmbar é o letreiro aceso. */
+    .nav-link-active {
+        @apply bg-ink-800 text-white;
+    }
+
+    .nav-link-active::before {
+        content: '';
+        @apply absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-signal-500 lg:inset-x-auto lg:inset-y-2 lg:left-0 lg:h-auto lg:w-1;
+    }
+
+    .field-label {
+        @apply block text-sm font-medium text-ink-800;
+    }
+
+    .field-input {
+        @apply mt-1.5 block h-11 w-full rounded-md border border-ink-200 bg-white px-3 text-base text-ink-900 placeholder:text-ink-300 focus:border-ink-600 focus:outline-none focus:ring-2 focus:ring-signal-400;
+    }
+
+    .field-input[aria-invalid='true'] {
+        @apply border-brake-600;
+    }
+
+    .field-hint {
+        @apply mt-1.5 text-sm text-ink-500;
+    }
+
+    .field-error {
+        @apply mt-1.5 text-sm font-medium text-brake-700;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

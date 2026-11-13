@@ -21,3 +21,16 @@ export function extractValidationErrors(error: unknown): ValidationErrors | null
 
     return data.errors as ValidationErrors;
 }
+
+/** Mensagem para exibir ao usuário: a da API quando houver (4xx), senão a alternativa informada. */
+export function extractErrorMessage(error: unknown, fallback: string): string {
+    if (isAxiosError(error) && error.response && error.response.status < 500) {
+        const data: unknown = error.response.data;
+
+        if (typeof data === 'object' && data !== null && 'message' in data && typeof data.message === 'string') {
+            return data.message;
+        }
+    }
+
+    return fallback;
+}

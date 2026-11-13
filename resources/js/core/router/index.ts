@@ -1,0 +1,54 @@
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+
+declare module 'vue-router' {
+    interface RouteMeta {
+        title: string;
+        /** Texto da tela de módulo ainda não disponível. */
+        upcoming?: string;
+    }
+}
+
+const ComingSoonPage = () => import('@/core/pages/ComingSoonPage.vue');
+
+export const routes: RouteRecordRaw[] = [
+    {
+        path: '/',
+        name: 'dashboard',
+        component: () => import('@/modules/dashboard/pages/DashboardPage.vue'),
+        meta: { title: 'Painel' },
+    },
+    {
+        path: '/frota',
+        name: 'fleet',
+        component: () => import('@/modules/fleet/pages/FleetPage.vue'),
+        meta: { title: 'Frota' },
+    },
+    {
+        path: '/operacoes',
+        name: 'operations',
+        component: ComingSoonPage,
+        meta: { title: 'Operações', upcoming: 'Linhas, trechos e viagens, com alocação de ônibus e controle de lotação.' },
+    },
+    {
+        path: '/tripulacao',
+        name: 'crew',
+        component: ComingSoonPage,
+        meta: { title: 'Tripulação', upcoming: 'Motoristas, jornada e descanso, CNH e escalas.' },
+    },
+    {
+        path: '/manutencao',
+        name: 'maintenance',
+        component: ComingSoonPage,
+        meta: { title: 'Manutenção', upcoming: 'Ordens de serviço, histórico e estoque de peças.' },
+    },
+    { path: '/:pathMatch(.*)*', redirect: { name: 'dashboard' } },
+];
+
+export const router = createRouter({
+    history: createWebHistory(),
+    routes,
+});
+
+router.afterEach((to) => {
+    document.title = `${to.meta.title} | ERP Viação`;
+});
