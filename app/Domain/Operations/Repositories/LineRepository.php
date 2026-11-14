@@ -16,4 +16,7 @@ interface LineRepository
     public function all(): array;
 
     public function exists(string $id): bool;
+
+    /** Inclui linhas já excluídas: viagens antigas continuam apontando para elas. */
+    public function findById(string $id): ?Line;
 }

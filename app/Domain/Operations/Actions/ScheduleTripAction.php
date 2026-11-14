@@ -8,6 +8,7 @@ use App\Domain\Operations\Contracts\CrewGateway;
 use App\Domain\Operations\Contracts\FleetGateway;
 use App\Domain\Operations\DTOs\ScheduleTripDTO;
 use App\Domain\Operations\Entities\Trip;
+use App\Domain\Operations\Exceptions\DriverLicenseExpiredException;
 use App\Domain\Operations\Exceptions\DriverNotAvailableException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\InvalidTripPeriodException;
@@ -49,6 +50,10 @@ final readonly class ScheduleTripAction
 
         if (! $this->crew->isActiveDriver($data->driverId)) {
             throw new DriverNotAvailableException;
+        }
+
+        if (! $this->crew->isDriverLicenseValidUntil($data->driverId, $data->arrivalTime)) {
+            throw new DriverLicenseExpiredException;
         }
 
         if ($this->trips->hasVehicleConflict($data->vehicleId, $data->departureTime, $data->arrivalTime)) {
