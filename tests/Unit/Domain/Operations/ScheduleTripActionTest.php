@@ -7,6 +7,7 @@ use App\Domain\Operations\DTOs\ScheduleTripDTO;
 use App\Domain\Operations\Entities\Line;
 use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
+use App\Domain\Operations\Exceptions\DriverLicenseExpiredException;
 use App\Domain\Operations\Exceptions\DriverNotAvailableException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\InvalidTripPeriodException;
@@ -47,7 +48,7 @@ beforeEach(function (): void {
         $this->trips,
         $this->lines,
         new FakeFleetGateway(['bus-1', 'bus-2']),
-        new FakeCrewGateway(['driver-1', 'driver-2']),
+        $this->crew = new FakeCrewGateway(['driver-1', 'driver-2']),
         new FixedClock('2026-11-13 10:00:00'),
     );
 });
@@ -150,4 +151,22 @@ it('ignores canceled trips when checking conflicts', function (): void {
     $this->action->execute(tripData());
 
     expect($this->trips->trips)->toHaveCount(2);
+});
+
+it('rejects a driver whose license expires before the arrival', function (): void {
+    $this->crew->licenseExpirations['driver-1'] = '2026-11-20';
+
+    // Sai dia 20 e chega dia 21 (UTC): a CNH vence no meio da viagem.
+    expect(fn () => $this->action->execute(tripData('2026-11-20 22:00', '2026-11-21 04:30')))
+        ->toThrow(DriverLicenseExpiredException::class);
+
+    expect($this->trips->trips)->toBeEmpty();
+});
+
+it('accepts a driver whose license expires on the arrival day', function (): void {
+    $this->crew->licenseExpirations['driver-1'] = '2026-11-21';
+
+    $this->action->execute(tripData('2026-11-20 22:00', '2026-11-21 04:30'));
+
+    expect($this->trips->trips)->toHaveCount(1);
 });

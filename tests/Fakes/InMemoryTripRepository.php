@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fakes;
 
+use App\Domain\Operations\DTOs\TripSummaryDTO;
 use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
 use App\Domain\Operations\Repositories\TripRepository;
@@ -19,6 +20,23 @@ final class InMemoryTripRepository implements TripRepository
     public function nextIdentity(): string
     {
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
+    }
+
+    public function allWithDetails(): array
+    {
+        $trips = array_values($this->trips);
+
+        usort($trips, fn (Trip $a, Trip $b): int => $a->departureTime <=> $b->departureTime);
+
+        return array_map(
+            fn (Trip $trip): TripSummaryDTO => new TripSummaryDTO($trip, 'Origem', 'Destino', 0, 'AAA0A00', 'Motorista'),
+            $trips,
+        );
+    }
+
+    public function findById(string $id): ?Trip
+    {
+        return $this->trips[$id] ?? null;
     }
 
     public function hasVehicleConflict(string $vehicleId, DateTimeImmutable $from, DateTimeImmutable $to): bool

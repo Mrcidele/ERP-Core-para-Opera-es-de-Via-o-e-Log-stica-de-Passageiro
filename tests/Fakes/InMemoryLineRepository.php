@@ -26,6 +26,11 @@ final class InMemoryLineRepository implements LineRepository
         return $lines;
     }
 
+    public function findById(string $id): ?Line
+    {
+        return $this->lines[$id] ?? null;
+    }
+
     public function exists(string $id): bool
     {
         return isset($this->lines[$id]);

@@ -163,3 +163,19 @@ it('ignores canceled trips when checking conflicts', function (): void {
 
     $this->postJson('/api/v1/operations/trips', tripPayload())->assertCreated();
 });
+
+it('rejects a driver whose license expires before the arrival', function (): void {
+    $this->driver->update(['cnh_expiration_date' => '2026-11-19']);
+
+    $this->postJson('/api/v1/operations/trips', tripPayload())
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('driver_id');
+
+    $this->assertDatabaseCount('trips', 0);
+});
+
+it('accepts a driver whose license expires on the arrival day', function (): void {
+    $this->driver->update(['cnh_expiration_date' => '2026-11-20']);
+
+    $this->postJson('/api/v1/operations/trips', tripPayload())->assertCreated();
+});
