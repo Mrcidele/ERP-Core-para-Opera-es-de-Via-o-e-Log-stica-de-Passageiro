@@ -26,8 +26,8 @@ export const routes: RouteRecordRaw[] = [
     {
         path: '/operacoes',
         name: 'operations',
-        component: ComingSoonPage,
-        meta: { title: 'Operações', upcoming: 'Linhas, trechos e viagens, com alocação de ônibus e controle de lotação.' },
+        component: () => import('@/modules/operations/pages/OperationsPage.vue'),
+        meta: { title: 'Operações' },
     },
     {
         path: '/tripulacao',
