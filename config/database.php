@@ -96,7 +96,13 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            // Bancos serverless (Supabase, Neon) exigem TLS: defina DB_SSLMODE=require.
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Conexões por pooler em modo transação (PgBouncer/Supavisor) não aceitam
+            // prepared statements no servidor: ative DB_EMULATE_PREPARES nesses casos.
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_EMULATE_PREPARES => (bool) env('DB_EMULATE_PREPARES', false),
+            ]) : [],
         ],
 
         'sqlsrv' => [

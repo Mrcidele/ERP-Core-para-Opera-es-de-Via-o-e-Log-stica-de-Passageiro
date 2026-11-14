@@ -2,6 +2,10 @@
 
 Laravel 11 (PHP 8.4) + Vue 3/TypeScript, organizado em domínios com Clean Architecture. Regras em [`CLAUDE.md`](CLAUDE.md), desenho em [`docs/architecture.md`](docs/architecture.md).
 
+## Banco de dados (PostgreSQL serverless)
+
+O banco é um PostgreSQL na nuvem (Supabase ou Neon). No `.env`, preencha `DB_HOST`, `DB_DATABASE`, `DB_USERNAME` e `DB_PASSWORD` (ou `DB_URL`) com os dados do provedor e mantenha `DB_SSLMODE=require`. Ao conectar pelo pooler em modo transação (Supabase na porta 6543, Neon com `-pooler` no host), defina `DB_EMULATE_PREPARES=true`. Rode as migrations pela conexão direta.
+
 ## Subindo o ambiente (Sail: PostgreSQL + Redis)
 
 ```bash
