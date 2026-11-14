@@ -19,6 +19,15 @@ final class InMemoryEmployeeRepository implements EmployeeRepository
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
     }
 
+    public function all(): array
+    {
+        $employees = array_values($this->employees);
+
+        usort($employees, fn (Employee $a, Employee $b): int => $a->name <=> $b->name);
+
+        return $employees;
+    }
+
     public function existsByCpf(string $cpf): bool
     {
         return array_any($this->employees, fn (Employee $e): bool => $e->cpf === $cpf);
