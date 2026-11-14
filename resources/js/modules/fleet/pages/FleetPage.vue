@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { countLabel } from '@/core/utils/format';
 import AppIcon from '@/core/components/AppIcon.vue';
 import ConfirmDialog from '@/core/components/ConfirmDialog.vue';
 import SlideOver from '@/core/components/SlideOver.vue';
@@ -149,8 +150,8 @@ async function confirmRemove(): Promise<void> {
         <template v-else>
             <VehicleTable :vehicles="visibleVehicles" @edit="openEdit" @remove="removing = $event" />
             <p class="border-t border-ink-100 px-5 py-3 text-sm text-ink-500">
-                <template v-if="filtering">{{ visibleVehicles.length }} de {{ store.vehicles.length }} veículos</template>
-                <template v-else>{{ store.vehicles.length }} veículos</template>
+                <template v-if="filtering">{{ visibleVehicles.length }} de {{ countLabel(store.vehicles.length, 'veículo', 'veículos') }}</template>
+                <template v-else>{{ countLabel(store.vehicles.length, 'veículo', 'veículos') }}</template>
             </p>
         </template>
     </section>

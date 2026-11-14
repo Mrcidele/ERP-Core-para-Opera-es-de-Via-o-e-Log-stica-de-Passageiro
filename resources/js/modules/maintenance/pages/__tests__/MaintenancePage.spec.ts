@@ -1,0 +1,204 @@
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MaintenanceOrderSummary } from '../../types/maintenance';
+import MaintenancePage from '../MaintenancePage.vue';
+
+const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
+
+vi.mock('@/core/api/http', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/core/api/http')>()),
+    http,
+}));
+
+const order = (id: string, status: MaintenanceOrderSummary['status'], type: MaintenanceOrderSummary['type'] = 'corrective'): MaintenanceOrderSummary => ({
+    id,
+    type,
+    status,
+    description: `Serviço ${id}`,
+    cost_cents: status === 'completed' ? 45_090 : 0,
+    opened_at: '2026-11-13T10:00:00+00:00',
+    completed_at: status === 'completed' ? '2026-11-14T16:30:00+00:00' : null,
+    vehicle: { id: `bus-${id}`, plate: `ABC1D2${id}` },
+    mechanic: { id: 'mechanic-1', name: 'Maria Souza' },
+});
+
+const vehicles = [{ id: 'bus-9', plate: 'XYZ9876', chassis: '9BWZZZ377VT004251', capacity: 46, class_type: 'executivo', status: 'active', current_mileage: 1000 }];
+const employees = [{ id: 'mechanic-1', name: 'Maria Souza', cpf: '52998224725', role: 'mechanic', status: 'active', cnh_number: null, cnh_category: null, cnh_expiration_date: null }];
+
+let orders: MaintenanceOrderSummary[] = [];
+
+async function mountPage(initial: MaintenanceOrderSummary[]): Promise<VueWrapper> {
+    orders = initial;
+    http.get.mockImplementation((url: string) =>
+        Promise.resolve({ data: { data: url === '/maintenance/orders' ? orders : url === '/vehicles' ? vehicles : employees } }),
+    );
+    const wrapper = mount(MaintenancePage);
+    await flushPromises();
+
+    return wrapper;
+}
+
+const rows = (wrapper: VueWrapper) => wrapper.findAll('[data-test="order-row"]');
+
+describe('MaintenancePage', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        Object.values(http).forEach((mock) => mock.mockReset());
+    });
+
+    it('lists orders with plate, type badge, mechanic, status and cost', async () => {
+        const wrapper = await mountPage([order('1', 'open', 'preventive'), order('2', 'completed')]);
+
+        expect(rows(wrapper)[0]!.text()).toContain('ABC1D21');
+        expect(rows(wrapper)[0]!.get('[data-test="type-badge"]').text()).toBe('Preventiva');
+        expect(rows(wrapper)[0]!.text()).toContain('Maria Souza');
+        expect(rows(wrapper)[0]!.text()).toContain('Aberta');
+        expect(rows(wrapper)[0]!.get('[data-test="cost"]').text()).toBe('');
+
+        expect(rows(wrapper)[1]!.get('[data-test="type-badge"]').text()).toBe('Corretiva');
+        expect(rows(wrapper)[1]!.get('[data-test="cost"]').text().replace(/\s/g, ' ')).toBe('R$ 450,90');
+    });
+
+    it('offers actions only for pending orders', async () => {
+        const wrapper = await mountPage([order('1', 'open'), order('2', 'completed'), order('3', 'canceled')]);
+
+        expect(rows(wrapper).map((row) => row.findAll('button').map((button) => button.text()))).toEqual([['Concluir', 'Cancelar'], [], []]);
+    });
+
+    it('filters by status and counts each one', async () => {
+        const wrapper = await mountPage([order('1', 'open'), order('2', 'completed'), order('3', 'completed')]);
+
+        expect(wrapper.get('[data-test="filter-all"]').text()).toContain('3');
+        expect(wrapper.get('[data-test="filter-completed"]').text()).toContain('2');
+        expect(wrapper.find('[data-test="filter-in_progress"]').exists()).toBe(false);
+
+        await wrapper.get('[data-test="filter-open"]').trigger('click');
+        expect(rows(wrapper)).toHaveLength(1);
+
+        await wrapper.get('[data-test="filter-canceled"]').trigger('click');
+        expect(wrapper.find('[data-test="no-results"]').exists()).toBe(true);
+    });
+
+    it('opens an order from the side panel and reloads the list', async () => {
+        const wrapper = await mountPage([]);
+        http.post.mockImplementation(() => {
+            orders = [order('9', 'open')];
+
+            return Promise.resolve({ data: { data: { id: '9', status: 'open', cost_cents: 0 } } });
+        });
+
+        await wrapper.get('[data-test="new-order"]').trigger('click');
+        await flushPromises();
+        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="type-preventive"]').setValue();
+        await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
+        await wrapper.get('[data-test="description"]').setValue('Troca de óleo e filtros');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(http.post).toHaveBeenCalledWith('/maintenance/orders', {
+            vehicle_id: 'bus-9',
+            mechanic_id: 'mechanic-1',
+            type: 'preventive',
+            description: 'Troca de óleo e filtros',
+        });
+        expect(rows(wrapper)).toHaveLength(1);
+        expect(wrapper.get('[data-test="notice"]').text()).toContain('Ordem de serviço aberta');
+        expect(wrapper.find('form').exists()).toBe(false);
+    });
+
+    it('validates the opening form before calling the API', async () => {
+        const wrapper = await mountPage([]);
+
+        await wrapper.get('[data-test="new-order"]').trigger('click');
+        await flushPromises();
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(http.post).not.toHaveBeenCalled();
+        for (const field of ['vehicle_id', 'type', 'mechanic_id', 'description']) {
+            expect(wrapper.find(`[data-test="${field}-error"]`).exists()).toBe(true);
+        }
+    });
+
+    it('shows on the right field why the API refused the opening', async () => {
+        const wrapper = await mountPage([]);
+        http.post.mockRejectedValue({
+            isAxiosError: true,
+            response: { status: 422, data: { errors: { mechanic_id: ['O funcionário informado não existe, não é mecânico ou não está ativo.'] } } },
+        });
+
+        await wrapper.get('[data-test="new-order"]').trigger('click');
+        await flushPromises();
+        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="type-corrective"]').setValue();
+        await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
+        await wrapper.get('[data-test="description"]').setValue('Reparo no ar-condicionado');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="mechanic_id-error"]').text()).toContain('não é mecânico');
+    });
+
+    it('completes an order with the cost typed in reais', async () => {
+        const wrapper = await mountPage([order('1', 'open')]);
+        http.patch.mockImplementation(() => {
+            orders = [order('1', 'completed')];
+
+            return Promise.resolve({ data: { data: { id: '1', status: 'completed', cost_cents: 45_090 } } });
+        });
+
+        await rows(wrapper)[0]!.get('[data-test="complete"]').trigger('click');
+        await wrapper.get('input[data-test="cost"]').setValue('450,90');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(http.patch).toHaveBeenCalledWith('/maintenance/orders/1', { status: 'completed', cost_cents: 45_090 });
+        expect(rows(wrapper)[0]!.text()).toContain('Concluída');
+        expect(wrapper.get('[data-test="notice"]').text().replace(/\s/g, ' ')).toContain('concluída por R$ 450,90');
+        expect(wrapper.find('form').exists()).toBe(false);
+    });
+
+    it('rejects an invalid cost before calling the API', async () => {
+        const wrapper = await mountPage([order('1', 'open')]);
+
+        await rows(wrapper)[0]!.get('[data-test="complete"]').trigger('click');
+        await wrapper.get('input[data-test="cost"]').setValue('10.5');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(http.patch).not.toHaveBeenCalled();
+        expect(wrapper.get('[data-test="cost-error"]').text()).toContain('como 450,90');
+    });
+
+    it('cancels an order only after confirmation', async () => {
+        const wrapper = await mountPage([order('1', 'open')]);
+        http.patch.mockImplementation(() => {
+            orders = [order('1', 'canceled')];
+
+            return Promise.resolve({ data: { data: { id: '1', status: 'canceled', cost_cents: 0 } } });
+        });
+
+        await rows(wrapper)[0]!.get('[data-test="cancel"]').trigger('click');
+        expect(http.patch).not.toHaveBeenCalled();
+
+        await wrapper.get('[data-test="confirm-ok"]').trigger('click');
+        await flushPromises();
+
+        expect(http.patch).toHaveBeenCalledWith('/maintenance/orders/1', { status: 'canceled' });
+        expect(rows(wrapper)[0]!.text()).toContain('Cancelada');
+        expect(wrapper.get('[data-test="notice"]').text()).toContain('cancelada');
+    });
+
+    it('shows the empty and error states', async () => {
+        expect((await mountPage([])).find('[data-test="empty"]').exists()).toBe(true);
+
+        setActivePinia(createPinia());
+        http.get.mockRejectedValue(new Error('network'));
+        const failed = mount(MaintenancePage);
+        await flushPromises();
+
+        expect(failed.find('[data-test="list-error"]').exists()).toBe(true);
+    });
+});
