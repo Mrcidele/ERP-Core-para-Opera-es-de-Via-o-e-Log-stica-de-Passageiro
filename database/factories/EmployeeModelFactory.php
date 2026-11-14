@@ -24,7 +24,7 @@ final class EmployeeModelFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'name' => fake()->firstName().' '.fake()->lastName(),
             'cpf' => self::cpf(),
             'role' => EmployeeRole::Driver,
             'status' => EmployeeStatus::Active,

@@ -6,18 +6,40 @@ namespace App\Infrastructure\Database\Gateways;
 
 use App\Domain\Crew\Enums\EmployeeRole;
 use App\Domain\Crew\Enums\EmployeeStatus;
-use App\Domain\Operations\Contracts\CrewGateway;
+use App\Domain\Maintenance\Contracts\CrewGateway as MaintenanceCrewGateway;
+use App\Domain\Operations\Contracts\CrewGateway as OperationsCrewGateway;
 use App\Infrastructure\Database\Models\EmployeeModel;
+use DateTimeImmutable;
+use DateTimeZone;
 use Illuminate\Support\Str;
 
-final class EloquentCrewGateway implements CrewGateway
+final class EloquentCrewGateway implements MaintenanceCrewGateway, OperationsCrewGateway
 {
     public function isActiveDriver(string $employeeId): bool
+    {
+        return $this->isActiveWithRole($employeeId, EmployeeRole::Driver);
+    }
+
+    public function isActiveMechanic(string $employeeId): bool
+    {
+        return $this->isActiveWithRole($employeeId, EmployeeRole::Mechanic);
+    }
+
+    public function isDriverLicenseValidUntil(string $employeeId, DateTimeImmutable $moment): bool
     {
         return Str::isUuid($employeeId)
             && EmployeeModel::query()
                 ->whereKey($employeeId)
-                ->where('role', EmployeeRole::Driver->value)
+                ->whereDate('cnh_expiration_date', '>=', $moment->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d'))
+                ->exists();
+    }
+
+    private function isActiveWithRole(string $employeeId, EmployeeRole $role): bool
+    {
+        return Str::isUuid($employeeId)
+            && EmployeeModel::query()
+                ->whereKey($employeeId)
+                ->where('role', $role->value)
                 ->where('status', EmployeeStatus::Active->value)
                 ->exists();
     }
