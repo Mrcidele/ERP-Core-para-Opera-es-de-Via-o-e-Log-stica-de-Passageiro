@@ -18,7 +18,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -32,17 +32,6 @@ return [
     */
 
     'connections' => [
-
-        'sqlite' => [
-            'driver' => 'sqlite',
-            'url' => env('DB_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
-            'prefix' => '',
-            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
-        ],
 
         'mysql' => [
             'driver' => 'mysql',
@@ -96,6 +85,8 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
+            // Colunas timestamptz são lidas e gravadas sempre em UTC.
+            'timezone' => 'UTC',
             // Bancos serverless (Supabase, Neon) exigem TLS: defina DB_SSLMODE=require.
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             // Conexões por pooler em modo transação (PgBouncer/Supavisor) não aceitam

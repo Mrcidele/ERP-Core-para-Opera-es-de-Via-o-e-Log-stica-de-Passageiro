@@ -19,6 +19,17 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/var/www/html" -w /var/www/htm
 ./vendor/bin/sail npm run dev
 ```
 
+## Testes
+
+Os testes de feature rodam somente em PostgreSQL 16, num banco dedicado. Com um PostgreSQL local (o serviço `pgsql` do `docker-compose.yml` serve), crie-o uma vez:
+
+```sql
+CREATE USER erp WITH PASSWORD 'secret' SUPERUSER;
+CREATE DATABASE erp_test OWNER erp;
+```
+
+O usuário precisa poder criar a extensão `btree_gist`. Host, banco e credenciais ficam em `phpunit.xml` e `.env.testing`. Nunca aponte os testes para o banco de produção: cada execução recria as tabelas.
+
 ## Qualidade
 
 ```bash
