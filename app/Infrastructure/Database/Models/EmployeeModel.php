@@ -7,7 +7,9 @@ namespace App\Infrastructure\Database\Models;
 use App\Domain\Crew\Enums\EmployeeRole;
 use App\Domain\Crew\Enums\EmployeeStatus;
 use Carbon\CarbonImmutable;
+use Database\Factories\EmployeeModelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -23,6 +25,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class EmployeeModel extends Model
 {
+    /** @use HasFactory<EmployeeModelFactory> */
+    use HasFactory;
+
     use HasUuids;
     use SoftDeletes;
 
@@ -38,6 +43,11 @@ final class EmployeeModel extends Model
         'cnh_category',
         'cnh_expiration_date',
     ];
+
+    protected static function newFactory(): EmployeeModelFactory
+    {
+        return EmployeeModelFactory::new();
+    }
 
     /**
      * @return array<string, string>

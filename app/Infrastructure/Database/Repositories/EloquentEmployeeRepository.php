@@ -16,6 +16,26 @@ final class EloquentEmployeeRepository implements EmployeeRepository
         return Str::orderedUuid()->toString();
     }
 
+    public function all(): array
+    {
+        return array_values(
+            EmployeeModel::query()
+                ->orderBy('name')
+                ->get()
+                ->map(fn (EmployeeModel $model): Employee => new Employee(
+                    id: $model->id,
+                    name: $model->name,
+                    cpf: $model->cpf,
+                    role: $model->role,
+                    status: $model->status,
+                    cnhNumber: $model->cnh_number,
+                    cnhCategory: $model->cnh_category,
+                    cnhExpirationDate: $model->cnh_expiration_date?->toDateTimeImmutable(),
+                ))
+                ->all(),
+        );
+    }
+
     public function existsByCpf(string $cpf): bool
     {
         return EmployeeModel::query()->where('cpf', $cpf)->exists();

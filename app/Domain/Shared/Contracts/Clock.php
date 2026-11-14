@@ -9,6 +9,8 @@ use DateTimeImmutable;
 /** Fonte da data atual, para as regras de negócio não dependerem do relógio do sistema. */
 interface Clock
 {
+    public function now(): DateTimeImmutable;
+
     /** Data de hoje, à meia-noite. */
     public function today(): DateTimeImmutable;
 }
