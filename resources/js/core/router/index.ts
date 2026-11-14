@@ -3,12 +3,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 declare module 'vue-router' {
     interface RouteMeta {
         title: string;
-        /** Texto da tela de módulo ainda não disponível. */
-        upcoming?: string;
     }
 }
-
-const ComingSoonPage = () => import('@/core/pages/ComingSoonPage.vue');
 
 export const routes: RouteRecordRaw[] = [
     {
@@ -38,8 +34,8 @@ export const routes: RouteRecordRaw[] = [
     {
         path: '/manutencao',
         name: 'maintenance',
-        component: ComingSoonPage,
-        meta: { title: 'Manutenção', upcoming: 'Ordens de serviço, histórico e estoque de peças.' },
+        component: () => import('@/modules/maintenance/pages/MaintenancePage.vue'),
+        meta: { title: 'Manutenção' },
     },
     { path: '/:pathMatch(.*)*', redirect: { name: 'dashboard' } },
 ];

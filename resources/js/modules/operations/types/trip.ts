@@ -15,6 +15,22 @@ export interface Trip {
     status: TripStatus;
 }
 
+/** Item da listagem (TripSummaryResource): a viagem com linha, veículo e motorista. */
+export interface TripSummary {
+    id: string;
+    status: TripStatus;
+    /** ISO 8601 em UTC. */
+    departure_time: string;
+    /** ISO 8601 em UTC. */
+    arrival_time: string;
+    line: { id: string; origin: string; destination: string; distance_km: number };
+    vehicle: { id: string; plate: string };
+    driver: { id: string; name: string };
+}
+
+export const TRIP_TRANSITIONS = ['start', 'complete', 'cancel'] as const;
+export type TripTransition = (typeof TRIP_TRANSITIONS)[number];
+
 export interface Line {
     id: string;
     origin: string;

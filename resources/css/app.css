@@ -29,6 +29,10 @@
         @apply bg-brake-600 text-white hover:bg-brake-700;
     }
 
+    .btn-sm {
+        @apply h-8 px-3 text-sm;
+    }
+
     .icon-btn {
         @apply inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900;
     }

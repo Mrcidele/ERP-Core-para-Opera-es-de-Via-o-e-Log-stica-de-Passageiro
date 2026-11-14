@@ -4,7 +4,7 @@ import { extractErrorMessage, extractValidationErrors, http, type ValidationErro
 import type { Employee } from '@/modules/crew/types/employee';
 import type { Vehicle } from '@/modules/fleet/types/vehicle';
 import type { ScheduleTripPayload } from '../schemas/scheduleTripSchema';
-import type { Line, Trip } from '../types/trip';
+import type { Line, Trip, TripSummary, TripTransition } from '../types/trip';
 
 export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -19,6 +19,49 @@ export const useTripStore = defineStore('operations/trips', () => {
     const validationErrors = ref<ValidationErrors>({});
     const saveError = ref<string | null>(null);
     const lastScheduled = ref<Trip | null>(null);
+
+    const trips = ref<TripSummary[]>([]);
+    const listStatus = ref<RequestStatus>('idle');
+
+    /** Id da viagem cuja mudança de status está em andamento. */
+    const transitioningId = ref<string | null>(null);
+    const transitionError = ref<string | null>(null);
+
+    async function fetchTrips(): Promise<void> {
+        listStatus.value = 'loading';
+
+        try {
+            const response = await http.get<{ data: TripSummary[] }>('/operations/trips');
+
+            trips.value = response.data.data;
+            listStatus.value = 'success';
+        } catch {
+            listStatus.value = 'error';
+        }
+    }
+
+    /** Inicia, conclui ou cancela uma viagem; devolve se deu certo. */
+    async function transition(id: string, action: TripTransition): Promise<boolean> {
+        transitioningId.value = id;
+        transitionError.value = null;
+
+        try {
+            const response = await http.post<{ data: Trip }>(`/operations/trips/${id}/${action}`);
+
+            trips.value = trips.value.map((trip) => (trip.id === id ? { ...trip, status: response.data.data.status } : trip));
+
+            return true;
+        } catch (error) {
+            const errors = extractValidationErrors(error);
+
+            transitionError.value =
+                errors?.status?.[0] ?? extractErrorMessage(error, 'Não foi possível atualizar a viagem. Tente novamente.');
+
+            return false;
+        } finally {
+            transitioningId.value = null;
+        }
+    }
 
     async function loadOptions(): Promise<void> {
         optionsStatus.value = 'loading';
@@ -72,6 +115,10 @@ export const useTripStore = defineStore('operations/trips', () => {
     }
 
     return {
+        trips,
+        listStatus,
+        transitioningId,
+        transitionError,
         lines,
         vehicles,
         drivers,
@@ -80,6 +127,8 @@ export const useTripStore = defineStore('operations/trips', () => {
         validationErrors,
         saveError,
         lastScheduled,
+        fetchTrips,
+        transition,
         loadOptions,
         resetSaveState,
         schedule,

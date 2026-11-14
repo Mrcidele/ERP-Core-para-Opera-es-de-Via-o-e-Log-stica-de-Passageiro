@@ -4,6 +4,8 @@ defineProps<{
     title: string;
     message: string;
     confirmLabel: string;
+    /** Texto do botão que fecha sem confirmar. */
+    dismissLabel?: string;
     busy?: boolean;
     error?: string | null;
 }>();
@@ -24,7 +26,7 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>();
             <p class="mt-2 text-ink-600">{{ message }}</p>
             <p v-if="error" role="alert" class="field-error" data-test="confirm-error">{{ error }}</p>
             <div class="mt-6 flex justify-end gap-3">
-                <button type="button" class="btn btn-quiet" data-test="confirm-cancel" @click="emit('cancel')">Cancelar</button>
+                <button type="button" class="btn btn-quiet" data-test="confirm-cancel" @click="emit('cancel')">{{ dismissLabel ?? 'Cancelar' }}</button>
                 <button type="button" class="btn btn-danger" data-test="confirm-ok" :disabled="busy" @click="emit('confirm')">
                     {{ confirmLabel }}
                 </button>
