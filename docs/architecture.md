@@ -13,8 +13,8 @@
 
 - `vehicles`: `id`, `plate`, `chassis`, `capacity`, `class_type`, `status`, `current_mileage`
 - `employees`: `id`, `name`, `cpf`, `role` (driver, mechanic, admin), `cnh_number`, `cnh_category`, `cnh_expiration_date`, `status` (active, on_leave, inactive)
-- `routes`: `id`, `origin_city_id`, `destination_city_id`, `estimated_duration`, `distance_km`
-- `trips`: `id`, `route_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time`, `status`
+- `lines`: `id`, `origin`, `destination`, `distance_km`, `estimated_duration_minutes`
+- `trips`: `id`, `line_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time` (UTC), `status` (scheduled, in_progress, completed, canceled)
 - `maintenance_orders`: `id`, `vehicle_id`, `mechanic_id`, `description`, `cost`, `started_at`, `finished_at`, `status`
 
 ## Diretórios
@@ -67,6 +67,11 @@ resources/js/
 | Fleet | Paginação da listagem | Pendente |
 | Crew | Cadastro de funcionário (`POST /api/v1/crew/employees`) com formulário em painel lateral | Implementado |
 | Crew | Listagem, edição e exclusão de funcionários; jornada e escalas | Pendente |
-| Operations, Maintenance | — | Pendente |
+| Crew | Listagem de funcionários (`GET /api/v1/crew/employees`), usada pelo agendamento | Implementado |
+| Operations | Agendamento de viagem (`POST /api/v1/operations/trips`) com bloqueio de conflito de horário por veículo e por motorista | Implementado |
+| Operations | Listagem de linhas (`GET /api/v1/operations/lines`); as linhas vêm do seeder | Implementado |
+| Operations | Cadastro de linhas, listagem e mudança de status de viagens, controle de lotação | Pendente |
+| Operations | Trava contra agendamentos simultâneos (hoje a checagem de conflito é só por consulta) | Pendente |
+| Maintenance | — | Pendente |
 | — | Eventos de domínio entre módulos | Pendente |
 | — | Autenticação/autorização da API | Pendente |

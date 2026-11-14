@@ -17,6 +17,9 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Migrations com chave primária UUID e chaves estrangeiras com integridade referencial.
 - Tabelas de cadastro usam soft delete; unicidade por índice único parcial em SQL (`WHERE deleted_at IS NULL`), nunca `->unique()`.
 - Regra que depende da data atual recebe `App\Domain\Shared\Contracts\Clock`; nos testes, `Tests\Fakes\FixedClock`.
+- Um módulo não usa classes de domínio de outro: declara em `Domain/<Módulo>/Contracts` o que precisa saber (ex.: `FleetGateway`, `CrewGateway`) e a implementação fica em `Infrastructure/Database/Gateways`.
+- Datas com hora entram e saem da API em ISO 8601 com fuso e são gravadas em UTC.
+- Banco: PostgreSQL serverless (Supabase/Neon), configurado por `DB_SSLMODE` e `DB_EMULATE_PREPARES`; SQL cru precisa valer em PostgreSQL e SQLite (testes).
 - Rotas de API em `routes/api.php`, prefixo `/api/v1`.
 
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
