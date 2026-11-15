@@ -145,15 +145,57 @@ it('rejects an overlapping trip for the same driver', function (): void {
     $this->assertDatabaseCount('trips', 1);
 });
 
-it('allows a trip that starts when the previous one ends', function (): void {
+it('allows a trip of the same vehicle that starts when the previous one ends, with another driver', function (): void {
     $this->postJson('/api/v1/operations/trips', tripPayload())->assertCreated();
 
     $this->postJson('/api/v1/operations/trips', tripPayload([
+        'driver_id' => EmployeeModel::factory()->create()->id,
         'departure_time' => '2026-11-20T14:30:00-03:00',
         'arrival_time' => '2026-11-20T21:00:00-03:00',
     ]))->assertCreated();
 
     $this->assertDatabaseCount('trips', 2);
+});
+
+it('rejects a trip that leaves the driver less than 11 hours of rest', function (string $departure, string $arrival): void {
+    // Viagem existente: dia 20, das 08:00 às 14:30 (horário de Brasília).
+    $this->postJson('/api/v1/operations/trips', tripPayload())->assertCreated();
+
+    $this->postJson('/api/v1/operations/trips', tripPayload([
+        'vehicle_id' => VehicleModel::factory()->create(['status' => 'active'])->id,
+        'departure_time' => $departure,
+        'arrival_time' => $arrival,
+    ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['driver_id' => 'pelo menos 11 horas de descanso']);
+
+    $this->assertDatabaseCount('trips', 1);
+})->with([
+    'right after the previous trip' => ['2026-11-20T14:30:00-03:00', '2026-11-20T21:00:00-03:00'],
+    '10h59 after the previous trip' => ['2026-11-21T01:29:00-03:00', '2026-11-21T06:00:00-03:00'],
+    '10h59 before the next trip' => ['2026-11-19T15:00:00-03:00', '2026-11-19T21:01:00-03:00'],
+]);
+
+it('accepts a trip with exactly 11 hours of rest before or after', function (string $departure, string $arrival): void {
+    $this->postJson('/api/v1/operations/trips', tripPayload())->assertCreated();
+
+    $this->postJson('/api/v1/operations/trips', tripPayload([
+        'vehicle_id' => VehicleModel::factory()->create(['status' => 'active'])->id,
+        'departure_time' => $departure,
+        'arrival_time' => $arrival,
+    ]))->assertCreated();
+})->with([
+    '11h after the previous trip' => ['2026-11-21T01:30:00-03:00', '2026-11-21T06:00:00-03:00'],
+    '11h before the next trip' => ['2026-11-19T15:00:00-03:00', '2026-11-19T21:00:00-03:00'],
+]);
+
+it('frees the rest period when the previous trip is canceled', function (): void {
+    $first = $this->postJson('/api/v1/operations/trips', tripPayload())->assertCreated()->json('data.id');
+    $next = tripPayload(['departure_time' => '2026-11-20T16:00:00-03:00', 'arrival_time' => '2026-11-20T22:00:00-03:00']);
+
+    $this->postJson('/api/v1/operations/trips', $next)->assertUnprocessable();
+    $this->postJson("/api/v1/operations/trips/{$first}/cancel")->assertOk();
+    $this->postJson('/api/v1/operations/trips', $next)->assertCreated();
 });
 
 it('ignores canceled trips when checking conflicts', function (): void {

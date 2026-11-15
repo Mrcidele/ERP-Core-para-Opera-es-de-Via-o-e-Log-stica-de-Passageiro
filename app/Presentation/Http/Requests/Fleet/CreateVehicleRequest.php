@@ -17,6 +17,7 @@ final class CreateVehicleRequest extends VehicleRequest
             capacity: $this->integer('capacity'),
             classType: VehicleClass::from($this->string('class_type')->toString()),
             currentMileage: $this->integer('current_mileage'),
+            nextPreventiveMaintenanceKm: $this->filled('next_preventive_maintenance_km') ? $this->integer('next_preventive_maintenance_km') : null,
         );
     }
 }

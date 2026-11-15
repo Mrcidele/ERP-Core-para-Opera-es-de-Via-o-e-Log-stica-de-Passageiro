@@ -66,6 +66,7 @@ final class EloquentVehicleRepository implements VehicleRepository
                 'class_type' => $vehicle->classType,
                 'status' => $vehicle->status,
                 'current_mileage' => $vehicle->currentMileage,
+                'next_preventive_maintenance_km' => $vehicle->nextPreventiveMaintenanceKm,
             ],
         );
     }
@@ -86,6 +87,7 @@ final class EloquentVehicleRepository implements VehicleRepository
             classType: $model->class_type,
             status: $model->status,
             currentMileage: $model->current_mileage,
+            nextPreventiveMaintenanceKm: $model->next_preventive_maintenance_km,
         );
     }
 }

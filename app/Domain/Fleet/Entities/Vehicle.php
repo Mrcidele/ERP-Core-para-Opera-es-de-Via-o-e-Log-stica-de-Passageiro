@@ -18,7 +18,15 @@ final readonly class Vehicle
         public VehicleClass $classType,
         public VehicleStatus $status,
         public int $currentMileage,
+        /** Quilometragem em que a próxima revisão preventiva deve acontecer; null se não programada. */
+        public ?int $nextPreventiveMaintenanceKm = null,
     ) {}
+
+    /** O hodômetro já alcançou a quilometragem da próxima revisão preventiva? */
+    public function needsPreventiveMaintenance(): bool
+    {
+        return $this->nextPreventiveMaintenanceKm !== null && $this->currentMileage >= $this->nextPreventiveMaintenanceKm;
+    }
 
     /** Todo veículo recém-cadastrado entra na frota como ativo. */
     public static function register(string $id, CreateVehicleDTO $data): self
@@ -31,6 +39,7 @@ final readonly class Vehicle
             classType: $data->classType,
             status: VehicleStatus::Active,
             currentMileage: $data->currentMileage,
+            nextPreventiveMaintenanceKm: $data->nextPreventiveMaintenanceKm,
         );
     }
 }

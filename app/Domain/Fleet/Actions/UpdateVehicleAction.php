@@ -43,6 +43,7 @@ final readonly class UpdateVehicleAction
             classType: $data->classType,
             status: $data->status,
             currentMileage: $data->currentMileage,
+            nextPreventiveMaintenanceKm: $data->nextPreventiveMaintenanceKm,
         );
 
         $this->vehicles->save($vehicle);

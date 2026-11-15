@@ -17,5 +17,6 @@ final readonly class UpdateVehicleDTO
         public VehicleClass $classType,
         public VehicleStatus $status,
         public int $currentMileage,
+        public ?int $nextPreventiveMaintenanceKm = null,
     ) {}
 }

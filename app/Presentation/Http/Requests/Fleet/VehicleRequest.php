@@ -41,6 +41,7 @@ abstract class VehicleRequest extends FormRequest
             'capacity' => ['required', 'integer', 'min:1', 'max:100'],
             'class_type' => ['required', Rule::enum(VehicleClass::class)],
             'current_mileage' => ['required', 'integer', 'min:0'],
+            'next_preventive_maintenance_km' => ['nullable', 'integer', 'min:0', 'max:2000000000'],
         ];
     }
 

@@ -7,6 +7,7 @@ namespace App\Infrastructure\Database\Repositories;
 use App\Domain\Operations\DTOs\TripSummaryDTO;
 use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
+use App\Domain\Operations\Exceptions\DriverRestViolationException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
 use App\Domain\Operations\Repositories\TripRepository;
@@ -68,6 +69,12 @@ final class EloquentTripRepository implements TripRepository
         return $this->hasConflict('driver_id', $driverId, $from, $to);
     }
 
+    public function hasDriverRestConflict(string $driverId, DateTimeImmutable $from, DateTimeImmutable $to, int $restHours): bool
+    {
+        // Mesmo teste de sobreposição, com o período alargado pelo descanso dos dois lados.
+        return $this->hasConflict('driver_id', $driverId, $from->modify("-{$restHours} hours"), $to->modify("+{$restHours} hours"));
+    }
+
     public function save(Trip $trip): void
     {
         try {
@@ -90,9 +97,14 @@ final class EloquentTripRepository implements TripRepository
             }
 
             // Outra requisição gravou no mesmo período depois da checagem da Action.
-            throw str_contains($e->getMessage(), 'trips_driver_no_overlap')
+            if (! str_contains($e->getMessage(), 'trips_driver_rest')) {
+                throw new VehicleScheduleConflictException;
+            }
+
+            // A constraint do motorista cobre sobreposição e descanso: distingue os dois para a mensagem.
+            throw $this->hasDriverConflict($trip->driverId, $trip->departureTime, $trip->arrivalTime)
                 ? new DriverScheduleConflictException
-                : new VehicleScheduleConflictException;
+                : new DriverRestViolationException;
         }
     }
 

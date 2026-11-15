@@ -14,5 +14,6 @@ final readonly class CreateVehicleDTO
         public int $capacity,
         public VehicleClass $classType,
         public int $currentMileage,
+        public ?int $nextPreventiveMaintenanceKm = null,
     ) {}
 }

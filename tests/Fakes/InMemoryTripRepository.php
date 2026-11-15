@@ -55,6 +55,11 @@ final class InMemoryTripRepository implements TripRepository
         );
     }
 
+    public function hasDriverRestConflict(string $driverId, DateTimeImmutable $from, DateTimeImmutable $to, int $restHours): bool
+    {
+        return $this->hasDriverConflict($driverId, $from->modify("-{$restHours} hours"), $to->modify("+{$restHours} hours"));
+    }
+
     public function save(Trip $trip): void
     {
         $this->trips[$trip->id] = $trip;

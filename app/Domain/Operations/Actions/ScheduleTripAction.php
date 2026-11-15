@@ -10,6 +10,7 @@ use App\Domain\Operations\DTOs\ScheduleTripDTO;
 use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Exceptions\DriverLicenseExpiredException;
 use App\Domain\Operations\Exceptions\DriverNotAvailableException;
+use App\Domain\Operations\Exceptions\DriverRestViolationException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\InvalidTripPeriodException;
 use App\Domain\Operations\Exceptions\LineNotFoundException;
@@ -62,6 +63,10 @@ final readonly class ScheduleTripAction
 
         if ($this->trips->hasDriverConflict($data->driverId, $data->departureTime, $data->arrivalTime)) {
             throw new DriverScheduleConflictException;
+        }
+
+        if ($this->trips->hasDriverRestConflict($data->driverId, $data->departureTime, $data->arrivalTime, Trip::DRIVER_REST_HOURS)) {
+            throw new DriverRestViolationException;
         }
 
         $trip = Trip::schedule($this->trips->nextIdentity(), $data);

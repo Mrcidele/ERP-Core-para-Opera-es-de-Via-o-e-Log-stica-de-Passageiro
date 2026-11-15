@@ -19,7 +19,7 @@ final class VehicleResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, plate: string, chassis: string, capacity: int, class_type: string, status: string, current_mileage: int}
+     * @return array{id: string, plate: string, chassis: string, capacity: int, class_type: string, status: string, current_mileage: int, next_preventive_maintenance_km: int|null, needs_preventive_maintenance: bool}
      */
     public function toArray(Request $request): array
     {
@@ -31,6 +31,8 @@ final class VehicleResource extends JsonResource
             'class_type' => $this->resource->classType->value,
             'status' => $this->resource->status->value,
             'current_mileage' => $this->resource->currentMileage,
+            'next_preventive_maintenance_km' => $this->resource->nextPreventiveMaintenanceKm,
+            'needs_preventive_maintenance' => $this->resource->needsPreventiveMaintenance(),
         ];
     }
 }

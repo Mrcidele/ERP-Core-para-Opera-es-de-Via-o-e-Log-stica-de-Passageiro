@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
+use App\Domain\Operations\Exceptions\DriverRestViolationException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
 use App\Domain\Operations\Repositories\TripRepository;
@@ -64,9 +65,11 @@ it('refuses at the database an overlapping trip for the same driver', function (
     expect(TripModel::query()->count())->toBe(1);
 });
 
-it('lets the database accept back-to-back, canceled and deleted trips in the same period', function (): void {
+it('lets the database accept back-to-back trips with another driver, and canceled and deleted trips in the same period', function (): void {
+    $otherDriver = EmployeeModel::factory()->create();
+
     $this->trips->save(tripAt('2026-11-20 08:00', '2026-11-20 14:00'));
-    $this->trips->save(tripAt('2026-11-20 14:00', '2026-11-20 20:00'));
+    $this->trips->save(tripAt('2026-11-20 14:00', '2026-11-20 20:00', driverId: $otherDriver->id));
     $this->trips->save(tripAt('2026-11-20 08:00', '2026-11-20 14:00', status: TripStatus::Canceled));
 
     TripModel::query()->where('status', 'scheduled')->get()->each->delete();
@@ -74,6 +77,31 @@ it('lets the database accept back-to-back, canceled and deleted trips in the sam
     $this->trips->save(tripAt('2026-11-20 08:00', '2026-11-20 20:00'));
 
     expect(TripModel::withTrashed()->count())->toBe(4);
+});
+
+it('refuses at the database a trip that leaves the driver less than 11 hours of rest', function (string $departure, string $arrival): void {
+    $this->trips->save(tripAt('2026-11-20 08:00', '2026-11-20 14:00'));
+
+    $otherVehicle = VehicleModel::factory()->create();
+
+    expect(fn () => $this->trips->save(tripAt($departure, $arrival, vehicleId: $otherVehicle->id)))
+        ->toThrow(DriverRestViolationException::class);
+
+    expect(TripModel::query()->count())->toBe(1);
+})->with([
+    'right after' => ['2026-11-20 14:00', '2026-11-20 20:00'],
+    '10h59 after' => ['2026-11-21 00:59', '2026-11-21 05:00'],
+    '10h59 before' => ['2026-11-19 15:00', '2026-11-19 21:01'],
+]);
+
+it('lets the database accept exactly 11 hours of rest', function (): void {
+    $otherVehicle = VehicleModel::factory()->create();
+
+    $this->trips->save(tripAt('2026-11-20 08:00', '2026-11-20 14:00'));
+    $this->trips->save(tripAt('2026-11-21 01:00', '2026-11-21 05:00', vehicleId: $otherVehicle->id));
+    $this->trips->save(tripAt('2026-11-19 15:00', '2026-11-19 21:00', vehicleId: $otherVehicle->id));
+
+    expect(TripModel::query()->count())->toBe(3);
 });
 
 it('refuses at the database an arrival that is not after the departure', function (): void {

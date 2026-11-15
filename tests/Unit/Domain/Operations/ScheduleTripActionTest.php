@@ -9,6 +9,7 @@ use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
 use App\Domain\Operations\Exceptions\DriverLicenseExpiredException;
 use App\Domain\Operations\Exceptions\DriverNotAvailableException;
+use App\Domain\Operations\Exceptions\DriverRestViolationException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\InvalidTripPeriodException;
 use App\Domain\Operations\Exceptions\LineNotFoundException;
@@ -120,10 +121,51 @@ dataset('overlapping periods', [
     'around the trip' => ['2026-11-20 07:00', '2026-11-20 16:00'],
 ]);
 
-it('allows back-to-back trips for the same vehicle and driver', function (): void {
+it('allows back-to-back trips for the same vehicle with another driver', function (): void {
     $this->action->execute(tripData());
+    $this->action->execute(tripData('2026-11-20 14:30', '2026-11-20 21:00', driver: 'driver-2'));
+
+    expect($this->trips->trips)->toHaveCount(2);
+});
+
+it('rejects a trip that leaves the driver less than 11 hours of rest', function (string $departure, string $arrival): void {
+    // Viagem existente: dia 20, das 08:00 às 14:30.
+    $this->action->execute(tripData());
+
+    expect(fn () => $this->action->execute(tripData($departure, $arrival, vehicle: 'bus-2')))
+        ->toThrow(DriverRestViolationException::class, 'pelo menos 11 horas de descanso');
+
+    expect($this->trips->trips)->toHaveCount(1);
+})->with([
+    'starts right after the previous trip' => ['2026-11-20 14:30', '2026-11-20 21:00'],
+    'starts 10h59 after the previous trip' => ['2026-11-21 01:29', '2026-11-21 06:00'],
+    'ends right before the next trip' => ['2026-11-20 02:00', '2026-11-20 08:00'],
+    'ends 10h59 before the next trip' => ['2026-11-19 15:00', '2026-11-19 21:01'],
+]);
+
+it('accepts a trip with exactly 11 hours of rest before or after', function (string $departure, string $arrival): void {
+    $this->action->execute(tripData());
+    $this->action->execute(tripData($departure, $arrival, vehicle: 'bus-2'));
+
+    expect($this->trips->trips)->toHaveCount(2);
+})->with([
+    'starts 11h after the previous trip' => ['2026-11-21 01:30', '2026-11-21 06:00'],
+    'ends 11h before the next trip' => ['2026-11-19 15:00', '2026-11-19 21:00'],
+]);
+
+it('reports an overlap as a schedule conflict, not as missing rest', function (): void {
+    $this->action->execute(tripData());
+
+    expect(fn () => $this->action->execute(tripData('2026-11-20 10:00', '2026-11-20 12:00', vehicle: 'bus-2')))
+        ->toThrow(DriverScheduleConflictException::class);
+});
+
+it('does not count the rest after a canceled trip or for another driver', function (): void {
+    $scheduled = $this->action->execute(tripData());
+    $this->trips->save(new Trip($scheduled->id, $scheduled->lineId, $scheduled->vehicleId, $scheduled->driverId, $scheduled->departureTime, $scheduled->arrivalTime, TripStatus::Canceled));
+
     $this->action->execute(tripData('2026-11-20 14:30', '2026-11-20 21:00'));
-    $this->action->execute(tripData('2026-11-20 02:00', '2026-11-20 08:00'));
+    $this->action->execute(tripData('2026-11-20 21:00', '2026-11-21 03:00', driver: 'driver-2'));
 
     expect($this->trips->trips)->toHaveCount(3);
 });

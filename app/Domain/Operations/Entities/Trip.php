@@ -11,6 +11,9 @@ use DateTimeImmutable;
 
 final readonly class Trip
 {
+    /** Descanso mínimo do motorista entre duas viagens (interjornada da Lei do Motorista, Lei 13.103/2015). */
+    public const DRIVER_REST_HOURS = 11;
+
     public function __construct(
         public string $id,
         public string $lineId,

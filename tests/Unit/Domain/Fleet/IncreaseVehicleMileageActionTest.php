@@ -39,3 +39,18 @@ it('increases the mileage when a trip is completed', function (): void {
 
     expect($this->vehicles->findById('bus-1')?->currentMileage)->toBe(100_400);
 });
+
+it('keeps the scheduled mileage and reports the vehicle as due once the trip takes it past that point', function (): void {
+    $this->vehicles->save(new Vehicle('bus-2', 'XYZ9876', '9BWZZZ377VT004252', 46, VehicleClass::Leito, VehicleStatus::Active, 100_000, 100_300));
+
+    expect($this->vehicles->findById('bus-2')?->needsPreventiveMaintenance())->toBeFalse();
+
+    $vehicle = $this->action->execute('bus-2', 400);
+
+    expect($vehicle?->nextPreventiveMaintenanceKm)->toBe(100_300)
+        ->and($vehicle?->needsPreventiveMaintenance())->toBeTrue();
+});
+
+it('never reports a vehicle without a scheduled mileage as due', function (): void {
+    expect($this->action->execute('bus-1', 900_000)?->needsPreventiveMaintenance())->toBeFalse();
+});

@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property VehicleClass $class_type
  * @property VehicleStatus $status
  * @property int $current_mileage
+ * @property int|null $next_preventive_maintenance_km
  */
 final class VehicleModel extends Model
 {
@@ -39,6 +40,7 @@ final class VehicleModel extends Model
         'class_type',
         'status',
         'current_mileage',
+        'next_preventive_maintenance_km',
     ];
 
     protected static function newFactory(): VehicleModelFactory
@@ -56,6 +58,7 @@ final class VehicleModel extends Model
             'class_type' => VehicleClass::class,
             'status' => VehicleStatus::class,
             'current_mileage' => 'integer',
+            'next_preventive_maintenance_km' => 'integer',
         ];
     }
 }

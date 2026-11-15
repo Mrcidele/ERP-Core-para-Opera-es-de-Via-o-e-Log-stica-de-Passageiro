@@ -37,6 +37,7 @@ final readonly class IncreaseVehicleMileageAction
             classType: $vehicle->classType,
             status: $vehicle->status,
             currentMileage: $vehicle->currentMileage + $distanceKm,
+            nextPreventiveMaintenanceKm: $vehicle->nextPreventiveMaintenanceKm,
         );
 
         $this->vehicles->save($updated);

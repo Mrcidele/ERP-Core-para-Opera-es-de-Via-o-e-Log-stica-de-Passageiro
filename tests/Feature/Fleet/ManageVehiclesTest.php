@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Infrastructure\Database\Models\VehicleModel;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @param  array<string, mixed>  $overrides
@@ -114,4 +116,33 @@ it('allows registering again the plate and chassis of a deleted vehicle', functi
     ])->assertCreated();
 
     $this->assertDatabaseCount('vehicles', 2);
+});
+
+it('stores the next preventive maintenance mileage and tells when it is due', function (?int $nextKm, bool $due): void {
+    $vehicle = VehicleModel::factory()->create(['current_mileage' => 100_000, 'next_preventive_maintenance_km' => null]);
+
+    $this->putJson("/api/v1/fleet/vehicles/{$vehicle->id}", updatePayload($vehicle, ['next_preventive_maintenance_km' => $nextKm]))
+        ->assertOk()
+        ->assertJsonPath('data.next_preventive_maintenance_km', $nextKm)
+        ->assertJsonPath('data.needs_preventive_maintenance', $due);
+
+    $this->getJson("/api/v1/fleet/vehicles/{$vehicle->id}")->assertJsonPath('data.needs_preventive_maintenance', $due);
+})->with([
+    'not scheduled' => [null, false],
+    'still ahead' => [100_001, false],
+    'reached exactly' => [100_000, true],
+    'already passed' => [90_000, true],
+]);
+
+it('rejects an invalid next preventive maintenance mileage', function (mixed $value): void {
+    $vehicle = VehicleModel::factory()->create();
+
+    $this->putJson("/api/v1/fleet/vehicles/{$vehicle->id}", updatePayload($vehicle, ['next_preventive_maintenance_km' => $value]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('next_preventive_maintenance_km');
+})->with([-1, 'abc', 10.5]);
+
+it('refuses at the database a negative next preventive maintenance mileage', function (): void {
+    expect(fn () => DB::transaction(fn () => VehicleModel::factory()->create(['next_preventive_maintenance_km' => -1])))
+        ->toThrow(QueryException::class, 'vehicles_next_preventive_km_not_negative');
 });

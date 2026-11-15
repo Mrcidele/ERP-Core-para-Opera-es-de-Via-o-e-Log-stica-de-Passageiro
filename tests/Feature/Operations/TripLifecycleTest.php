@@ -116,3 +116,33 @@ it('rejects invalid status transitions', function (array $before, string $transi
 it('returns 404 for an unknown trip', function (string $transition, string $id): void {
     $this->postJson("/api/v1/operations/trips/{$id}/{$transition}")->assertNotFound();
 })->with(['start', 'complete', 'cancel'])->with(['0193a5b0-7c1e-7000-8000-000000000000', 'abc']);
+
+it('flags the vehicle for preventive maintenance once a completed trip takes it past the scheduled mileage', function (): void {
+    // 100.000 km no hodômetro, revisão aos 100.300 km, linha de 400 km.
+    $this->vehicle->update(['next_preventive_maintenance_km' => 100_300]);
+    $trip = scheduleTrip();
+
+    $this->getJson("/api/v1/fleet/vehicles/{$this->vehicle->id}")->assertJsonPath('data.needs_preventive_maintenance', false);
+
+    $this->postJson("/api/v1/operations/trips/{$trip}/start")->assertOk();
+    $this->getJson("/api/v1/fleet/vehicles/{$this->vehicle->id}")->assertJsonPath('data.needs_preventive_maintenance', false);
+
+    $this->postJson("/api/v1/operations/trips/{$trip}/complete")->assertOk();
+
+    $this->getJson("/api/v1/fleet/vehicles/{$this->vehicle->id}")
+        ->assertJsonPath('data.current_mileage', 100_400)
+        ->assertJsonPath('data.next_preventive_maintenance_km', 100_300)
+        ->assertJsonPath('data.needs_preventive_maintenance', true);
+});
+
+it('does not flag the vehicle while the completed trip leaves it short of the scheduled mileage', function (): void {
+    $this->vehicle->update(['next_preventive_maintenance_km' => 100_401]);
+    $trip = scheduleTrip();
+
+    $this->postJson("/api/v1/operations/trips/{$trip}/start")->assertOk();
+    $this->postJson("/api/v1/operations/trips/{$trip}/complete")->assertOk();
+
+    $this->getJson("/api/v1/fleet/vehicles/{$this->vehicle->id}")
+        ->assertJsonPath('data.current_mileage', 100_400)
+        ->assertJsonPath('data.needs_preventive_maintenance', false);
+});
