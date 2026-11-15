@@ -68,9 +68,8 @@ resources/js/
 │       └── types/
 └── core/
     ├── api/                 # Axios e tratamento de erros
-    ├── components/          # SlideOver, ConfirmDialog, AppIcon
-    ├── layout/              # AppShell (barra lateral + conteúdo)
-    ├── pages/
+    ├── ui/                  # design system: AppShell, StatCard, StatusBadge, MercosulPlate, SlideOver, toasts…
+    ├── session/             # liga a sessão ao Axios e ao router
     ├── router/              # Vue Router
     └── utils/
 ```
@@ -82,7 +81,7 @@ resources/js/
 | Fleet | CRUD de veículos (`/api/v1/fleet/vehicles`) com tela de listagem, cadastro, edição e exclusão lógica (soft delete) | Implementado |
 | Fleet | Paginação da listagem | Pendente |
 | Crew | Cadastro de funcionário (`POST /api/v1/crew/employees`) com formulário em painel lateral | Implementado |
-| Crew | Listagem, edição e exclusão de funcionários; jornada e escalas | Pendente |
+| Crew | Edição e exclusão de funcionários; jornada e escalas | Pendente |
 | Crew | Listagem de funcionários (`GET /api/v1/crew/employees`), usada pelo agendamento | Implementado |
 | Operations | Agendamento de viagem (`POST /api/v1/operations/trips`): veículo ativo, motorista ativo com CNH válida até a chegada, sem conflito de horário | Implementado |
 | Operations | Trava de concorrência no banco (`EXCLUDE USING GIST`) contra viagens sobrepostas do mesmo veículo ou motorista | Implementado |
@@ -98,4 +97,10 @@ resources/js/
 | Segurança | Limite de 5 logins/min por e-mail + IP e 120 req/min por usuário; cabeçalhos de segurança | Implementado |
 | Audit | `audit_logs` (JSONB) gravado por eventos; consulta em `GET /api/v1/audit-logs` (`audit.view`) | Implementado |
 | Frontend | Tela de login, sessão persistida, guarda de rotas, menus e ações por permissão | Implementado |
-| Identity | Cadastro e gestão de usuários, troca e recuperação de senha, tela de auditoria | Pendente |
+| Operations | Descanso de 11 horas do motorista entre viagens, na Action e em constraint do banco | Implementado |
+| Fleet | Revisão preventiva por quilometragem (`next_preventive_maintenance_km`, `needs_preventive_maintenance`) | Implementado |
+| Dashboard | `GET /api/v1/dashboard/summary` e painel com indicadores, distribuição da frota, alertas e próximas viagens; cada bloco só para quem pode consultar o módulo | Implementado |
+| Audit | Tela de auditoria (`/audit-logs`) com painel de antes e depois | Implementado |
+| Crew | Tela de listagem de funcionários com alerta de CNH | Implementado |
+| Frontend | Design system em `core/ui` e redesenho de todas as telas | Implementado |
+| Identity | Cadastro e gestão de usuários, troca e recuperação de senha | Pendente |

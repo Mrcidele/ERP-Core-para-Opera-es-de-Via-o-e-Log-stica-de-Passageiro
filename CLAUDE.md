@@ -34,7 +34,12 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Estado de requisição em stores Pinia isoladas por módulo; HTTP somente via `core/api/http.ts`.
 - Erros 422 da API são exibidos por campo no formulário.
 - Sessão: `authStore` guarda token, usuário e permissões (vindas da API, nunca recalculadas no frontend). `core/session/installSession.ts` liga a sessão ao Axios (token, 401, 403) e à guarda do router. Rota interna declara `meta.permission`; botão de ação só aparece com `authStore.can(...)`. Esconder é conveniência: quem barra é a API.
-- Visual: cores e fontes vêm dos tokens em `tailwind.config.js` (`ink`, `signal`, `road`, `brake`) e das classes de `resources/css/app.css` (`btn`, `field-*`). Formulários abrem em `SlideOver`; exclusões pedem confirmação em `ConfirmDialog`. Toda tela trata carregando, vazio e erro.
+- Design system em `resources/js/core/ui`: `AppShell`, `StatCard`, `StatusBadge` (com `statusCatalog.ts`), `MercosulPlate`, `SlideOver`, `ConfirmDialog`, `ToastContainer` + `useToast`, `EmptyState`, `TableSkeleton`, `AppIcon`. Tela nova usa esses componentes; não se recria tabela, pílula de status, placa ou painel lateral à mão.
+- Tokens em `tailwind.config.js` (`ink` = azul-asfalto/slate com `ink-950` na barra lateral, `signal` = âmbar, `road` = verde, `brake` = vermelho) e classes em `resources/css/app.css` (`card`, `btn`, `field-*`, `data-table`, `segmented`, `drawer-actions`, `num`).
+- Placas, chassis, horários, quilometragens e valores em R$ usam a classe `num` (fonte mono com algarismos tabulares).
+- Formulários abrem em `SlideOver` com as ações em `drawer-actions`; exclusões e cancelamentos pedem confirmação em `ConfirmDialog`; confirmações de sucesso saem por `useToast().success(...)`. 403, 409 e 422 da API viram toast automaticamente (não repetir na tela).
+- Toda lista trata carregando (`TableSkeleton`), vazio e erro (`EmptyState`).
+- Telas ficam em `modules/<módulo>/pages/<Nome>View.vue`.
 
 ## Qualidade
 
