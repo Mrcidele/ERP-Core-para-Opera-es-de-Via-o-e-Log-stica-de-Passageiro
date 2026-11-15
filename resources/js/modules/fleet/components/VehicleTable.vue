@@ -5,7 +5,7 @@ import { VEHICLE_CLASS_LABELS, type Vehicle } from '../types/vehicle';
 import PlateBadge from './PlateBadge.vue';
 import StatusBadge from './StatusBadge.vue';
 
-defineProps<{ vehicles: Vehicle[] }>();
+defineProps<{ vehicles: Vehicle[]; canManage: boolean }>();
 const emit = defineEmits<{ edit: [vehicle: Vehicle]; remove: [vehicle: Vehicle] }>();
 </script>
 
@@ -38,7 +38,7 @@ const emit = defineEmits<{ edit: [vehicle: Vehicle]; remove: [vehicle: Vehicle] 
                     <td class="px-5 py-3 text-right tabular-nums">{{ formatKm(vehicle.current_mileage) }}</td>
                     <td class="px-5 py-3"><StatusBadge :status="vehicle.status" /></td>
                     <td class="px-5 py-3">
-                        <div class="flex justify-end gap-1">
+                        <div v-if="canManage" class="flex justify-end gap-1">
                             <button
                                 type="button"
                                 class="icon-btn"

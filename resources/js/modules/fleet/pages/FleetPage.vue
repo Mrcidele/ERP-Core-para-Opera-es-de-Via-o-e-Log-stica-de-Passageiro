@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { countLabel } from '@/core/utils/format';
+import { useAuthStore } from '@/modules/auth/stores/authStore';
 import AppIcon from '@/core/components/AppIcon.vue';
 import ConfirmDialog from '@/core/components/ConfirmDialog.vue';
 import SlideOver from '@/core/components/SlideOver.vue';
@@ -10,6 +11,10 @@ import { useVehicleStore } from '../stores/vehicleStore';
 import { VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, type Vehicle, type VehicleStatus } from '../types/vehicle';
 
 const store = useVehicleStore();
+const auth = useAuthStore();
+
+// Sem fleet.manage a tela é só de consulta.
+const canManage = computed(() => auth.can('fleet.manage'));
 
 const statusFilter = ref<VehicleStatus | 'all'>('all');
 const search = ref('');
@@ -78,7 +83,7 @@ async function confirmRemove(): Promise<void> {
             <h1 class="font-display text-3xl font-semibold tracking-tight">Frota</h1>
             <p class="mt-1 text-ink-500">Ônibus cadastrados, com classe, lotação, quilometragem e situação.</p>
         </div>
-        <button type="button" class="btn btn-primary" data-test="new-vehicle" @click="openCreate">
+        <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-vehicle" @click="openCreate">
             <AppIcon name="plus" />
             Cadastrar veículo
         </button>
@@ -138,8 +143,10 @@ async function confirmRemove(): Promise<void> {
 
         <div v-else-if="store.vehicles.length === 0" data-test="empty" class="p-10 text-center">
             <h2 class="font-display text-lg font-semibold">Nenhum veículo cadastrado</h2>
-            <p class="mt-1 text-ink-500">Cadastre o primeiro ônibus para começar a montar a frota.</p>
-            <button type="button" class="btn btn-primary mt-5" @click="openCreate">Cadastrar veículo</button>
+            <template v-if="canManage">
+                <p class="mt-1 text-ink-500">Cadastre o primeiro ônibus para começar a montar a frota.</p>
+                <button type="button" class="btn btn-primary mt-5" @click="openCreate">Cadastrar veículo</button>
+            </template>
         </div>
 
         <div v-else-if="visibleVehicles.length === 0" data-test="no-results" class="p-10 text-center">
@@ -148,7 +155,7 @@ async function confirmRemove(): Promise<void> {
         </div>
 
         <template v-else>
-            <VehicleTable :vehicles="visibleVehicles" @edit="openEdit" @remove="removing = $event" />
+            <VehicleTable :vehicles="visibleVehicles" :can-manage="canManage" @edit="openEdit" @remove="removing = $event" />
             <p class="border-t border-ink-100 px-5 py-3 text-sm text-ink-500">
                 <template v-if="filtering">{{ visibleVehicles.length }} de {{ countLabel(store.vehicles.length, 'veículo', 'veículos') }}</template>
                 <template v-else>{{ countLabel(store.vehicles.length, 'veículo', 'veículos') }}</template>

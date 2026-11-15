@@ -36,7 +36,7 @@ const employee = (id: string, name: string, role: string, status: string) => ({
 
 const options: Record<string, unknown[]> = {
     '/operations/lines': lines,
-    '/vehicles': [vehicle('bus-1', 'ABC1D23', 'active'), vehicle('bus-2', 'XYZ9876', 'maintenance')],
+    '/fleet/vehicles': [vehicle('bus-1', 'ABC1D23', 'active'), vehicle('bus-2', 'XYZ9876', 'maintenance')],
     '/crew/employees': [
         employee('driver-1', 'João da Silva', 'driver', 'active'),
         employee('driver-2', 'Pedro Afastado', 'driver', 'on_leave'),
@@ -91,7 +91,7 @@ describe('TripForm', () => {
     it('loads lines, active vehicles and active drivers', async () => {
         const wrapper = await mountForm();
 
-        expect(http.get.mock.calls.map(([url]) => url).sort()).toEqual(['/crew/employees', '/operations/lines', '/vehicles']);
+        expect(http.get.mock.calls.map(([url]) => url).sort()).toEqual(['/crew/employees', '/fleet/vehicles', '/operations/lines']);
         expect(optionTexts(wrapper, 'line_id')).toEqual(['Curitiba → Ourinhos']);
         expect(optionTexts(wrapper, 'vehicle_id')).toEqual(['ABC1D23 (Executivo, 46 lugares)']);
         expect(optionTexts(wrapper, 'driver_id')).toEqual(['João da Silva (CNH D)']);
@@ -106,7 +106,7 @@ describe('TripForm', () => {
     });
 
     it('says when there is nothing to choose', async () => {
-        const wrapper = await mountForm({ '/operations/lines': [], '/vehicles': [], '/crew/employees': [] });
+        const wrapper = await mountForm({ '/operations/lines': [], '/fleet/vehicles': [], '/crew/employees': [] });
 
         expect(wrapper.find('[data-test="no-lines"]').exists()).toBe(true);
         expect(wrapper.find('[data-test="no-vehicles"]').exists()).toBe(true);

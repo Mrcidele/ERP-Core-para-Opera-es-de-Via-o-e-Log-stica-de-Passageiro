@@ -63,7 +63,7 @@ describe('VehicleForm', () => {
 
             await fillAndSubmit(wrapper);
 
-            expect(http.post).toHaveBeenCalledWith('/vehicles', {
+            expect(http.post).toHaveBeenCalledWith('/fleet/vehicles', {
                 plate: 'ABC1D23',
                 chassis: '9BWZZZ377VT004251',
                 capacity: 46,
@@ -117,7 +117,7 @@ describe('VehicleForm', () => {
             await flushPromises();
 
             expect(http.post).not.toHaveBeenCalled();
-            expect(http.put).toHaveBeenCalledWith('/vehicles/uuid-1', {
+            expect(http.put).toHaveBeenCalledWith('/fleet/vehicles/uuid-1', {
                 plate: 'ABC1D23',
                 chassis: '9BWZZZ377VT004251',
                 capacity: 46,

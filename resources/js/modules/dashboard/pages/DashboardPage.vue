@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useAuthStore } from '@/modules/auth/stores/authStore';
 import { useVehicleStore } from '@/modules/fleet/stores/vehicleStore';
 import { VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, type VehicleStatus } from '@/modules/fleet/types/vehicle';
 
 const store = useVehicleStore();
+const auth = useAuthStore();
 
 onMounted(() => {
     if (store.listStatus === 'idle') {
@@ -45,7 +47,7 @@ const breakdown = computed(() =>
 
         <div v-else-if="total === 0">
             <h2 class="font-display text-lg font-semibold">Nenhum veículo cadastrado</h2>
-            <RouterLink :to="{ name: 'fleet' }" class="btn btn-primary mt-4">Cadastrar o primeiro veículo</RouterLink>
+            <RouterLink v-if="auth.can('fleet.manage')" :to="{ name: 'fleet' }" class="btn btn-primary mt-4">Cadastrar o primeiro veículo</RouterLink>
         </div>
 
         <template v-else>

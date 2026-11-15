@@ -4,7 +4,7 @@ import PlateBadge from '@/modules/fleet/components/PlateBadge.vue';
 import type { TripSummary, TripTransition } from '../types/trip';
 import TripStatusBadge from './TripStatusBadge.vue';
 
-defineProps<{ trips: TripSummary[]; busyId: string | null }>();
+defineProps<{ trips: TripSummary[]; busyId: string | null; canManage: boolean }>();
 const emit = defineEmits<{ transition: [trip: TripSummary, action: TripTransition] }>();
 </script>
 
@@ -34,7 +34,7 @@ const emit = defineEmits<{ transition: [trip: TripSummary, action: TripTransitio
                     <td class="whitespace-nowrap px-5 py-3">{{ trip.driver.name }}</td>
                     <td class="px-5 py-3"><TripStatusBadge :status="trip.status" /></td>
                     <td class="px-5 py-3">
-                        <div class="flex justify-end gap-2">
+                        <div v-if="canManage" class="flex justify-end gap-2">
                             <template v-if="trip.status === 'scheduled'">
                                 <button
                                     type="button"

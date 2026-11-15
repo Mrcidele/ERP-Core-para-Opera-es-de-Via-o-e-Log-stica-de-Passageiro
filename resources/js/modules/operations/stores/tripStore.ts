@@ -69,7 +69,7 @@ export const useTripStore = defineStore('operations/trips', () => {
         try {
             const [lineList, vehicleList, employeeList] = await Promise.all([
                 http.get<{ data: Line[] }>('/operations/lines'),
-                http.get<{ data: Vehicle[] }>('/vehicles'),
+                http.get<{ data: Vehicle[] }>('/fleet/vehicles'),
                 http.get<{ data: Employee[] }>('/crew/employees'),
             ]);
 

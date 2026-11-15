@@ -12,8 +12,6 @@ vi.mock('@/core/api/http', async (importOriginal) => ({
 const order = { id: 'order-1', vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective', status: 'open', description: 'Reparo', cost_cents: 0, opened_at: '2026-11-13T10:00:00+00:00', completed_at: null };
 const summary = { ...order, vehicle: { id: 'bus-1', plate: 'ABC1D23' }, mechanic: { id: 'mechanic-1', name: 'Maria Souza' } };
 
-const employee = (id: string, role: string, status: string) => ({ id, name: id, cpf: '52998224725', role, status, cnh_number: null, cnh_category: null, cnh_expiration_date: null });
-
 describe('maintenanceStore', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
@@ -40,14 +38,14 @@ describe('maintenanceStore', () => {
         expect(store.listStatus).toBe('error');
     });
 
-    it('offers every vehicle and only active mechanics as options', async () => {
+    it('offers every vehicle and the mechanics listed by the maintenance module', async () => {
         http.get.mockImplementation((url: string) =>
             Promise.resolve({
                 data: {
                     data:
-                        url === '/vehicles'
+                        url === '/fleet/vehicles'
                             ? [{ id: 'bus-1', status: 'active' }, { id: 'bus-2', status: 'maintenance' }]
-                            : [employee('m1', 'mechanic', 'active'), employee('m2', 'mechanic', 'inactive'), employee('d1', 'driver', 'active')],
+                            : [{ id: 'm1', name: 'Maria Souza' }],
                 },
             }),
         );
@@ -55,8 +53,9 @@ describe('maintenanceStore', () => {
 
         await store.loadOptions();
 
+        expect(http.get.mock.calls.map(([url]) => url).sort()).toEqual(['/fleet/vehicles', '/maintenance/mechanics']);
         expect(store.vehicles.map((vehicle) => vehicle.id)).toEqual(['bus-1', 'bus-2']);
-        expect(store.mechanics.map((mechanic) => mechanic.id)).toEqual(['m1']);
+        expect(store.mechanics).toEqual([{ id: 'm1', name: 'Maria Souza' }]);
     });
 
     it('opens an order and reloads the list', async () => {

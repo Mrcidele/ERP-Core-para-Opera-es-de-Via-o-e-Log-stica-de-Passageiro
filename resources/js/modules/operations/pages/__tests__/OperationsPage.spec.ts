@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInAs } from '@/tests/auth';
 import { formatDateTime } from '@/core/utils/format';
 import type { TripSummary } from '../../types/trip';
 import OperationsPage from '../OperationsPage.vue';
@@ -35,6 +36,7 @@ const rows = (wrapper: VueWrapper) => wrapper.findAll('[data-test="trip-row"]');
 describe('OperationsPage', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
+        signInAs('admin');
         http.get.mockReset();
         http.post.mockReset();
     });
@@ -141,5 +143,16 @@ describe('OperationsPage', () => {
         await flushPromises();
 
         expect(wrapper.find('[data-test="line_id"]').exists()).toBe(true);
+    });
+
+    it('is read-only for a role without operations.manage', async () => {
+        signInAs('fleet_manager');
+        const wrapper = await mountPage([trip('1', 'scheduled'), trip('2', 'in_progress')]);
+
+        expect(rows(wrapper)).toHaveLength(2);
+        expect(wrapper.find('[data-test="new-trip"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="start"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="complete"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="cancel"]').exists()).toBe(false);
     });
 });

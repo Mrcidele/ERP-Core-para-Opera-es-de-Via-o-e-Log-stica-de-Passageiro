@@ -5,7 +5,7 @@ import { isPending, type MaintenanceOrderSummary } from '../types/maintenance';
 import MaintenanceStatusBadge from './MaintenanceStatusBadge.vue';
 import MaintenanceTypeBadge from './MaintenanceTypeBadge.vue';
 
-defineProps<{ orders: MaintenanceOrderSummary[] }>();
+defineProps<{ orders: MaintenanceOrderSummary[]; canManage: boolean }>();
 const emit = defineEmits<{ complete: [order: MaintenanceOrderSummary]; cancel: [order: MaintenanceOrderSummary] }>();
 </script>
 
@@ -40,7 +40,7 @@ const emit = defineEmits<{ complete: [order: MaintenanceOrderSummary]; cancel: [
                         {{ order.status === 'completed' ? formatCents(order.cost_cents) : '' }}
                     </td>
                     <td class="px-5 py-3">
-                        <div v-if="isPending(order.status)" class="flex justify-end gap-2">
+                        <div v-if="canManage && isPending(order.status)" class="flex justify-end gap-2">
                             <button type="button" class="btn btn-sm btn-primary" data-test="complete" @click="emit('complete', order)">Concluir</button>
                             <button type="button" class="btn btn-sm btn-quiet" data-test="cancel" @click="emit('cancel', order)">Cancelar</button>
                         </div>

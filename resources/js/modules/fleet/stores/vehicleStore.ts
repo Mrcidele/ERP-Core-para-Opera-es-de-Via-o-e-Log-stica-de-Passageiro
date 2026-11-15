@@ -23,7 +23,7 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
         listStatus.value = 'loading';
 
         try {
-            const response = await http.get<{ data: Vehicle[] }>('/vehicles');
+            const response = await http.get<{ data: Vehicle[] }>('/fleet/vehicles');
 
             vehicles.value = response.data.data;
             listStatus.value = 'success';
@@ -65,17 +65,17 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
     }
 
     const create = (payload: CreateVehiclePayload): Promise<Vehicle | null> =>
-        save(() => http.post('/vehicles', payload), 'Não foi possível cadastrar o veículo. Tente novamente.');
+        save(() => http.post('/fleet/vehicles', payload), 'Não foi possível cadastrar o veículo. Tente novamente.');
 
     const update = (id: string, payload: UpdateVehiclePayload): Promise<Vehicle | null> =>
-        save(() => http.put(`/vehicles/${id}`, payload), 'Não foi possível salvar as alterações. Tente novamente.');
+        save(() => http.put(`/fleet/vehicles/${id}`, payload), 'Não foi possível salvar as alterações. Tente novamente.');
 
     async function remove(id: string): Promise<boolean> {
         removeStatus.value = 'loading';
         removeError.value = null;
 
         try {
-            await http.delete(`/vehicles/${id}`);
+            await http.delete(`/fleet/vehicles/${id}`);
 
             vehicles.value = vehicles.value.filter((item) => item.id !== id);
             removeStatus.value = 'success';

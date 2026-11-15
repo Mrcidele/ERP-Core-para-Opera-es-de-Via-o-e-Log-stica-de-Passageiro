@@ -1,6 +1,8 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAuthStore } from '@/modules/auth/stores/authStore';
+import { signInAs } from '@/tests/auth';
 import type { MaintenanceOrderSummary } from '../../types/maintenance';
 import MaintenancePage from '../MaintenancePage.vue';
 
@@ -24,14 +26,14 @@ const order = (id: string, status: MaintenanceOrderSummary['status'], type: Main
 });
 
 const vehicles = [{ id: 'bus-9', plate: 'XYZ9876', chassis: '9BWZZZ377VT004251', capacity: 46, class_type: 'executivo', status: 'active', current_mileage: 1000 }];
-const employees = [{ id: 'mechanic-1', name: 'Maria Souza', cpf: '52998224725', role: 'mechanic', status: 'active', cnh_number: null, cnh_category: null, cnh_expiration_date: null }];
+const mechanics = [{ id: 'mechanic-1', name: 'Maria Souza' }];
 
 let orders: MaintenanceOrderSummary[] = [];
 
 async function mountPage(initial: MaintenanceOrderSummary[]): Promise<VueWrapper> {
     orders = initial;
     http.get.mockImplementation((url: string) =>
-        Promise.resolve({ data: { data: url === '/maintenance/orders' ? orders : url === '/vehicles' ? vehicles : employees } }),
+        Promise.resolve({ data: { data: url === '/maintenance/orders' ? orders : url === '/fleet/vehicles' ? vehicles : url === '/maintenance/mechanics' ? mechanics : [] } }),
     );
     const wrapper = mount(MaintenancePage);
     await flushPromises();
@@ -44,6 +46,7 @@ const rows = (wrapper: VueWrapper) => wrapper.findAll('[data-test="order-row"]')
 describe('MaintenancePage', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
+        signInAs('admin');
         Object.values(http).forEach((mock) => mock.mockReset());
     });
 
@@ -200,5 +203,26 @@ describe('MaintenancePage', () => {
         await flushPromises();
 
         expect(failed.find('[data-test="list-error"]').exists()).toBe(true);
+    });
+
+    it('lets the workshop supervisor manage orders', async () => {
+        signInAs('mechanic_supervisor');
+        const wrapper = await mountPage([order('1', 'open')]);
+
+        expect(wrapper.find('[data-test="new-order"]').exists()).toBe(true);
+        expect(rows(wrapper)[0]!.findAll('button').map((button) => button.text())).toEqual(['Concluir', 'Cancelar']);
+    });
+
+    it('is read-only without maintenance.manage', async () => {
+        useAuthStore().setSession({
+            token: 'test-token',
+            user: { id: 'user-2', name: 'Só Consulta', email: 'consulta@erp.test', role: 'dispatcher' },
+            permissions: ['maintenance.view'],
+        });
+        const wrapper = await mountPage([order('1', 'open')]);
+
+        expect(rows(wrapper)).toHaveLength(1);
+        expect(wrapper.find('[data-test="new-order"]').exists()).toBe(false);
+        expect(rows(wrapper)[0]!.findAll('button')).toHaveLength(0);
     });
 });

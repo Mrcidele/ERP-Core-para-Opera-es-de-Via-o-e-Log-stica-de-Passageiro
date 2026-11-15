@@ -42,5 +42,11 @@ export const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, string> = {
     canceled: 'Cancelada',
 };
 
+/** Opção do formulário de abertura (MechanicResource): mecânicos ativos. */
+export interface Mechanic {
+    id: string;
+    name: string;
+}
+
 /** A ordem ainda mantém o veículo parado? */
 export const isPending = (status: MaintenanceStatus): boolean => status === 'open' || status === 'in_progress';

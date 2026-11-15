@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInAs } from '@/tests/auth';
 import type { Vehicle } from '../../types/vehicle';
 import FleetPage from '../FleetPage.vue';
 
@@ -37,13 +38,14 @@ const plates = (wrapper: VueWrapper): string[] =>
 describe('FleetPage', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
+        signInAs('admin');
         Object.values(http).forEach((mock) => mock.mockReset());
     });
 
     it('loads and lists the vehicles with counts per status', async () => {
         const wrapper = await mountPage();
 
-        expect(http.get).toHaveBeenCalledWith('/vehicles');
+        expect(http.get).toHaveBeenCalledWith('/fleet/vehicles');
         expect(plates(wrapper)).toEqual(['AAA1A11', 'BBB2B22', 'CCC3C33']);
         expect(wrapper.get('[data-test="filter-all"]').text()).toContain('3');
         expect(wrapper.get('[data-test="filter-maintenance"]').text()).toContain('1');
@@ -105,7 +107,7 @@ describe('FleetPage', () => {
         await wrapper.get('form').trigger('submit');
         await flushPromises();
 
-        expect(http.put).toHaveBeenCalledWith('/vehicles/2', expect.objectContaining({ status: 'active' }));
+        expect(http.put).toHaveBeenCalledWith('/fleet/vehicles/2', expect.objectContaining({ status: 'active' }));
         expect(wrapper.get('[data-test="filter-maintenance"]').text()).toContain('0');
         expect(wrapper.get('[data-test="notice"]').text()).toContain('Veículo BBB2B22 atualizado.');
     });
@@ -120,7 +122,7 @@ describe('FleetPage', () => {
         await wrapper.get('[data-test="confirm-ok"]').trigger('click');
         await flushPromises();
 
-        expect(http.delete).toHaveBeenCalledWith('/vehicles/1');
+        expect(http.delete).toHaveBeenCalledWith('/fleet/vehicles/1');
         expect(plates(wrapper)).toEqual(['BBB2B22', 'CCC3C33']);
         expect(wrapper.get('[data-test="notice"]').text()).toContain('Veículo AAA1A11 excluído.');
     });
@@ -135,5 +137,22 @@ describe('FleetPage', () => {
 
         expect(plates(wrapper)).toHaveLength(3);
         expect(wrapper.get('[data-test="confirm-error"]').text()).toContain('Não foi possível excluir');
+    });
+
+    it('is read-only for a role without fleet.manage', async () => {
+        signInAs('dispatcher');
+        const wrapper = await mountPage();
+
+        expect(plates(wrapper)).toHaveLength(3);
+        expect(wrapper.find('[data-test="new-vehicle"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="edit"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="remove"]').exists()).toBe(false);
+    });
+
+    it('offers no way to create a vehicle in the empty state without fleet.manage', async () => {
+        signInAs('mechanic_supervisor');
+        const wrapper = await mountPage([]);
+
+        expect(wrapper.get('[data-test="empty"]').findAll('button')).toHaveLength(0);
     });
 });

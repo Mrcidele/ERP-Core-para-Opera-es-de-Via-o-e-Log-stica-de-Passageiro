@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AppIcon from '@/core/components/AppIcon.vue';
 import SlideOver from '@/core/components/SlideOver.vue';
+import { useAuthStore } from '@/modules/auth/stores/authStore';
 import EmployeeForm from '../components/EmployeeForm.vue';
 import { EMPLOYEE_ROLE_LABELS, type Employee } from '../types/employee';
+
+const auth = useAuthStore();
+
+const canManage = computed(() => auth.can('crew.manage'));
 
 const formOpen = ref(false);
 const notice = ref<string | null>(null);
@@ -20,7 +25,7 @@ function onSaved(employee: Employee): void {
             <h1 class="font-display text-3xl font-semibold tracking-tight">Tripulação</h1>
             <p class="mt-1 text-ink-500">Motoristas, mecânicos e equipe administrativa.</p>
         </div>
-        <button type="button" class="btn btn-primary" data-test="new-employee" @click="formOpen = true">
+        <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-employee" @click="formOpen = true">
             <AppIcon name="plus" />
             Cadastrar funcionário
         </button>
@@ -38,7 +43,8 @@ function onSaved(employee: Employee): void {
 
     <section class="mt-6 max-w-xl rounded-xl border border-dashed border-ink-200 bg-white p-8">
         <h2 class="font-display text-lg font-semibold">A lista de funcionários ainda não está disponível</h2>
-        <p class="mt-2 text-ink-600">Por enquanto é possível cadastrar. Listagem, edição e exclusão chegam na próxima etapa.</p>
+        <p v-if="canManage" class="mt-2 text-ink-600">Por enquanto é possível cadastrar. Listagem, edição e exclusão chegam na próxima etapa.</p>
+        <p v-else data-test="read-only" class="mt-2 text-ink-600">Seu perfil só consulta a tripulação, e a consulta em tela chega na próxima etapa.</p>
     </section>
 
     <SlideOver :open="formOpen" title="Cadastrar funcionário" @close="formOpen = false">

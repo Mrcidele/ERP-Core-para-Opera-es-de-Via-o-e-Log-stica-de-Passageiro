@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
-import type { Employee } from '@/modules/crew/types/employee';
 import type { Vehicle } from '@/modules/fleet/types/vehicle';
 import type { CompleteMaintenanceOrderPayload, OpenMaintenanceOrderPayload } from '../schemas/maintenanceOrderSchemas';
-import type { MaintenanceOrder, MaintenanceOrderSummary } from '../types/maintenance';
+import type { MaintenanceOrder, MaintenanceOrderSummary, Mechanic } from '../types/maintenance';
 
 export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -14,7 +13,7 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
 
     // Opções do formulário de abertura: qualquer veículo da frota e mecânicos ativos.
     const vehicles = ref<Vehicle[]>([]);
-    const mechanics = ref<Employee[]>([]);
+    const mechanics = ref<Mechanic[]>([]);
     const optionsStatus = ref<RequestStatus>('idle');
 
     const saveStatus = ref<RequestStatus>('idle');
@@ -38,13 +37,14 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
         optionsStatus.value = 'loading';
 
         try {
-            const [vehicleList, employeeList] = await Promise.all([
-                http.get<{ data: Vehicle[] }>('/vehicles'),
-                http.get<{ data: Employee[] }>('/crew/employees'),
+            // Os mecânicos vêm do próprio módulo: a supervisão de oficina não tem acesso à Tripulação.
+            const [vehicleList, mechanicList] = await Promise.all([
+                http.get<{ data: Vehicle[] }>('/fleet/vehicles'),
+                http.get<{ data: Mechanic[] }>('/maintenance/mechanics'),
             ]);
 
             vehicles.value = vehicleList.data.data;
-            mechanics.value = employeeList.data.data.filter((employee) => employee.role === 'mechanic' && employee.status === 'active');
+            mechanics.value = mechanicList.data.data;
             optionsStatus.value = 'success';
         } catch {
             optionsStatus.value = 'error';

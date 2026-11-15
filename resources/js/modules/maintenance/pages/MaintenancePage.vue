@@ -4,6 +4,7 @@ import AppIcon from '@/core/components/AppIcon.vue';
 import ConfirmDialog from '@/core/components/ConfirmDialog.vue';
 import SlideOver from '@/core/components/SlideOver.vue';
 import { countLabel, formatCents } from '@/core/utils/format';
+import { useAuthStore } from '@/modules/auth/stores/authStore';
 import CompleteMaintenanceOrderForm from '../components/CompleteMaintenanceOrderForm.vue';
 import MaintenanceOrderTable from '../components/MaintenanceOrderTable.vue';
 import OpenMaintenanceOrderForm from '../components/OpenMaintenanceOrderForm.vue';
@@ -17,6 +18,10 @@ import {
 } from '../types/maintenance';
 
 const store = useMaintenanceStore();
+const auth = useAuthStore();
+
+// Sem maintenance.manage a tela é só de consulta.
+const canManage = computed(() => auth.can('maintenance.manage'));
 
 const statusFilter = ref<MaintenanceStatus | 'all'>('all');
 const openFormVisible = ref(false);
@@ -71,7 +76,7 @@ async function confirmCancel(): Promise<void> {
             <h1 class="font-display text-3xl font-semibold tracking-tight">Manutenção</h1>
             <p class="mt-1 text-ink-500">Ordens de serviço da oficina. Veículo com ordem pendente não entra em viagem.</p>
         </div>
-        <button type="button" class="btn btn-primary" data-test="new-order" @click="openFormVisible = true">
+        <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-order" @click="openFormVisible = true">
             <AppIcon name="plus" />
             Abrir ordem de serviço
         </button>
@@ -119,8 +124,10 @@ async function confirmCancel(): Promise<void> {
 
         <div v-else-if="store.orders.length === 0" data-test="empty" class="p-10 text-center">
             <h2 class="font-display text-lg font-semibold">Nenhuma ordem de serviço</h2>
-            <p class="mt-1 text-ink-500">Abra uma ordem quando um veículo precisar ir para a oficina.</p>
-            <button type="button" class="btn btn-primary mt-5" @click="openFormVisible = true">Abrir ordem de serviço</button>
+            <template v-if="canManage">
+                <p class="mt-1 text-ink-500">Abra uma ordem quando um veículo precisar ir para a oficina.</p>
+                <button type="button" class="btn btn-primary mt-5" @click="openFormVisible = true">Abrir ordem de serviço</button>
+            </template>
         </div>
 
         <div v-else-if="visibleOrders.length === 0" data-test="no-results" class="p-10 text-center">
@@ -129,7 +136,7 @@ async function confirmCancel(): Promise<void> {
         </div>
 
         <template v-else>
-            <MaintenanceOrderTable :orders="visibleOrders" @complete="completing = $event" @cancel="askCancel" />
+            <MaintenanceOrderTable :orders="visibleOrders" :can-manage="canManage" @complete="completing = $event" @cancel="askCancel" />
             <p class="border-t border-ink-100 px-5 py-3 text-sm text-ink-500">
                 <template v-if="statusFilter !== 'all'">{{ visibleOrders.length }} de {{ countLabel(store.orders.length, 'ordem', 'ordens') }}</template>
                 <template v-else>{{ countLabel(store.orders.length, 'ordem', 'ordens') }}</template>
