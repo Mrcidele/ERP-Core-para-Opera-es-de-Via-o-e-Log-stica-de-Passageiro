@@ -6,37 +6,49 @@ export default {
     theme: {
         extend: {
             colors: {
-                // Azul-asfalto: texto, barra lateral e ação principal.
+                // Azul-asfalto (escala slate): texto, barra lateral e ação principal. 950 é o fundo do centro de comando.
                 ink: {
-                    50: '#F2F5FA',
-                    100: '#E3E9F3',
-                    200: '#C5D0E3',
-                    300: '#9AAAC6',
-                    400: '#6B7FA3',
-                    500: '#4A5E85',
-                    600: '#35476B',
-                    700: '#263556',
-                    800: '#1A2742',
-                    900: '#101B33',
+                    50: '#F8FAFC',
+                    100: '#F1F5F9',
+                    200: '#E2E8F0',
+                    300: '#CBD5E1',
+                    400: '#94A3B8',
+                    500: '#64748B',
+                    600: '#475569',
+                    700: '#334155',
+                    800: '#1E293B',
+                    900: '#0F172A',
+                    950: '#0B1120',
                 },
-                // Âmbar de letreiro: só para o item ativo e o foco.
+                // Âmbar de letreiro: item ativo, foco e alertas que pedem atenção.
                 signal: {
-                    100: '#FFF3CC',
-                    400: '#FFC83D',
-                    500: '#F5B700',
-                    700: '#8A6400',
+                    50: '#FFFBEB',
+                    100: '#FEF3C7',
+                    400: '#FBBF24',
+                    500: '#F59E0B',
+                    600: '#D97706',
+                    700: '#B45309',
                 },
-                canvas: '#F3F5F9',
-                road: { 100: '#DDF3E6', 600: '#1F7A4D', 800: '#145233' },
-                brake: { 100: '#FBE4E1', 600: '#B93A2B', 700: '#962C20' },
+                canvas: '#F8FAFC',
+                road: { 50: '#ECFDF5', 100: '#D1FAE5', 500: '#10B981', 600: '#059669', 800: '#065F46' },
+                brake: { 50: '#FEF2F2', 100: '#FEE2E2', 500: '#EF4444', 600: '#DC2626', 700: '#B91C1C' },
+                // Azul da faixa da placa Mercosul.
+                plate: '#003DA5',
             },
             fontFamily: {
                 sans: ['"Public Sans"', ...defaultTheme.fontFamily.sans],
                 display: ['Archivo', '"Public Sans"', ...defaultTheme.fontFamily.sans],
+                // Placas, chassis, horários, quilometragens e valores.
+                mono: ['"JetBrains Mono"', ...defaultTheme.fontFamily.mono],
             },
             boxShadow: {
-                panel: '0 1px 2px rgb(16 27 51 / 0.06), 0 8px 24px -12px rgb(16 27 51 / 0.18)',
-                drawer: '-24px 0 48px -24px rgb(16 27 51 / 0.35)',
+                card: '0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06)',
+                panel: '0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06)',
+                raised: '0 4px 6px -2px rgb(15 23 42 / 0.05), 0 12px 24px -6px rgb(15 23 42 / 0.12)',
+                drawer: '-16px 0 40px -12px rgb(11 17 32 / 0.28)',
+            },
+            backdropBlur: {
+                xs: '2px',
             },
         },
     },

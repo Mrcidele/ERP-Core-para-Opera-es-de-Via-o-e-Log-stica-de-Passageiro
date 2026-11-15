@@ -72,7 +72,7 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
                     id="trip-departure"
                     v-model="form.departure_time"
                     data-test="departure_time"
-                    class="field-input tabular-nums"
+                    class="field-input num"
                     type="datetime-local"
                     :aria-invalid="Boolean(errors.departure_time)"
                 />
@@ -85,7 +85,7 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
                     id="trip-arrival"
                     v-model="form.arrival_time"
                     data-test="arrival_time"
-                    class="field-input tabular-nums"
+                    class="field-input num"
                     type="datetime-local"
                     :min="form.departure_time || undefined"
                     :aria-invalid="Boolean(errors.arrival_time)"
@@ -94,7 +94,7 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
             </div>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-ink-100 pt-5">
+        <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
                 {{ store.saveStatus === 'loading' ? 'Agendando…' : 'Agendar viagem' }}

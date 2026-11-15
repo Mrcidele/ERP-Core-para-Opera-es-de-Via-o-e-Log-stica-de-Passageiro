@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory, createRouter, type RouteRecordRaw, type Router } from 'vue-router';
 import { http } from '@/core/api/http';
 import { installSession } from '@/core/session/installSession';
-import { useNotificationStore } from '@/core/stores/notificationStore';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import { signInAs } from '@/tests/auth';
+import { currentToasts } from '@/tests/toast';
 import { ACCESS_DENIED_MESSAGE } from '../guards';
 import { routes } from '../index';
 
@@ -93,7 +93,7 @@ describe('navigation guard', () => {
 
         await visit(router, '/operacoes');
 
-        expect(useNotificationStore().notifications.map((notification) => notification.message)).toEqual([ACCESS_DENIED_MESSAGE]);
+        expect(currentToasts().map((toast) => [toast.title, toast.message])).toEqual([['Acesso negado', ACCESS_DENIED_MESSAGE]]);
     });
 
     it('applies new permissions without reloading', async () => {
@@ -127,7 +127,7 @@ describe('session and http', () => {
 
         expect(useAuthStore().isAuthenticated).toBe(false);
         expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/frota');
-        expect(useNotificationStore().notifications[0]?.message).toContain('Sua sessão terminou');
+        expect(currentToasts()[0]).toMatchObject({ tone: 'warning', title: 'Sua sessão terminou' });
 
         vi.restoreAllMocks();
     });
@@ -143,8 +143,8 @@ describe('session and http', () => {
 
         expect(useAuthStore().isAuthenticated).toBe(true);
         expect(router.currentRoute.value.fullPath).toBe('/frota');
-        expect(useNotificationStore().notifications.map((notification) => notification.message)).toEqual([
-            'Você não tem permissão para executar esta ação.',
+        expect(currentToasts().map((toast) => [toast.tone, toast.title, toast.message])).toEqual([
+            ['error', 'Acesso negado', 'Você não tem permissão para executar esta ação.'],
         ]);
 
         vi.restoreAllMocks();
@@ -163,6 +163,23 @@ describe('session and http', () => {
         await http.get('/auth/me');
 
         expect(authorization).toBe('Bearer test-token');
+
+        vi.restoreAllMocks();
+    });
+
+    it.each([
+        [409, { message: 'A viagem já foi iniciada por outra pessoa.' }, 'Conflito', 'A viagem já foi iniciada por outra pessoa.'],
+        [422, { errors: { driver_id: ['O motorista já tem outra viagem nesse período.'] } }, 'Validação', 'O motorista já tem outra viagem nesse período.'],
+        [422, { errors: { plate: ['x'], chassis: ['y'] } }, 'Validação', 'Revise os campos destacados e tente de novo.'],
+    ])('on %i shows a clear alert and keeps the session', async (status, data, title, message) => {
+        signInAs('admin');
+        makeRouter();
+        failNextRequestWith(status, data);
+
+        await expect(http.post('/operations/trips', {})).rejects.toBeDefined();
+
+        expect(useAuthStore().isAuthenticated).toBe(true);
+        expect(currentToasts().map((toast) => [toast.tone, toast.title, toast.message])).toEqual([['error', title, message]]);
 
         vi.restoreAllMocks();
     });

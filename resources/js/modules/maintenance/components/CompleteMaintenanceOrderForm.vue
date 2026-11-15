@@ -61,7 +61,7 @@ async function submit(): Promise<void> {
                 id="order-cost"
                 v-model="cost"
                 data-test="cost"
-                class="field-input tabular-nums"
+                class="field-input num"
                 inputmode="decimal"
                 placeholder="0,00"
                 autocomplete="off"
@@ -71,7 +71,7 @@ async function submit(): Promise<void> {
             <p v-else class="field-hint">Se não houver outra ordem pendente, o veículo {{ order.vehicle.plate }} volta a ficar ativo.</p>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-ink-100 pt-5">
+        <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
                 {{ store.saveStatus === 'loading' ? 'Concluindo…' : 'Concluir ordem' }}

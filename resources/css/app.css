@@ -13,54 +13,71 @@
 }
 
 @layer components {
+    /* ---------- Superfícies ---------- */
+    .card {
+        @apply rounded-xl border border-ink-200/90 bg-white shadow-card;
+    }
+
+    /* Números que se comparam em coluna: placas, chassis, horários, km e valores em R$. */
+    .num {
+        @apply font-mono tabular-nums tracking-tight;
+    }
+
+    /* ---------- Botões ---------- */
     .btn {
-        @apply inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+        @apply inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
     }
 
     .btn-primary {
-        @apply bg-ink-900 text-white hover:bg-ink-700;
+        @apply bg-ink-900 text-white shadow-card hover:bg-ink-700;
     }
 
     .btn-quiet {
-        @apply border border-ink-200 bg-white text-ink-800 hover:border-ink-300 hover:bg-ink-50;
+        @apply border border-ink-200 bg-white text-ink-700 shadow-card hover:border-ink-300 hover:bg-ink-50 hover:text-ink-900;
     }
 
     .btn-danger {
-        @apply bg-brake-600 text-white hover:bg-brake-700;
+        @apply bg-brake-600 text-white shadow-card hover:bg-brake-700;
     }
 
     .btn-sm {
-        @apply h-8 px-3 text-sm;
+        @apply h-8 rounded-md px-3 text-sm;
     }
 
     .icon-btn {
         @apply inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900;
     }
 
+    /* ---------- Navegação da barra lateral ---------- */
     .nav-link {
-        @apply relative flex shrink-0 items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-ink-200 transition-colors hover:bg-ink-800 hover:text-white;
+        @apply relative flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-ink-400 transition-colors hover:bg-white/5 hover:text-white;
     }
 
-    /* Item ativo: a faixa âmbar é o letreiro aceso. */
+    /* Item ativo: âmbar no ícone e na faixa, como um letreiro aceso. */
     .nav-link-active {
-        @apply bg-ink-800 text-white;
+        @apply bg-white/10 text-white;
+    }
+
+    .nav-link-active svg {
+        @apply text-signal-500;
     }
 
     .nav-link-active::before {
         content: '';
-        @apply absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-signal-500 lg:inset-x-auto lg:inset-y-2 lg:left-0 lg:h-auto lg:w-1;
+        @apply absolute -left-3 inset-y-2 w-1 rounded-r-full bg-signal-500;
     }
 
+    /* ---------- Formulários ---------- */
     .field-label {
         @apply block text-sm font-medium text-ink-800;
     }
 
     .field-input {
-        @apply mt-1.5 block h-11 w-full rounded-md border border-ink-200 bg-white px-3 text-base text-ink-900 placeholder:text-ink-300 focus:border-ink-600 focus:outline-none focus:ring-2 focus:ring-signal-400;
+        @apply mt-1.5 block h-10 w-full rounded-lg border border-ink-300 bg-white px-3 text-sm text-ink-900 shadow-card placeholder:text-ink-400 focus:border-ink-500 focus:outline-none focus:ring-2 focus:ring-signal-400/60;
     }
 
     .field-input[aria-invalid='true'] {
-        @apply border-brake-600;
+        @apply border-brake-500;
     }
 
     .field-hint {
@@ -69,6 +86,54 @@
 
     .field-error {
         @apply mt-1.5 text-sm font-medium text-brake-700;
+    }
+
+    /* Opção de um grupo de escolha única (cargo, status, tipo). */
+    .choice {
+        @apply flex h-10 cursor-pointer items-center justify-center rounded-lg border border-ink-300 bg-white px-2 text-center text-sm font-medium text-ink-700 shadow-card transition-colors hover:border-ink-400 hover:bg-ink-50;
+    }
+
+    .choice-selected {
+        @apply border-ink-900 bg-ink-900 text-white hover:border-ink-900 hover:bg-ink-900;
+    }
+
+    /* Rodapé de ações de um formulário dentro do SlideOver: fica preso à base do painel. */
+    .drawer-actions {
+        @apply sticky bottom-0 z-10 -mx-6 -mb-6 mt-6 flex justify-end gap-3 border-t border-ink-200 bg-white/95 px-6 py-4 backdrop-blur-xs;
+    }
+
+    /* ---------- Tabelas ---------- */
+    .data-table {
+        @apply w-full text-left text-sm;
+    }
+
+    .data-table thead th {
+        @apply whitespace-nowrap border-b border-ink-200 bg-ink-50/70 px-5 py-2.5 text-xs font-semibold text-ink-500;
+    }
+
+    .data-table tbody td {
+        @apply border-b border-ink-100 px-5 py-3 align-middle;
+    }
+
+    .data-table tbody tr:last-child td {
+        @apply border-b-0;
+    }
+
+    .data-table tbody tr {
+        @apply transition-colors hover:bg-ink-50/60;
+    }
+
+    /* Filtro por segmentos acima das tabelas. */
+    .segmented {
+        @apply inline-flex flex-wrap gap-1 rounded-lg bg-ink-100 p-1;
+    }
+
+    .segmented button {
+        @apply rounded-md px-3 py-1.5 text-sm font-medium text-ink-500 transition-colors hover:text-ink-900;
+    }
+
+    .segmented button[aria-pressed='true'] {
+        @apply bg-white text-ink-900 shadow-card;
     }
 }
 

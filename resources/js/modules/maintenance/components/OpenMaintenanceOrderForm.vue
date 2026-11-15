@@ -81,7 +81,7 @@ const { form, errors, submit, store } = useOpenMaintenanceOrderForm((order) => e
             <p v-if="errors.description" data-test="description-error" class="field-error">{{ errors.description }}</p>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-ink-100 pt-5">
+        <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
                 {{ store.saveStatus === 'loading' ? 'Abrindo…' : 'Abrir ordem de serviço' }}

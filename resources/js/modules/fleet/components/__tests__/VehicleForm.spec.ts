@@ -19,6 +19,8 @@ const vehicle: Vehicle = {
     class_type: 'executivo',
     status: 'active',
     current_mileage: 120000,
+    next_preventive_maintenance_km: null,
+    needs_preventive_maintenance: false,
 };
 
 async function fillAndSubmit(wrapper: VueWrapper, plate = 'abc-1d23'): Promise<void> {
@@ -69,6 +71,7 @@ describe('VehicleForm', () => {
                 capacity: 46,
                 class_type: 'executivo',
                 current_mileage: 120000,
+                next_preventive_maintenance_km: null,
             });
             expect(wrapper.emitted('saved')).toEqual([[vehicle]]);
         });
@@ -124,6 +127,7 @@ describe('VehicleForm', () => {
                 class_type: 'executivo',
                 status: 'maintenance',
                 current_mileage: 125000,
+                next_preventive_maintenance_km: null,
             });
             expect(wrapper.emitted('saved')).toEqual([[updated]]);
         });

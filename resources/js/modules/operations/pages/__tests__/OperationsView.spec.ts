@@ -2,9 +2,10 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { signInAs } from '@/tests/auth';
+import { lastToast } from '@/tests/toast';
 import { formatDateTime } from '@/core/utils/format';
 import type { TripSummary } from '../../types/trip';
-import OperationsPage from '../OperationsPage.vue';
+import OperationsView from '../OperationsView.vue';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 
@@ -25,7 +26,7 @@ const trip = (id: string, status: TripSummary['status'], destination = 'Ourinhos
 
 async function mountPage(trips: TripSummary[]): Promise<VueWrapper> {
     http.get.mockImplementation((url: string) => Promise.resolve({ data: { data: url === '/operations/trips' ? trips : [] } }));
-    const wrapper = mount(OperationsPage);
+    const wrapper = mount(OperationsView);
     await flushPromises();
 
     return wrapper;
@@ -33,7 +34,7 @@ async function mountPage(trips: TripSummary[]): Promise<VueWrapper> {
 
 const rows = (wrapper: VueWrapper) => wrapper.findAll('[data-test="trip-row"]');
 
-describe('OperationsPage', () => {
+describe('OperationsView', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         signInAs('admin');
@@ -71,7 +72,7 @@ describe('OperationsPage', () => {
 
         expect(http.post).toHaveBeenCalledWith('/operations/trips/1/start');
         expect(rows(wrapper)[0]!.text()).toContain('Em andamento');
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('Curitiba → Ourinhos iniciada.');
+        expect(lastToast()).toContain('Curitiba → Ourinhos iniciada.');
     });
 
     it('completes a trip and says the distance went to the vehicle mileage', async () => {
@@ -83,7 +84,7 @@ describe('OperationsPage', () => {
 
         expect(http.post).toHaveBeenCalledWith('/operations/trips/1/complete');
         expect(rows(wrapper)[0]!.text()).toContain('Concluída');
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('400 km somados à quilometragem do veículo ABC1D23');
+        expect(lastToast()).toContain('400 km somados à quilometragem do veículo ABC1D23');
     });
 
     it('cancels a trip only after confirmation', async () => {
@@ -130,7 +131,7 @@ describe('OperationsPage', () => {
 
         setActivePinia(createPinia());
         http.get.mockRejectedValue(new Error('network'));
-        const failed = mount(OperationsPage);
+        const failed = mount(OperationsView);
         await flushPromises();
 
         expect(failed.find('[data-test="list-error"]').exists()).toBe(true);

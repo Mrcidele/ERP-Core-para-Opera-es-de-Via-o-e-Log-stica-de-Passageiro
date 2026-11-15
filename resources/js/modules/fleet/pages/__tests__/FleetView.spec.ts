@@ -2,8 +2,9 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { signInAs } from '@/tests/auth';
+import { lastToast } from '@/tests/toast';
 import type { Vehicle } from '../../types/vehicle';
-import FleetPage from '../FleetPage.vue';
+import FleetView from '../FleetView.vue';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }));
 
@@ -20,13 +21,15 @@ const make = (id: string, plate: string, status: Vehicle['status']): Vehicle => 
     class_type: 'executivo',
     status,
     current_mileage: 120000,
+    next_preventive_maintenance_km: null,
+    needs_preventive_maintenance: false,
 });
 
 const fleet = [make('1', 'AAA1A11', 'active'), make('2', 'BBB2B22', 'maintenance'), make('3', 'CCC3C33', 'active')];
 
 async function mountPage(vehicles: Vehicle[] = fleet): Promise<VueWrapper> {
     http.get.mockResolvedValue({ data: { data: vehicles } });
-    const wrapper = mount(FleetPage);
+    const wrapper = mount(FleetView);
     await flushPromises();
 
     return wrapper;
@@ -35,7 +38,7 @@ async function mountPage(vehicles: Vehicle[] = fleet): Promise<VueWrapper> {
 const plates = (wrapper: VueWrapper): string[] =>
     wrapper.findAll('[data-test="vehicle-row"] .plate').map((plate) => plate.text());
 
-describe('FleetPage', () => {
+describe('FleetView', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         signInAs('admin');
@@ -72,7 +75,7 @@ describe('FleetPage', () => {
 
     it('shows an error state when loading fails', async () => {
         http.get.mockRejectedValue(new Error('network'));
-        const wrapper = mount(FleetPage);
+        const wrapper = mount(FleetView);
         await flushPromises();
 
         expect(wrapper.find('[data-test="list-error"]').exists()).toBe(true);
@@ -92,7 +95,7 @@ describe('FleetPage', () => {
         await flushPromises();
 
         expect(plates(wrapper)).toEqual(['AAA1A11', 'ABC1D23', 'BBB2B22', 'CCC3C33']);
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('Veículo ABC1D23 cadastrado.');
+        expect(lastToast()).toContain('Veículo ABC1D23 cadastrado.');
         expect(wrapper.find('form').exists()).toBe(false);
     });
 
@@ -109,7 +112,7 @@ describe('FleetPage', () => {
 
         expect(http.put).toHaveBeenCalledWith('/fleet/vehicles/2', expect.objectContaining({ status: 'active' }));
         expect(wrapper.get('[data-test="filter-maintenance"]').text()).toContain('0');
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('Veículo BBB2B22 atualizado.');
+        expect(lastToast()).toContain('Veículo BBB2B22 atualizado.');
     });
 
     it('deletes a vehicle only after confirmation', async () => {
@@ -124,7 +127,7 @@ describe('FleetPage', () => {
 
         expect(http.delete).toHaveBeenCalledWith('/fleet/vehicles/1');
         expect(plates(wrapper)).toEqual(['BBB2B22', 'CCC3C33']);
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('Veículo AAA1A11 excluído.');
+        expect(lastToast()).toContain('Veículo AAA1A11 excluído.');
     });
 
     it('keeps the vehicle and shows the reason when deletion fails', async () => {

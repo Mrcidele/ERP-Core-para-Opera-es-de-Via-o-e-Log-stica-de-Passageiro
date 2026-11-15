@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import AppIcon from '@/core/components/AppIcon.vue';
+import AppIcon, { type IconName } from '@/core/ui/AppIcon.vue';
 import { loginSchema, type LoginField } from '../schemas/loginSchema';
 import { useAuthStore } from '../stores/authStore';
 
@@ -10,6 +10,14 @@ const router = useRouter();
 const route = useRoute();
 
 const form = reactive({ email: '', password: '' });
+
+// Resumo do que o sistema controla, no painel de identidade.
+const highlights: { icon: IconName; title: string; text: string }[] = [
+    { icon: 'bus', title: 'Frota', text: 'Quilometragem, disponibilidade e revisão preventiva de cada ônibus.' },
+    { icon: 'route', title: 'Viagens', text: 'Escala sem conflito de veículo, com 11 horas de descanso do motorista.' },
+    { icon: 'license', title: 'Tripulação', text: 'CNH válida até a chegada de cada viagem.' },
+    { icon: 'wrench', title: 'Oficina', text: 'Ordens de serviço que tiram e devolvem o veículo da operação.' },
+];
 const clientErrors = ref<Partial<Record<LoginField, string>>>({});
 
 // Atalho dos perfis de teste: o componente (e a senha do seeder que ele contém) só é
@@ -59,35 +67,44 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-    <div class="min-h-screen lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <aside class="relative overflow-hidden bg-ink-900 px-6 py-8 text-ink-200 sm:px-10 lg:flex lg:flex-col lg:justify-between lg:py-12">
-            <div class="flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-md bg-signal-500 text-ink-900">
+    <div class="min-h-screen lg:grid lg:grid-cols-[minmax(0,11fr)_minmax(0,13fr)]">
+        <aside class="relative overflow-hidden bg-ink-950 px-6 py-8 text-ink-300 sm:px-10 lg:flex lg:flex-col lg:px-14 lg:py-12">
+            <div class="relative flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-signal-500 text-ink-950">
                     <AppIcon name="bus" />
                 </span>
-                <span class="font-display text-xl font-semibold tracking-tight text-white">ERP Viação</span>
+                <span class="font-display text-lg font-semibold tracking-tight text-white">ERP Viação</span>
             </div>
 
-            <div class="mt-8 hidden lg:block">
-                <p class="max-w-sm font-display text-4xl font-semibold leading-tight tracking-tight text-white">
-                    Frota, tripulação, viagens e oficina na mesma escala.
+            <div class="relative mt-10 hidden lg:my-auto lg:block">
+                <p class="max-w-md font-display text-4xl font-semibold leading-[1.1] tracking-tight text-white">
+                    A operação inteira na mesma escala.
                 </p>
-                <!-- Faixa da pista: o mesmo âmbar do item ativo da navegação. -->
-                <div class="mt-8 flex gap-3" aria-hidden="true">
-                    <span v-for="dash in 6" :key="dash" class="h-1.5 w-12 rounded-full bg-signal-500" :class="dash > 3 ? 'opacity-30' : ''" />
-                </div>
+                <p class="mt-4 max-w-md text-ink-400">Do ônibus na garagem à viagem concluída, com as regras da viação conferidas a cada passo.</p>
+
+                <ul class="mt-10 max-w-md space-y-5" data-test="operation-summary">
+                    <li v-for="item in highlights" :key="item.title" class="flex gap-4">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-signal-500 ring-1 ring-inset ring-white/10">
+                            <AppIcon :name="item.icon" />
+                        </span>
+                        <div>
+                            <p class="text-sm font-medium text-white">{{ item.title }}</p>
+                            <p class="mt-0.5 text-sm text-ink-400">{{ item.text }}</p>
+                        </div>
+                    </li>
+                </ul>
             </div>
 
-            <p class="mt-6 hidden text-sm text-ink-300 lg:block">Acesso restrito à equipe da operação.</p>
+            <p class="relative mt-6 hidden text-xs text-ink-500 lg:block">Acesso restrito à equipe da operação. Toda ação crítica fica registrada.</p>
         </aside>
 
-        <main class="flex items-center justify-center px-4 py-10 sm:px-8">
+        <main class="flex items-center justify-center bg-white px-4 py-10 sm:px-8">
             <div class="w-full max-w-sm">
-                <h1 class="font-display text-3xl font-semibold tracking-tight">Entrar</h1>
-                <p class="mt-1 text-ink-500">Use o e-mail e a senha da sua conta.</p>
+                <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Entrar</h1>
+                <p class="mt-1 text-sm text-ink-500">Use o e-mail e a senha da sua conta.</p>
 
                 <form class="mt-8 space-y-5" novalidate @submit.prevent="submit">
-                    <p v-if="auth.loginError" role="alert" data-test="error" class="rounded-md bg-brake-100 px-4 py-3 text-sm font-medium text-brake-700">
+                    <p v-if="auth.loginError" role="alert" data-test="error" class="rounded-lg border border-brake-600/20 bg-brake-50 px-4 py-3 text-sm font-medium text-brake-700">
                         {{ auth.loginError }}
                     </p>
 

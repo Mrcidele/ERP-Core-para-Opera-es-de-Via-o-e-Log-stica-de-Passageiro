@@ -3,8 +3,9 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import { signInAs } from '@/tests/auth';
+import { lastToast } from '@/tests/toast';
 import type { MaintenanceOrderSummary } from '../../types/maintenance';
-import MaintenancePage from '../MaintenancePage.vue';
+import MaintenanceView from '../MaintenanceView.vue';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
 
@@ -35,7 +36,7 @@ async function mountPage(initial: MaintenanceOrderSummary[]): Promise<VueWrapper
     http.get.mockImplementation((url: string) =>
         Promise.resolve({ data: { data: url === '/maintenance/orders' ? orders : url === '/fleet/vehicles' ? vehicles : url === '/maintenance/mechanics' ? mechanics : [] } }),
     );
-    const wrapper = mount(MaintenancePage);
+    const wrapper = mount(MaintenanceView);
     await flushPromises();
 
     return wrapper;
@@ -43,7 +44,7 @@ async function mountPage(initial: MaintenanceOrderSummary[]): Promise<VueWrapper
 
 const rows = (wrapper: VueWrapper) => wrapper.findAll('[data-test="order-row"]');
 
-describe('MaintenancePage', () => {
+describe('MaintenanceView', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         signInAs('admin');
@@ -107,7 +108,7 @@ describe('MaintenancePage', () => {
             description: 'Troca de óleo e filtros',
         });
         expect(rows(wrapper)).toHaveLength(1);
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('Ordem de serviço aberta');
+        expect(lastToast()).toContain('Ordem de serviço aberta');
         expect(wrapper.find('form').exists()).toBe(false);
     });
 
@@ -159,7 +160,7 @@ describe('MaintenancePage', () => {
 
         expect(http.patch).toHaveBeenCalledWith('/maintenance/orders/1', { status: 'completed', cost_cents: 45_090 });
         expect(rows(wrapper)[0]!.text()).toContain('Concluída');
-        expect(wrapper.get('[data-test="notice"]').text().replace(/\s/g, ' ')).toContain('concluída por R$ 450,90');
+        expect(lastToast().replace(/\s/g, ' ')).toContain('concluída por R$ 450,90');
         expect(wrapper.find('form').exists()).toBe(false);
     });
 
@@ -191,7 +192,7 @@ describe('MaintenancePage', () => {
 
         expect(http.patch).toHaveBeenCalledWith('/maintenance/orders/1', { status: 'canceled' });
         expect(rows(wrapper)[0]!.text()).toContain('Cancelada');
-        expect(wrapper.get('[data-test="notice"]').text()).toContain('cancelada');
+        expect(lastToast()).toContain('cancelada');
     });
 
     it('shows the empty and error states', async () => {
@@ -199,7 +200,7 @@ describe('MaintenancePage', () => {
 
         setActivePinia(createPinia());
         http.get.mockRejectedValue(new Error('network'));
-        const failed = mount(MaintenancePage);
+        const failed = mount(MaintenanceView);
         await flushPromises();
 
         expect(failed.find('[data-test="list-error"]').exists()).toBe(true);

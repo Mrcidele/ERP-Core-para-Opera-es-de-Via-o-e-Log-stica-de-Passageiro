@@ -44,7 +44,7 @@ const choiceClass = (selected: boolean): string =>
                 id="employee-cpf"
                 v-model="form.cpf"
                 data-test="cpf"
-                class="field-input tabular-nums"
+                class="field-input num"
                 inputmode="numeric"
                 maxlength="14"
                 placeholder="000.000.000-00"
@@ -80,7 +80,7 @@ const choiceClass = (selected: boolean): string =>
                     id="employee-cnh-number"
                     v-model="form.cnh_number"
                     data-test="cnh_number"
-                    class="field-input tabular-nums"
+                    class="field-input num"
                     inputmode="numeric"
                     maxlength="11"
                     autocomplete="off"
@@ -112,7 +112,7 @@ const choiceClass = (selected: boolean): string =>
                         id="employee-cnh-expiration"
                         v-model="form.cnh_expiration_date"
                         data-test="cnh_expiration_date"
-                        class="field-input tabular-nums"
+                        class="field-input num"
                         type="date"
                         :min="todayIso()"
                         :aria-invalid="Boolean(errors.cnh_expiration_date)"
@@ -140,7 +140,7 @@ const choiceClass = (selected: boolean): string =>
             <p v-if="errors.status" data-test="status-error" class="field-error">{{ errors.status }}</p>
         </fieldset>
 
-        <div class="flex justify-end gap-3 border-t border-ink-100 pt-5">
+        <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
                 {{ store.saveStatus === 'loading' ? 'Salvando…' : 'Cadastrar funcionário' }}

@@ -18,7 +18,7 @@ const Blank = { template: '<div />' };
 async function mountShell(): Promise<{ wrapper: VueWrapper; router: Router }> {
     const router = createRouter({
         history: createMemoryHistory(),
-        routes: ['dashboard', 'fleet', 'operations', 'crew', 'maintenance', 'login'].map((name) => ({
+        routes: ['dashboard', 'fleet', 'operations', 'crew', 'maintenance', 'audit', 'login'].map((name) => ({
             path: name === 'dashboard' ? '/' : `/${name}`,
             name,
             component: Blank,
@@ -41,7 +41,7 @@ describe('AppShell', () => {
     });
 
     it.each([
-        ['admin', ['Painel', 'Frota', 'Operações', 'Tripulação', 'Manutenção']],
+        ['admin', ['Painel', 'Frota', 'Operações', 'Tripulação', 'Manutenção', 'Auditoria']],
         ['dispatcher', ['Painel', 'Frota', 'Operações', 'Tripulação']],
         ['fleet_manager', ['Painel', 'Frota', 'Operações', 'Tripulação', 'Manutenção']],
         ['mechanic_supervisor', ['Painel', 'Frota', 'Manutenção']],
@@ -70,5 +70,34 @@ describe('AppShell', () => {
         expect(http.post).toHaveBeenCalledWith('/auth/logout');
         expect(useAuthStore().isAuthenticated).toBe(false);
         expect(router.currentRoute.value.name).toBe('login');
+    });
+
+    it('shows the initials of the signed-in user and the current section in the header', async () => {
+        signInAs('admin');
+        const { wrapper, router } = await mountShell();
+
+        expect(wrapper.get('[data-test="user-initials"]').text()).toBe('UT');
+
+        await router.push('/fleet');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="header-title"]').text()).toBe('fleet');
+    });
+
+    it('opens the navigation on small screens and closes it after navigating', async () => {
+        signInAs('admin');
+        const { wrapper, router } = await mountShell();
+        const sidebar = wrapper.get('[data-test="sidebar"]');
+
+        expect(sidebar.classes()).toContain('-translate-x-full');
+
+        await wrapper.get('[data-test="menu-toggle"]').trigger('click');
+        expect(sidebar.classes()).toContain('translate-x-0');
+        expect(wrapper.get('[data-test="menu-toggle"]').attributes('aria-expanded')).toBe('true');
+
+        await router.push('/fleet');
+        await flushPromises();
+
+        expect(sidebar.classes()).toContain('-translate-x-full');
     });
 });

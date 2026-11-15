@@ -6,8 +6,8 @@ export const http = axios.create({
 });
 
 /**
- * Ligação com a sessão, feita em core/session. Fica aqui como funções para o cliente HTTP
- * não depender da store de autenticação nem do router (que dependem dele).
+ * Ligação com a sessão e com os avisos globais, feita em core/session. Fica aqui como funções
+ * para o cliente HTTP não depender da store de autenticação nem do router (que dependem dele).
  */
 export interface HttpSessionHooks {
     /** Token da sessão atual, ou null se ninguém entrou. */
@@ -16,18 +16,40 @@ export interface HttpSessionHooks {
     onUnauthorized: () => void;
     /** A API respondeu 403: o usuário não tem permissão para a ação. */
     onForbidden: (message: string) => void;
+    /** A API respondeu 409: a ação conflita com o estado atual do registro. */
+    onConflict: (message: string) => void;
+    /** A API respondeu 422: dados recusados por validação ou por regra de negócio. */
+    onValidationFailed: (message: string) => void;
 }
 
-const idleHooks: HttpSessionHooks = { getToken: () => null, onUnauthorized: () => undefined, onForbidden: () => undefined };
+const idleHooks: HttpSessionHooks = {
+    getToken: () => null,
+    onUnauthorized: () => undefined,
+    onForbidden: () => undefined,
+    onConflict: () => undefined,
+    onValidationFailed: () => undefined,
+};
 
 let hooks: HttpSessionHooks = idleHooks;
 
-export function configureHttp(sessionHooks: HttpSessionHooks): void {
-    hooks = sessionHooks;
+export function configureHttp(sessionHooks: Partial<HttpSessionHooks>): void {
+    hooks = { ...idleHooks, ...sessionHooks };
 }
 
 export function resetHttp(): void {
     hooks = idleHooks;
+}
+
+export const VALIDATION_FALLBACK_MESSAGE = 'Revise os campos destacados e tente de novo.';
+
+/**
+ * Texto do aviso de um 422. Uma regra de negócio recusa com um erro só, já escrito para o usuário;
+ * vários erros de campo viram um aviso genérico, porque cada um aparece no próprio campo.
+ */
+function validationSummary(error: unknown): string {
+    const messages = Object.values(extractValidationErrors(error) ?? {}).flat();
+
+    return messages.length === 1 && typeof messages[0] === 'string' ? messages[0] : VALIDATION_FALLBACK_MESSAGE;
 }
 
 http.interceptors.request.use((config) => {
@@ -42,10 +64,19 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(undefined, (error: unknown) => {
     if (isAxiosError(error)) {
-        if (error.response?.status === 401) {
-            hooks.onUnauthorized();
-        } else if (error.response?.status === 403) {
-            hooks.onForbidden(extractErrorMessage(error, 'Você não tem permissão para executar esta ação.'));
+        switch (error.response?.status) {
+            case 401:
+                hooks.onUnauthorized();
+                break;
+            case 403:
+                hooks.onForbidden(extractErrorMessage(error, 'Você não tem permissão para executar esta ação.'));
+                break;
+            case 409:
+                hooks.onConflict(extractErrorMessage(error, 'A ação conflita com o estado atual do registro. Atualize a tela e tente de novo.'));
+                break;
+            case 422:
+                hooks.onValidationFailed(validationSummary(error));
+                break;
         }
     }
 

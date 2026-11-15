@@ -27,3 +27,14 @@ export const formatCents = (cents: number): string => currency.format(cents / 10
 /** countLabel(1, 'viagem', 'viagens') → "1 viagem"; countLabel(3, …) → "3 viagens". */
 export const countLabel = (count: number, singular: string, plural: string): string =>
     `${integer.format(count)} ${count === 1 ? singular : plural}`;
+
+/** "2026-11-20" → "20/11/2026", sem conversão de fuso (é uma data, não um instante). */
+export function formatDate(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+
+    return `${day}/${month}/${year}`;
+}
+
+/** Percentual com uma casa decimal: 66.7 → "66,7%". */
+export const formatPercent = (value: number): string =>
+    `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)}%`;

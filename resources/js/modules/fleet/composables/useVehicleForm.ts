@@ -10,6 +10,7 @@ interface VehicleFormState {
     class_type: VehicleClass | '';
     status: VehicleStatus;
     current_mileage: number | null;
+    next_preventive_maintenance_km: number | null | '';
 }
 
 type FieldErrors = Partial<Record<VehicleField, string>>;
@@ -21,6 +22,7 @@ const stateFrom = (vehicle: Vehicle | null): VehicleFormState => ({
     class_type: vehicle?.class_type ?? '',
     status: vehicle?.status ?? 'active',
     current_mileage: vehicle?.current_mileage ?? 0,
+    next_preventive_maintenance_km: vehicle?.next_preventive_maintenance_km ?? null,
 });
 
 /** Formulário de veículo: cadastro quando `vehicle` é null, edição caso contrário. */

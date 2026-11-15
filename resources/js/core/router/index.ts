@@ -21,32 +21,38 @@ export const routes: RouteRecordRaw[] = [
     {
         path: '/',
         name: 'dashboard',
-        component: () => import('@/modules/dashboard/pages/DashboardPage.vue'),
+        component: () => import('@/modules/dashboard/pages/DashboardView.vue'),
         meta: { title: 'Painel' },
     },
     {
         path: '/frota',
         name: 'fleet',
-        component: () => import('@/modules/fleet/pages/FleetPage.vue'),
+        component: () => import('@/modules/fleet/pages/FleetView.vue'),
         meta: { title: 'Frota', permission: 'fleet.view' },
     },
     {
         path: '/operacoes',
         name: 'operations',
-        component: () => import('@/modules/operations/pages/OperationsPage.vue'),
+        component: () => import('@/modules/operations/pages/OperationsView.vue'),
         meta: { title: 'Operações', permission: 'operations.view' },
     },
     {
         path: '/tripulacao',
         name: 'crew',
-        component: () => import('@/modules/crew/pages/CrewPage.vue'),
+        component: () => import('@/modules/crew/pages/CrewView.vue'),
         meta: { title: 'Tripulação', permission: 'crew.view' },
     },
     {
         path: '/manutencao',
         name: 'maintenance',
-        component: () => import('@/modules/maintenance/pages/MaintenancePage.vue'),
+        component: () => import('@/modules/maintenance/pages/MaintenanceView.vue'),
         meta: { title: 'Manutenção', permission: 'maintenance.view' },
+    },
+    {
+        path: '/audit-logs',
+        name: 'audit',
+        component: () => import('@/modules/audit/pages/AuditLogsView.vue'),
+        meta: { title: 'Auditoria', permission: 'audit.view' },
     },
     { path: '/:pathMatch(.*)*', redirect: { name: 'dashboard' } },
 ];

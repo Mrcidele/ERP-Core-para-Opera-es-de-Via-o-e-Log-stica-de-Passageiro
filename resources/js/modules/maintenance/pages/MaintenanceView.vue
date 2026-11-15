@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import AppIcon from '@/core/components/AppIcon.vue';
-import ConfirmDialog from '@/core/components/ConfirmDialog.vue';
-import SlideOver from '@/core/components/SlideOver.vue';
+import AppIcon from '@/core/ui/AppIcon.vue';
+import ConfirmDialog from '@/core/ui/ConfirmDialog.vue';
+import EmptyState from '@/core/ui/EmptyState.vue';
+import SlideOver from '@/core/ui/SlideOver.vue';
+import TableSkeleton from '@/core/ui/TableSkeleton.vue';
+import { useToast } from '@/core/ui/useToast';
 import { countLabel, formatCents } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import CompleteMaintenanceOrderForm from '../components/CompleteMaintenanceOrderForm.vue';
@@ -19,6 +22,7 @@ import {
 
 const store = useMaintenanceStore();
 const auth = useAuthStore();
+const toast = useToast();
 
 // Sem maintenance.manage a tela é só de consulta.
 const canManage = computed(() => auth.can('maintenance.manage'));
@@ -27,7 +31,6 @@ const statusFilter = ref<MaintenanceStatus | 'all'>('all');
 const openFormVisible = ref(false);
 const completing = ref<MaintenanceOrderSummary | null>(null);
 const canceling = ref<MaintenanceOrderSummary | null>(null);
-const notice = ref<string | null>(null);
 
 onMounted(() => store.fetchOrders());
 
@@ -46,12 +49,12 @@ const visibleOrders = computed(() =>
 );
 
 function onOpened(): void {
-    notice.value = 'Ordem de serviço aberta. O veículo está em manutenção.';
+    toast.success('Ordem de serviço aberta. O veículo está em manutenção.');
     openFormVisible.value = false;
 }
 
 function onCompleted(order: MaintenanceOrder): void {
-    notice.value = `Ordem do veículo ${completing.value?.vehicle.plate ?? ''} concluída por ${formatCents(order.cost_cents)}.`;
+    toast.success(`Ordem do veículo ${completing.value?.vehicle.plate ?? ''} concluída por ${formatCents(order.cost_cents)}.`);
     completing.value = null;
 }
 
@@ -64,7 +67,7 @@ async function confirmCancel(): Promise<void> {
     const order = canceling.value;
 
     if (order && (await store.cancel(order.id))) {
-        notice.value = `Ordem do veículo ${order.vehicle.plate} cancelada.`;
+        toast.success(`Ordem do veículo ${order.vehicle.plate} cancelada.`);
         canceling.value = null;
     }
 }
@@ -73,8 +76,8 @@ async function confirmCancel(): Promise<void> {
 <template>
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="font-display text-3xl font-semibold tracking-tight">Manutenção</h1>
-            <p class="mt-1 text-ink-500">Ordens de serviço da oficina. Veículo com ordem pendente não entra em viagem.</p>
+            <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Manutenção</h1>
+            <p class="mt-1 text-sm text-ink-500">Ordens de serviço da oficina. Veículo com ordem pendente não entra em viagem.</p>
         </div>
         <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-order" @click="openFormVisible = true">
             <AppIcon name="plus" />
@@ -82,73 +85,68 @@ async function confirmCancel(): Promise<void> {
         </button>
     </header>
 
-    <p
-        v-if="notice"
-        role="status"
-        data-test="notice"
-        class="mt-6 flex items-center justify-between gap-4 rounded-md bg-road-100 px-4 py-3 text-sm font-medium text-road-800"
-    >
-        {{ notice }}
-        <button type="button" class="underline underline-offset-2" @click="notice = null">Dispensar</button>
-    </p>
-
-    <section class="mt-6 rounded-xl bg-white shadow-panel">
-        <div class="border-b border-ink-100 p-4">
-            <div role="group" aria-label="Filtrar por status" class="inline-flex flex-wrap gap-1 rounded-lg bg-ink-50 p-1">
+    <section class="card mt-6 overflow-hidden">
+        <div class="border-b border-ink-200 p-3">
+            <div role="group" aria-label="Filtrar por status" class="segmented">
                 <button
                     v-for="filter in filters"
                     :key="filter.value"
                     type="button"
                     :data-test="`filter-${filter.value}`"
                     :aria-pressed="statusFilter === filter.value"
-                    class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                    :class="statusFilter === filter.value ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
                     @click="statusFilter = filter.value"
                 >
                     {{ filter.label }}
-                    <span class="ml-1 tabular-nums text-ink-400">{{ filter.count }}</span>
+                    <span class="num ml-1 text-xs text-ink-400">{{ filter.count }}</span>
                 </button>
             </div>
         </div>
 
-        <div v-if="store.listStatus === 'idle' || (store.listStatus === 'loading' && store.orders.length === 0)" data-test="loading" class="space-y-3 p-5" aria-busy="true">
-            <div v-for="row in 5" :key="row" class="h-12 animate-pulse rounded-md bg-ink-50" />
-            <span class="sr-only">Carregando ordens de serviço</span>
-        </div>
+        <TableSkeleton
+            v-if="store.listStatus === 'idle' || (store.listStatus === 'loading' && store.orders.length === 0)"
+            data-test="loading"
+            :columns="6"
+            label="Carregando ordens de serviço"
+        />
 
-        <div v-else-if="store.listStatus === 'error'" data-test="list-error" class="p-10 text-center">
-            <h2 class="font-display text-lg font-semibold">Não foi possível carregar as ordens de serviço</h2>
-            <p class="mt-1 text-ink-500">Verifique a conexão e tente de novo.</p>
-            <button type="button" class="btn btn-quiet mt-5" @click="store.fetchOrders()">Tentar novamente</button>
-        </div>
+        <EmptyState
+            v-else-if="store.listStatus === 'error'"
+            data-test="list-error"
+            icon="alert"
+            title="Não foi possível carregar as ordens de serviço"
+            description="Verifique a conexão e tente de novo."
+        >
+            <button type="button" class="btn btn-quiet" @click="store.fetchOrders()">Tentar novamente</button>
+        </EmptyState>
 
-        <div v-else-if="store.orders.length === 0" data-test="empty" class="p-10 text-center">
-            <h2 class="font-display text-lg font-semibold">Nenhuma ordem de serviço</h2>
-            <template v-if="canManage">
-                <p class="mt-1 text-ink-500">Abra uma ordem quando um veículo precisar ir para a oficina.</p>
-                <button type="button" class="btn btn-primary mt-5" @click="openFormVisible = true">Abrir ordem de serviço</button>
-            </template>
-        </div>
+        <EmptyState
+            v-else-if="store.orders.length === 0"
+            data-test="empty"
+            icon="wrench"
+            title="Nenhuma ordem de serviço"
+            :description="canManage ? 'Abra uma ordem quando um veículo precisar ir para a oficina.' : 'Ainda não há ordens de serviço.'"
+        >
+            <button v-if="canManage" type="button" class="btn btn-primary" @click="openFormVisible = true">Abrir ordem de serviço</button>
+        </EmptyState>
 
-        <div v-else-if="visibleOrders.length === 0" data-test="no-results" class="p-10 text-center">
-            <h2 class="font-display text-lg font-semibold">Nenhuma ordem com esse status</h2>
-            <button type="button" class="btn btn-quiet mt-5" @click="statusFilter = 'all'">Ver todas</button>
-        </div>
+        <EmptyState v-else-if="visibleOrders.length === 0" data-test="no-results" icon="search" title="Nenhuma ordem com esse status">
+            <button type="button" class="btn btn-quiet" @click="statusFilter = 'all'">Ver todas</button>
+        </EmptyState>
 
         <template v-else>
             <MaintenanceOrderTable :orders="visibleOrders" :can-manage="canManage" @complete="completing = $event" @cancel="askCancel" />
-            <p class="border-t border-ink-100 px-5 py-3 text-sm text-ink-500">
+            <p class="border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500">
                 <template v-if="statusFilter !== 'all'">{{ visibleOrders.length }} de {{ countLabel(store.orders.length, 'ordem', 'ordens') }}</template>
                 <template v-else>{{ countLabel(store.orders.length, 'ordem', 'ordens') }}</template>
             </p>
         </template>
     </section>
 
-    <SlideOver :open="openFormVisible" title="Abrir ordem de serviço" @close="openFormVisible = false">
+    <SlideOver :open="openFormVisible" title="Abrir ordem de serviço" subtitle="O veículo sai da escala até a ordem ser encerrada." @close="openFormVisible = false">
         <OpenMaintenanceOrderForm @opened="onOpened" @cancel="openFormVisible = false" />
     </SlideOver>
 
-    <SlideOver :open="completing !== null" :title="`Concluir ordem do ${completing?.vehicle.plate ?? ''}`" @close="completing = null">
+    <SlideOver :open="completing !== null" :title="`Concluir ordem do ${completing?.vehicle.plate ?? ''}`" subtitle="Informe o custo final do serviço." @close="completing = null">
         <CompleteMaintenanceOrderForm v-if="completing" :key="completing.id" :order="completing" @completed="onCompleted" @cancel="completing = null" />
     </SlideOver>
 

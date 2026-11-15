@@ -16,15 +16,14 @@ const profiles: { role: UserRole; email: string }[] = [
 </script>
 
 <template>
-    <section data-test="test-profiles" class="mt-8 rounded-lg border border-dashed border-ink-200 p-4">
-        <h2 class="text-sm font-medium text-ink-800">Perfis de teste</h2>
-        <p class="mt-0.5 text-sm text-ink-500">Só aparecem em desenvolvimento. Preenchem o e-mail e a senha do seeder.</p>
-        <div class="mt-3 grid grid-cols-2 gap-2">
+    <section data-test="test-profiles" class="mt-10 border-t border-ink-200 pt-5">
+        <h2 class="text-xs font-medium text-ink-500">Perfis de teste (só em desenvolvimento)</h2>
+        <div class="mt-2.5 flex flex-wrap gap-2">
             <button
                 v-for="profile in profiles"
                 :key="profile.role"
                 type="button"
-                class="btn btn-sm btn-quiet"
+                class="rounded-md border border-ink-200 bg-white px-2.5 py-1 text-xs font-medium text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-50 hover:text-ink-900"
                 :data-test="`fill-${profile.role}`"
                 @click="emit('fill', profile.email, TEST_PASSWORD)"
             >

@@ -21,7 +21,7 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
                 id="vehicle-plate"
                 v-model="form.plate"
                 data-test="plate"
-                class="field-input font-display font-semibold uppercase tracking-widest"
+                class="field-input num font-semibold uppercase tracking-widest"
                 maxlength="8"
                 placeholder="ABC1D23"
                 autocomplete="off"
@@ -36,7 +36,7 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
                 id="vehicle-chassis"
                 v-model="form.chassis"
                 data-test="chassis"
-                class="field-input uppercase tabular-nums"
+                class="field-input num uppercase"
                 maxlength="17"
                 autocomplete="off"
                 :aria-invalid="Boolean(errors.chassis)"
@@ -69,7 +69,7 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
                     id="vehicle-capacity"
                     v-model.number="form.capacity"
                     data-test="capacity"
-                    class="field-input tabular-nums"
+                    class="field-input num"
                     type="number"
                     inputmode="numeric"
                     min="1"
@@ -86,7 +86,7 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
                 id="vehicle-mileage"
                 v-model.number="form.current_mileage"
                 data-test="current_mileage"
-                class="field-input tabular-nums"
+                class="field-input num"
                 type="number"
                 inputmode="numeric"
                 min="0"
@@ -94,6 +94,24 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
             />
             <p v-if="errors.current_mileage" data-test="current_mileage-error" class="field-error">{{ errors.current_mileage }}</p>
             <p v-else-if="vehicle" class="field-hint">Atual: {{ formatKm(vehicle.current_mileage) }}. O valor não pode diminuir.</p>
+        </div>
+
+        <div>
+            <label class="field-label" for="vehicle-next-preventive">Próxima revisão preventiva (km)</label>
+            <input
+                id="vehicle-next-preventive"
+                v-model.number="form.next_preventive_maintenance_km"
+                data-test="next_preventive_maintenance_km"
+                class="field-input num"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                :aria-invalid="Boolean(errors.next_preventive_maintenance_km)"
+            />
+            <p v-if="errors.next_preventive_maintenance_km" data-test="next_preventive_maintenance_km-error" class="field-error">
+                {{ errors.next_preventive_maintenance_km }}
+            </p>
+            <p v-else class="field-hint">Opcional. Ao alcançar essa quilometragem, o veículo aparece como revisão vencida.</p>
         </div>
 
         <fieldset v-if="vehicle">
@@ -116,7 +134,7 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
             <p v-if="errors.status" data-test="status-error" class="field-error">{{ errors.status }}</p>
         </fieldset>
 
-        <div class="flex justify-end gap-3 border-t border-ink-100 pt-5">
+        <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
                 {{ store.saveStatus === 'loading' ? 'Salvando…' : vehicle ? 'Salvar alterações' : 'Cadastrar veículo' }}

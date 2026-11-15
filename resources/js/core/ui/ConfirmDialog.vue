@@ -15,15 +15,15 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>();
 
 <template>
     <div v-if="open" class="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center" @keydown.esc="emit('cancel')">
-        <div class="absolute inset-0 bg-ink-900/40" @click="emit('cancel')" />
+        <div class="absolute inset-0 bg-ink-950/40 backdrop-blur-xs" @click="emit('cancel')" />
         <section
             role="alertdialog"
             aria-modal="true"
             :aria-label="title"
-            class="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-panel"
+            class="relative w-full max-w-sm rounded-xl border border-ink-200 bg-white p-6 shadow-raised"
         >
             <h2 class="font-display text-lg font-semibold">{{ title }}</h2>
-            <p class="mt-2 text-ink-600">{{ message }}</p>
+            <p class="mt-2 text-sm text-ink-600">{{ message }}</p>
             <p v-if="error" role="alert" class="field-error" data-test="confirm-error">{{ error }}</p>
             <div class="mt-6 flex justify-end gap-3">
                 <button type="button" class="btn btn-quiet" data-test="confirm-cancel" @click="emit('cancel')">{{ dismissLabel ?? 'Cancelar' }}</button>

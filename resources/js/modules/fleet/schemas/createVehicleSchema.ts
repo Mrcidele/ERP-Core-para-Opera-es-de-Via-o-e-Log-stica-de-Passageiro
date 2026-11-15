@@ -27,6 +27,16 @@ export const createVehicleSchema = z.object({
         .number('Informe a quilometragem.')
         .int('A quilometragem deve ser um número inteiro.')
         .min(0, 'A quilometragem não pode ser negativa.'),
+    // Opcional: campo vazio significa revisão não programada.
+    next_preventive_maintenance_km: z.preprocess(
+        (value) => (value === '' || value === undefined ? null : value),
+        z
+            .number('Informe a quilometragem da próxima revisão.')
+            .int('A quilometragem deve ser um número inteiro.')
+            .min(0, 'A quilometragem não pode ser negativa.')
+            .max(2_000_000_000, 'A quilometragem é alta demais.')
+            .nullable(),
+    ),
 });
 
 export const updateVehicleSchema = createVehicleSchema.extend({
