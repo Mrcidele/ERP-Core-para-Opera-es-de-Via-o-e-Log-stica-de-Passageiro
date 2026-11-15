@@ -22,7 +22,9 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Banco: somente PostgreSQL 16 (Supabase/Neon em produção, configurado por `DB_SSLMODE` e `DB_EMULATE_PREPARES`), inclusive nos testes (banco dedicado `erp_test`). Migrations usam recursos nativos (timestamptz, CHECK, EXCLUDE, índices parciais) sem condicional de driver.
 - Regra crítica de integridade tem também uma constraint no banco; o repositório converte a violação na `DomainException` correspondente.
 - Módulos reagem uns aos outros por eventos em `Domain/Shared/Events`, publicados pelo contrato `EventDispatcher`; os listeners são registrados em `AppServiceProvider`.
-- Rotas de API em `routes/api.php`, prefixo `/api/v1`.
+- Rotas de API em `routes/api.php`, prefixo `/api/v1/<módulo>`. Toda rota, menos o login, fica atrás de `auth:sanctum` e declara com `->can('<permissão>')` a permissão que a libera.
+- Permissões e papéis são os enums `Permission` e `UserRole` de `Domain/Identity`; a matriz de acesso vive só em `UserRole::permissions()`. Permissão nova entra no enum, na matriz e no teste `AuthorizationTest`.
+- Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Senhas e tokens nunca entram em log nem em auditoria.
 
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
 
@@ -31,13 +33,15 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - `types/` espelha os API Resources e Enums do backend; `schemas/` (Zod) espelha as regras dos FormRequests.
 - Estado de requisição em stores Pinia isoladas por módulo; HTTP somente via `core/api/http.ts`.
 - Erros 422 da API são exibidos por campo no formulário.
+- Sessão: `authStore` guarda token, usuário e permissões (vindas da API, nunca recalculadas no frontend). `core/session/installSession.ts` liga a sessão ao Axios (token, 401, 403) e à guarda do router. Rota interna declara `meta.permission`; botão de ação só aparece com `authStore.can(...)`. Esconder é conveniência: quem barra é a API.
 - Visual: cores e fontes vêm dos tokens em `tailwind.config.js` (`ink`, `signal`, `road`, `brake`) e das classes de `resources/css/app.css` (`btn`, `field-*`). Formulários abrem em `SlideOver`; exclusões pedem confirmação em `ConfirmDialog`. Toda tela trata carregando, vazio e erro.
 
 ## Qualidade
 
 - Pest: teste de unidade para cada Action (com repositório em memória de `tests/Fakes`) e Feature test para cada endpoint.
 - Larastan nível 9 e Pint sem pendências.
-- Vitest + Vue Test Utils para componentes, com a API mockada.
+- Vitest + Vue Test Utils para componentes, com a API mockada. Testes de tela entram com `signInAs(papel)` de `resources/js/tests/auth.ts`.
+- Testes de feature dos módulos rodam como administrador (`tests/Pest.php`); autenticação, permissões e auditoria têm testes próprios em `tests/Feature/Security`.
 - Antes de concluir uma tarefa: `composer test && composer analyse && composer lint && npm run type-check && npm test`.
 
 ## Fluxo de trabalho

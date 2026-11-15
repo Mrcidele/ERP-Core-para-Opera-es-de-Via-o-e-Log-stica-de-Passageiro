@@ -17,6 +17,22 @@
 - `trips`: `id`, `line_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time` (UTC), `status` (scheduled, in_progress, completed, canceled)
 - `maintenance_orders`: `id`, `vehicle_id`, `mechanic_id`, `type` (preventive, corrective), `status` (open, in_progress, completed, canceled), `description`, `cost_cents`, `opened_at`, `completed_at`
 
+## Papéis e permissões
+
+| Permissão | admin | dispatcher | fleet_manager | mechanic_supervisor |
+| --- | :-: | :-: | :-: | :-: |
+| `fleet.view` | ✓ | ✓ | ✓ | ✓ |
+| `fleet.manage` | ✓ | | ✓ | |
+| `crew.view` | ✓ | ✓ | ✓ | |
+| `crew.manage` | ✓ | | | |
+| `operations.view` | ✓ | ✓ | ✓ | |
+| `operations.manage` | ✓ | ✓ | | |
+| `maintenance.view` | ✓ | | ✓ | ✓ |
+| `maintenance.manage` | ✓ | | ✓ | ✓ |
+| `audit.view` | ✓ | | | |
+
+A supervisão de oficina não tem `crew.view`; por isso o formulário de ordem de serviço busca os mecânicos em `GET /api/v1/maintenance/mechanics` (`maintenance.view`), que devolve só id e nome.
+
 ## Diretórios
 
 ```
@@ -63,7 +79,7 @@ resources/js/
 
 | Módulo | Fatia | Estado |
 | --- | --- | --- |
-| Fleet | CRUD de veículos (`/api/v1/vehicles`) com tela de listagem, cadastro, edição e exclusão lógica (soft delete) | Implementado |
+| Fleet | CRUD de veículos (`/api/v1/fleet/vehicles`) com tela de listagem, cadastro, edição e exclusão lógica (soft delete) | Implementado |
 | Fleet | Paginação da listagem | Pendente |
 | Crew | Cadastro de funcionário (`POST /api/v1/crew/employees`) com formulário em painel lateral | Implementado |
 | Crew | Listagem, edição e exclusão de funcionários; jornada e escalas | Pendente |
@@ -77,4 +93,9 @@ resources/js/
 | Maintenance | Ordens de serviço (`GET`/`POST /api/v1/maintenance/orders`, `PATCH /maintenance/orders/{id}` para concluir ou cancelar) com tela em tabela | Implementado |
 | Maintenance | Abrir a ordem põe o veículo em manutenção; encerrar a última pendente devolve o veículo a ativo | Implementado |
 | Maintenance | Transição para "em andamento", histórico por veículo, estoque de peças | Pendente |
-| — | Autenticação/autorização da API | Pendente |
+| Identity | Login, logout e sessão (`/api/v1/auth/login`, `/logout`, `/me`) com tokens Sanctum; usuários com UUID e papel | Implementado |
+| Identity | RBAC: 4 papéis, 9 permissões, um Gate por permissão, 401/403 padronizados | Implementado |
+| Segurança | Limite de 5 logins/min por e-mail + IP e 120 req/min por usuário; cabeçalhos de segurança | Implementado |
+| Audit | `audit_logs` (JSONB) gravado por eventos; consulta em `GET /api/v1/audit-logs` (`audit.view`) | Implementado |
+| Frontend | Tela de login, sessão persistida, guarda de rotas, menus e ações por permissão | Implementado |
+| Identity | Cadastro e gestão de usuários, troca e recuperação de senha, tela de auditoria | Pendente |

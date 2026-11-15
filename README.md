@@ -19,6 +19,19 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/var/www/html" -w /var/www/htm
 ./vendor/bin/sail npm run dev
 ```
 
+## Acesso
+
+Toda a API exige login (token Sanctum). O `php artisan db:seed` cria, fora de produção, um usuário por papel, todos com a senha `Password@123`:
+
+| E-mail | Papel |
+| --- | --- |
+| `admin@erp.test` | Administração (tudo, inclusive auditoria) |
+| `despachante@erp.test` | Despacho (agenda e conduz viagens) |
+| `frota@erp.test` | Gestão de frota (veículos e oficina) |
+| `oficina@erp.test` | Supervisão de oficina (ordens de serviço) |
+
+Com `npm run dev`, a tela de login mostra atalhos para esses perfis; no build de produção eles não existem. Troque essas senhas ou não rode o seeder em ambientes expostos. O token expira em `SANCTUM_TOKEN_EXPIRATION` minutos (padrão: 480).
+
 ## Testes
 
 Os testes de feature rodam somente em PostgreSQL 16, num banco dedicado. Com um PostgreSQL local (o serviço `pgsql` do `docker-compose.yml` serve), crie-o uma vez:
