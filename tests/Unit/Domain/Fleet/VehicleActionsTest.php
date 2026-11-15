@@ -14,7 +14,9 @@ use App\Domain\Fleet\Exceptions\DuplicateChassisException;
 use App\Domain\Fleet\Exceptions\DuplicatePlateException;
 use App\Domain\Fleet\Exceptions\MileageDecreaseException;
 use App\Domain\Fleet\Exceptions\VehicleNotFoundException;
+use App\Domain\Shared\Events\VehicleDeleted;
 use Tests\Fakes\InMemoryVehicleRepository;
+use Tests\Fakes\RecordingEventDispatcher;
 
 function storedVehicle(InMemoryVehicleRepository $repository, string $plate, string $chassis, int $mileage = 100_000): Vehicle
 {
@@ -48,6 +50,7 @@ function changes(Vehicle $vehicle, string ...$overrides): UpdateVehicleDTO
 
 beforeEach(function (): void {
     $this->repository = new InMemoryVehicleRepository;
+    $this->events = new RecordingEventDispatcher;
     $this->first = storedVehicle($this->repository, 'BBB1B11', '9BWZZZ377VT004251');
     $this->second = storedVehicle($this->repository, 'AAA1A11', '9BWZZZ377VT004252');
 });
@@ -101,13 +104,16 @@ it('fails to update an unknown vehicle', function (): void {
 });
 
 it('deletes a vehicle', function (): void {
-    (new DeleteVehicleAction($this->repository))->execute($this->first->id);
+    (new DeleteVehicleAction($this->repository, $this->events))->execute($this->first->id);
 
     expect($this->repository->findById($this->first->id))->toBeNull()
-        ->and($this->repository->vehicles)->toHaveCount(1);
+        ->and($this->repository->vehicles)->toHaveCount(1)
+        ->and($this->events->events)->toEqual([new VehicleDeleted($this->first->id, 'BBB1B11', '9BWZZZ377VT004251', 'active')]);
 });
 
 it('fails to delete an unknown vehicle', function (): void {
-    expect(fn () => (new DeleteVehicleAction($this->repository))->execute('missing'))
+    expect(fn () => (new DeleteVehicleAction($this->repository, $this->events))->execute('missing'))
         ->toThrow(VehicleNotFoundException::class);
+
+    expect($this->events->events)->toBeEmpty();
 });

@@ -19,7 +19,7 @@ function vehiclePayload(array $overrides = []): array
 }
 
 it('creates a vehicle', function (): void {
-    $response = $this->postJson('/api/v1/vehicles', vehiclePayload());
+    $response = $this->postJson('/api/v1/fleet/vehicles', vehiclePayload());
 
     $response->assertCreated()
         ->assertJsonPath('data.plate', 'ABC1D23')
@@ -30,14 +30,14 @@ it('creates a vehicle', function (): void {
 });
 
 it('normalizes plate and chassis before validating', function (): void {
-    $this->postJson('/api/v1/vehicles', vehiclePayload(['plate' => 'abc-1234', 'chassis' => '9bwzzz377vt004251']))
+    $this->postJson('/api/v1/fleet/vehicles', vehiclePayload(['plate' => 'abc-1234', 'chassis' => '9bwzzz377vt004251']))
         ->assertCreated()
         ->assertJsonPath('data.plate', 'ABC1234')
         ->assertJsonPath('data.chassis', '9BWZZZ377VT004251');
 });
 
 it('rejects invalid input', function (array $overrides, string $field): void {
-    $this->postJson('/api/v1/vehicles', vehiclePayload($overrides))
+    $this->postJson('/api/v1/fleet/vehicles', vehiclePayload($overrides))
         ->assertUnprocessable()
         ->assertJsonValidationErrors($field);
 
@@ -52,9 +52,9 @@ it('rejects invalid input', function (array $overrides, string $field): void {
 ]);
 
 it('rejects a duplicated plate', function (): void {
-    $this->postJson('/api/v1/vehicles', vehiclePayload())->assertCreated();
+    $this->postJson('/api/v1/fleet/vehicles', vehiclePayload())->assertCreated();
 
-    $this->postJson('/api/v1/vehicles', vehiclePayload(['chassis' => '9BWZZZ377VT004252']))
+    $this->postJson('/api/v1/fleet/vehicles', vehiclePayload(['chassis' => '9BWZZZ377VT004252']))
         ->assertUnprocessable()
         ->assertJsonValidationErrors('plate');
 
@@ -62,9 +62,9 @@ it('rejects a duplicated plate', function (): void {
 });
 
 it('rejects a duplicated chassis', function (): void {
-    $this->postJson('/api/v1/vehicles', vehiclePayload())->assertCreated();
+    $this->postJson('/api/v1/fleet/vehicles', vehiclePayload())->assertCreated();
 
-    $this->postJson('/api/v1/vehicles', vehiclePayload(['plate' => 'XYZ9876']))
+    $this->postJson('/api/v1/fleet/vehicles', vehiclePayload(['plate' => 'XYZ9876']))
         ->assertUnprocessable()
         ->assertJsonValidationErrors('chassis');
 

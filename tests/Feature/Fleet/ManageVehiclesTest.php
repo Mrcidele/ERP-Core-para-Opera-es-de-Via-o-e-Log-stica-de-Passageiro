@@ -25,7 +25,7 @@ it('lists vehicles ordered by plate', function (): void {
     VehicleModel::factory()->create(['plate' => 'BBB1B11']);
     VehicleModel::factory()->create(['plate' => 'AAA1A11']);
 
-    $this->getJson('/api/v1/vehicles')
+    $this->getJson('/api/v1/fleet/vehicles')
         ->assertOk()
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.plate', 'AAA1A11')
@@ -36,14 +36,14 @@ it('lists vehicles ordered by plate', function (): void {
 it('shows a vehicle', function (): void {
     $vehicle = VehicleModel::factory()->create();
 
-    $this->getJson("/api/v1/vehicles/{$vehicle->id}")
+    $this->getJson("/api/v1/fleet/vehicles/{$vehicle->id}")
         ->assertOk()
         ->assertJsonPath('data.id', $vehicle->id)
         ->assertJsonPath('data.plate', $vehicle->plate);
 });
 
 it('returns 404 for an unknown vehicle', function (string $method, string $id): void {
-    $this->json($method, "/api/v1/vehicles/{$id}", $method === 'PUT' ? updatePayload(VehicleModel::factory()->make()) : [])
+    $this->json($method, "/api/v1/fleet/vehicles/{$id}", $method === 'PUT' ? updatePayload(VehicleModel::factory()->make()) : [])
         ->assertNotFound();
 })->with(['GET', 'PUT', 'DELETE'])->with([
     'unknown uuid' => '0193a5b0-7c1e-7000-8000-000000000000',
@@ -53,7 +53,7 @@ it('returns 404 for an unknown vehicle', function (string $method, string $id): 
 it('updates a vehicle', function (): void {
     $vehicle = VehicleModel::factory()->create(['status' => 'active', 'current_mileage' => 1000]);
 
-    $this->putJson("/api/v1/vehicles/{$vehicle->id}", updatePayload($vehicle, [
+    $this->putJson("/api/v1/fleet/vehicles/{$vehicle->id}", updatePayload($vehicle, [
         'status' => 'maintenance',
         'current_mileage' => 2500,
     ]))
@@ -67,7 +67,7 @@ it('updates a vehicle', function (): void {
 it('rejects invalid input on update', function (array $overrides, string $field): void {
     $vehicle = VehicleModel::factory()->create(['current_mileage' => 1000]);
 
-    $this->putJson("/api/v1/vehicles/{$vehicle->id}", updatePayload($vehicle, $overrides))
+    $this->putJson("/api/v1/fleet/vehicles/{$vehicle->id}", updatePayload($vehicle, $overrides))
         ->assertUnprocessable()
         ->assertJsonValidationErrors($field);
 })->with([
@@ -80,7 +80,7 @@ it('rejects an update that takes the plate of another vehicle', function (): voi
     $other = VehicleModel::factory()->create();
     $vehicle = VehicleModel::factory()->create();
 
-    $this->putJson("/api/v1/vehicles/{$vehicle->id}", updatePayload($vehicle, ['plate' => $other->plate]))
+    $this->putJson("/api/v1/fleet/vehicles/{$vehicle->id}", updatePayload($vehicle, ['plate' => $other->plate]))
         ->assertUnprocessable()
         ->assertJsonValidationErrors('plate');
 });
@@ -88,7 +88,7 @@ it('rejects an update that takes the plate of another vehicle', function (): voi
 it('deletes a vehicle', function (): void {
     $vehicle = VehicleModel::factory()->create();
 
-    $this->deleteJson("/api/v1/vehicles/{$vehicle->id}")->assertNoContent();
+    $this->deleteJson("/api/v1/fleet/vehicles/{$vehicle->id}")->assertNoContent();
 
     $this->assertSoftDeleted('vehicles', ['id' => $vehicle->id]);
 });
@@ -97,15 +97,15 @@ it('hides a deleted vehicle from listing and lookup', function (): void {
     $vehicle = VehicleModel::factory()->create();
     $vehicle->delete();
 
-    $this->getJson('/api/v1/vehicles')->assertOk()->assertJsonCount(0, 'data');
-    $this->getJson("/api/v1/vehicles/{$vehicle->id}")->assertNotFound();
+    $this->getJson('/api/v1/fleet/vehicles')->assertOk()->assertJsonCount(0, 'data');
+    $this->getJson("/api/v1/fleet/vehicles/{$vehicle->id}")->assertNotFound();
 });
 
 it('allows registering again the plate and chassis of a deleted vehicle', function (): void {
     $vehicle = VehicleModel::factory()->create();
     $vehicle->delete();
 
-    $this->postJson('/api/v1/vehicles', [
+    $this->postJson('/api/v1/fleet/vehicles', [
         'plate' => $vehicle->plate,
         'chassis' => $vehicle->chassis,
         'capacity' => 46,

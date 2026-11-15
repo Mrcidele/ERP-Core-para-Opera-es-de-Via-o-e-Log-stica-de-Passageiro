@@ -19,12 +19,15 @@ use App\Domain\Operations\Actions\ScheduleTripAction;
 use App\Domain\Operations\DTOs\ScheduleTripDTO;
 use App\Domain\Operations\Entities\Line;
 use App\Domain\Operations\Exceptions\VehicleNotAvailableException;
+use App\Domain\Shared\Events\MaintenanceOrderCompleted;
+use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use Tests\Fakes\FakeCrewGateway;
 use Tests\Fakes\FakeFleetGateway;
 use Tests\Fakes\FixedClock;
 use Tests\Fakes\InMemoryLineRepository;
 use Tests\Fakes\InMemoryMaintenanceOrderRepository;
 use Tests\Fakes\InMemoryTripRepository;
+use Tests\Fakes\RecordingEventDispatcher;
 
 function orderData(string $vehicle = 'bus-1', string $mechanic = 'mechanic-1'): OpenMaintenanceOrderDTO
 {
@@ -36,8 +39,10 @@ beforeEach(function (): void {
     $this->fleet = new FakeFleetGateway(['bus-1', 'bus-2']);
     $this->crew = new FakeCrewGateway(activeDriverIds: ['driver-1'], activeMechanicIds: ['mechanic-1']);
 
-    $this->open = new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-13 10:00:00'));
-    $this->complete = new CompleteMaintenanceOrderAction($this->orders, $this->fleet, new FixedClock('2026-11-14 16:30:00'));
+    $this->events = new RecordingEventDispatcher;
+
+    $this->open = new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-13 10:00:00'), $this->events);
+    $this->complete = new CompleteMaintenanceOrderAction($this->orders, $this->fleet, new FixedClock('2026-11-14 16:30:00'), $this->events);
     $this->cancel = new CancelMaintenanceOrderAction($this->orders, $this->fleet);
 });
 
@@ -52,7 +57,8 @@ it('opens an order and puts the vehicle in maintenance', function (): void {
         ->and($order->completedAt)->toBeNull()
         ->and($this->orders->findById($order->id))->toBe($order)
         ->and($this->fleet->statuses['bus-1'])->toBe('maintenance')
-        ->and($this->fleet->statuses['bus-2'])->toBe('active');
+        ->and($this->fleet->statuses['bus-2'])->toBe('active')
+        ->and($this->events->events)->toEqual([new MaintenanceOrderOpened($order->id, 'bus-1', 'mechanic-1', 'corrective')]);
 });
 
 it('rejects an unknown vehicle', function (): void {
@@ -77,7 +83,8 @@ it('completes an order with its final cost and returns the vehicle to service', 
         ->and($completed->costCents)->toBe(45_090)
         ->and($completed->completedAt?->format('Y-m-d H:i'))->toBe('2026-11-14 16:30')
         ->and($this->orders->findById($order->id))->toBe($completed)
-        ->and($this->fleet->statuses['bus-1'])->toBe('active');
+        ->and($this->fleet->statuses['bus-1'])->toBe('active')
+        ->and($this->events->events[1])->toEqual(new MaintenanceOrderCompleted($order->id, 'bus-1', 45_090));
 });
 
 it('keeps the vehicle in maintenance while another order is still pending', function (): void {
@@ -132,7 +139,7 @@ it('fails for an unknown order', function (): void {
 });
 
 it('lists orders from the most recent to the oldest', function (): void {
-    $old = (new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-01 08:00:00')))->execute(orderData());
+    $old = (new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-01 08:00:00'), $this->events))->execute(orderData());
     $recent = $this->open->execute(orderData(vehicle: 'bus-2'));
 
     $result = (new ListMaintenanceOrdersAction($this->orders))->execute();

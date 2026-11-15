@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fakes;
 
 use App\Domain\Maintenance\Contracts\CrewGateway as MaintenanceCrewGateway;
+use App\Domain\Maintenance\DTOs\MechanicDTO;
 use App\Domain\Operations\Contracts\CrewGateway as OperationsCrewGateway;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -38,5 +39,10 @@ final class FakeCrewGateway implements MaintenanceCrewGateway, OperationsCrewGat
     public function isActiveMechanic(string $employeeId): bool
     {
         return in_array($employeeId, $this->activeMechanicIds, true);
+    }
+
+    public function activeMechanics(): array
+    {
+        return array_map(fn (string $id): MechanicDTO => new MechanicDTO($id, "Mecânico {$id}"), $this->activeMechanicIds);
     }
 }

@@ -11,6 +11,7 @@ use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
 use App\Domain\Operations\Exceptions\InvalidTripTransitionException;
 use App\Domain\Operations\Exceptions\TripNotFoundException;
+use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use Tests\Fakes\InMemoryLineRepository;
 use Tests\Fakes\InMemoryTripRepository;
@@ -57,7 +58,8 @@ it('completes a trip in progress and announces it with the line distance', funct
 it('cancels a scheduled trip', function (): void {
     $trip = storedTrip($this->trips, TripStatus::Scheduled);
 
-    expect((new CancelTripAction($this->trips))->execute($trip->id)->status)->toBe(TripStatus::Canceled);
+    expect((new CancelTripAction($this->trips, $this->events))->execute($trip->id)->status)->toBe(TripStatus::Canceled)
+        ->and($this->events->events)->toEqual([new TripCanceled($trip->id)]);
 });
 
 it('rejects starting a trip that is not scheduled', function (TripStatus $status): void {
@@ -80,13 +82,13 @@ it('rejects completing a trip that is not in progress and announces nothing', fu
 it('rejects canceling a trip that is not scheduled', function (TripStatus $status): void {
     $trip = storedTrip($this->trips, $status);
 
-    expect(fn () => (new CancelTripAction($this->trips))->execute($trip->id))
+    expect(fn () => (new CancelTripAction($this->trips, $this->events))->execute($trip->id))
         ->toThrow(InvalidTripTransitionException::class);
 })->with([TripStatus::InProgress, TripStatus::Completed, TripStatus::Canceled]);
 
 it('fails for an unknown trip', function (): void {
     expect(fn () => (new StartTripAction($this->trips))->execute('missing'))->toThrow(TripNotFoundException::class)
-        ->and(fn () => (new CancelTripAction($this->trips))->execute('missing'))->toThrow(TripNotFoundException::class)
+        ->and(fn () => (new CancelTripAction($this->trips, $this->events))->execute('missing'))->toThrow(TripNotFoundException::class)
         ->and(fn () => (new CompleteTripAction($this->trips, $this->lines, $this->events))->execute('missing'))->toThrow(TripNotFoundException::class);
 });
 
