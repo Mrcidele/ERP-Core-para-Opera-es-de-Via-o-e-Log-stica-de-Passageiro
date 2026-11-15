@@ -12,6 +12,8 @@ use App\Domain\Maintenance\Exceptions\MechanicNotAvailableException;
 use App\Domain\Maintenance\Exceptions\VehicleNotFoundException;
 use App\Domain\Maintenance\Repositories\MaintenanceOrderRepository;
 use App\Domain\Shared\Contracts\Clock;
+use App\Domain\Shared\Contracts\EventDispatcher;
+use App\Domain\Shared\Events\MaintenanceOrderOpened;
 
 final readonly class OpenMaintenanceOrderAction
 {
@@ -20,6 +22,7 @@ final readonly class OpenMaintenanceOrderAction
         private FleetGateway $fleet,
         private CrewGateway $crew,
         private Clock $clock,
+        private EventDispatcher $events,
     ) {}
 
     public function execute(OpenMaintenanceOrderDTO $data): MaintenanceOrder
@@ -36,6 +39,8 @@ final readonly class OpenMaintenanceOrderAction
 
         $this->orders->save($order);
         $this->fleet->markVehicleInMaintenance($order->vehicleId);
+
+        $this->events->dispatch(new MaintenanceOrderOpened($order->id, $order->vehicleId, $order->mechanicId, $order->type->value));
 
         return $order;
     }

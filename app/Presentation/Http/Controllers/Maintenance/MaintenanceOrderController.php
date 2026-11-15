@@ -7,12 +7,14 @@ namespace App\Presentation\Http\Controllers\Maintenance;
 use App\Domain\Maintenance\Actions\CancelMaintenanceOrderAction;
 use App\Domain\Maintenance\Actions\CompleteMaintenanceOrderAction;
 use App\Domain\Maintenance\Actions\ListMaintenanceOrdersAction;
+use App\Domain\Maintenance\Actions\ListMechanicsAction;
 use App\Domain\Maintenance\Actions\OpenMaintenanceOrderAction;
 use App\Presentation\Http\Controllers\Controller;
 use App\Presentation\Http\Requests\Maintenance\CloseMaintenanceOrderRequest;
 use App\Presentation\Http\Requests\Maintenance\OpenMaintenanceOrderRequest;
 use App\Presentation\Http\Resources\Maintenance\MaintenanceOrderResource;
 use App\Presentation\Http\Resources\Maintenance\MaintenanceOrderSummaryResource;
+use App\Presentation\Http\Resources\Maintenance\MechanicResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -21,6 +23,11 @@ final class MaintenanceOrderController extends Controller
     public function index(ListMaintenanceOrdersAction $action): AnonymousResourceCollection
     {
         return MaintenanceOrderSummaryResource::collection($action->execute());
+    }
+
+    public function mechanics(ListMechanicsAction $action): AnonymousResourceCollection
+    {
+        return MechanicResource::collection($action->execute());
     }
 
     public function store(OpenMaintenanceOrderRequest $request, OpenMaintenanceOrderAction $action): JsonResponse

@@ -10,6 +10,8 @@ use App\Domain\Maintenance\Entities\MaintenanceOrder;
 use App\Domain\Maintenance\Exceptions\MaintenanceOrderNotFoundException;
 use App\Domain\Maintenance\Repositories\MaintenanceOrderRepository;
 use App\Domain\Shared\Contracts\Clock;
+use App\Domain\Shared\Contracts\EventDispatcher;
+use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 
 final readonly class CompleteMaintenanceOrderAction
 {
@@ -17,6 +19,7 @@ final readonly class CompleteMaintenanceOrderAction
         private MaintenanceOrderRepository $orders,
         private FleetGateway $fleet,
         private Clock $clock,
+        private EventDispatcher $events,
     ) {}
 
     public function execute(CompleteMaintenanceOrderDTO $data): MaintenanceOrder
@@ -30,6 +33,8 @@ final readonly class CompleteMaintenanceOrderAction
         if (! $this->orders->hasActiveOrders($order->vehicleId)) {
             $this->fleet->markVehicleActive($order->vehicleId);
         }
+
+        $this->events->dispatch(new MaintenanceOrderCompleted($order->id, $order->vehicleId, $order->costCents));
 
         return $order;
     }

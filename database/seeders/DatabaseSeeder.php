@@ -6,21 +6,29 @@ namespace Database\Seeders;
 
 use App\Domain\Crew\Enums\EmployeeRole;
 use App\Domain\Fleet\Enums\VehicleStatus;
+use App\Domain\Identity\Enums\UserRole;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use App\Infrastructure\Database\Models\LineModel;
 use App\Infrastructure\Database\Models\MaintenanceOrderModel;
+use App\Infrastructure\Database\Models\UserModel;
 use App\Infrastructure\Database\Models\VehicleModel;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Usuários de teste, um por papel, todos com a senha Password@123. Nunca em produção.
+        if (! app()->isProduction()) {
+            foreach ([
+                ['Ana Administradora', 'admin@erp.test', UserRole::Admin],
+                ['Diego Despachante', 'despachante@erp.test', UserRole::Dispatcher],
+                ['Fernanda Frota', 'frota@erp.test', UserRole::FleetManager],
+                ['Otávio Oficina', 'oficina@erp.test', UserRole::MechanicSupervisor],
+            ] as [$name, $email, $role]) {
+                UserModel::factory()->role($role)->create(['name' => $name, 'email' => $email]);
+            }
+        }
 
         $vehicles = VehicleModel::factory(30)->create();
 

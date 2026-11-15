@@ -7,6 +7,7 @@ namespace App\Infrastructure\Database\Gateways;
 use App\Domain\Crew\Enums\EmployeeRole;
 use App\Domain\Crew\Enums\EmployeeStatus;
 use App\Domain\Maintenance\Contracts\CrewGateway as MaintenanceCrewGateway;
+use App\Domain\Maintenance\DTOs\MechanicDTO;
 use App\Domain\Operations\Contracts\CrewGateway as OperationsCrewGateway;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use DateTimeImmutable;
@@ -23,6 +24,19 @@ final class EloquentCrewGateway implements MaintenanceCrewGateway, OperationsCre
     public function isActiveMechanic(string $employeeId): bool
     {
         return $this->isActiveWithRole($employeeId, EmployeeRole::Mechanic);
+    }
+
+    public function activeMechanics(): array
+    {
+        return array_values(
+            EmployeeModel::query()
+                ->where('role', EmployeeRole::Mechanic->value)
+                ->where('status', EmployeeStatus::Active->value)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (EmployeeModel $model): MechanicDTO => new MechanicDTO($model->id, $model->name))
+                ->all(),
+        );
     }
 
     public function isDriverLicenseValidUntil(string $employeeId, DateTimeImmutable $moment): bool
