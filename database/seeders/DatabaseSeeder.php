@@ -10,6 +10,7 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use App\Infrastructure\Database\Models\LineModel;
 use App\Infrastructure\Database\Models\MaintenanceOrderModel;
+use App\Infrastructure\Database\Models\TripModel;
 use App\Infrastructure\Database\Models\UserModel;
 use App\Infrastructure\Database\Models\VehicleModel;
 use Illuminate\Database\Seeder;
@@ -32,7 +33,12 @@ class DatabaseSeeder extends Seeder
 
         $vehicles = VehicleModel::factory(30)->create();
 
-        EmployeeModel::factory(20)->create();
+        $drivers = EmployeeModel::factory(20)->create();
+
+        // Três motoristas com a CNH perto do vencimento, para o alerta do painel.
+        foreach ([6, 14, 27] as $index => $days) {
+            $drivers[$index]->update(['cnh_expiration_date' => now()->addDays($days)->toDateString()]);
+        }
         $mechanics = EmployeeModel::factory(5)->withoutLicense(EmployeeRole::Mechanic)->create();
         EmployeeModel::factory(3)->withoutLicense(EmployeeRole::Admin)->create();
 
@@ -64,6 +70,26 @@ class DatabaseSeeder extends Seeder
             MaintenanceOrderModel::factory()->completed()->create([
                 'vehicle_id' => $vehicle->id,
                 'mechanic_id' => $mechanics->random()->id,
+            ]);
+        }
+
+        // Viagens: uma em andamento e as próximas da escala, cada uma com veículo e motorista próprios
+        // (respeitando o descanso de 11 horas) e CNH válida até a chegada.
+        $lines = LineModel::query()->orderBy('destination')->get();
+        $activeVehicles = $vehicles->where('status', VehicleStatus::Active)->values();
+        $longLicense = $drivers->slice(3)->values();
+
+        foreach ([[-2, 'in_progress'], [3, 'scheduled'], [7, 'scheduled'], [20, 'scheduled'], [28, 'scheduled'], [46, 'scheduled'], [70, 'scheduled']] as $index => [$hours, $status]) {
+            $line = $lines[$index % $lines->count()];
+            $departure = now()->startOfHour()->addHours($hours);
+
+            TripModel::query()->create([
+                'line_id' => $line->id,
+                'vehicle_id' => $activeVehicles[$index]->id,
+                'driver_id' => $longLicense[$index]->id,
+                'departure_time' => $departure,
+                'arrival_time' => $departure->copy()->addMinutes($line->estimated_duration_minutes),
+                'status' => $status,
             ]);
         }
     }
