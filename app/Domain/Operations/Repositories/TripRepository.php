@@ -9,6 +9,8 @@ use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Exceptions\DriverRestViolationException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 use DateTimeImmutable;
 
 interface TripRepository
@@ -17,10 +19,18 @@ interface TripRepository
 
     /**
      * Viagens ordenadas pela partida, com linha, veículo e motorista.
+     * Busca por cidade da linha, placa ou motorista; filtro por status.
      *
-     * @return list<TripSummaryDTO>
+     * @return Page<TripSummaryDTO>
      */
-    public function allWithDetails(): array;
+    public function paginateWithDetails(PageQuery $query): Page;
+
+    /**
+     * Todas as viagens que atendem aos filtros (a página é ignorada), lidas aos poucos para exportação.
+     *
+     * @return iterable<TripSummaryDTO>
+     */
+    public function streamWithDetails(PageQuery $filters): iterable;
 
     public function findById(string $id): ?Trip;
 

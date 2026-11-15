@@ -8,10 +8,14 @@ use App\Domain\Operations\DTOs\TripSummaryDTO;
 use App\Domain\Operations\Entities\Trip;
 use App\Domain\Operations\Enums\TripStatus;
 use App\Domain\Operations\Repositories\TripRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 use DateTimeImmutable;
 
 final class InMemoryTripRepository implements TripRepository
 {
+    use SlicesPages;
+
     /** @var array<string, Trip> */
     public array $trips = [];
 
@@ -22,9 +26,25 @@ final class InMemoryTripRepository implements TripRepository
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
     }
 
-    public function allWithDetails(): array
+    public function paginateWithDetails(PageQuery $query): Page
     {
-        $trips = array_values($this->trips);
+        return $this->pageOf($this->summaries($query), $query);
+    }
+
+    public function streamWithDetails(PageQuery $filters): iterable
+    {
+        return $this->summaries($filters);
+    }
+
+    /**
+     * @return list<TripSummaryDTO>
+     */
+    private function summaries(PageQuery $query): array
+    {
+        $trips = array_values(array_filter(
+            $this->trips,
+            fn (Trip $trip): bool => $query->status === null || $trip->status->value === $query->status,
+        ));
 
         usort($trips, fn (Trip $a, Trip $b): int => $a->departureTime <=> $b->departureTime);
 

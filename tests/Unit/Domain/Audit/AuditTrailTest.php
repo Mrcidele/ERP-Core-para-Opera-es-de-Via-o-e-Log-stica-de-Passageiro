@@ -11,6 +11,7 @@ use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\VehicleDeleted;
+use App\Domain\Shared\Pagination\PageQuery;
 use Tests\Fakes\FakeRequestContext;
 use Tests\Fakes\FixedClock;
 use Tests\Fakes\InMemoryAuditLogRepository;
@@ -70,14 +71,16 @@ it('turns each critical event into an audit record', function (string $method, o
     ]],
 ]);
 
-it('lists the most recent records first, up to the limit', function (): void {
+it('lists the most recent records first, one page at a time', function (): void {
     foreach (['a', 'b', 'c'] as $action) {
         $this->record->execute($action, 'vehicle', null, null, null);
     }
 
     $list = new ListAuditLogsAction($this->logs);
 
-    expect(array_map(fn ($summary): string => $summary->log->action, $list->execute(2)))->toBe(['c', 'b'])
-        ->and($list->execute(0))->toHaveCount(1)
-        ->and($list->execute(5000))->toHaveCount(3);
+    expect(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(perPage: 2))->items))->toBe(['c', 'b'])
+        ->and(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(page: 2, perPage: 2))->items))->toBe(['a'])
+        ->and($list->execute(new PageQuery(perPage: 0))->items)->toHaveCount(1)
+        ->and($list->execute(new PageQuery(perPage: 5000))->perPage)->toBe(PageQuery::MAX_PER_PAGE)
+        ->and($list->execute()->total)->toBe(3);
 });

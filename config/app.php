@@ -70,6 +70,12 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Fuso das datas em relatórios exportados (CSV). A API e o banco continuam em UTC.
+    */
+
+    'report_timezone' => env('APP_REPORT_TIMEZONE', 'America/Sao_Paulo'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

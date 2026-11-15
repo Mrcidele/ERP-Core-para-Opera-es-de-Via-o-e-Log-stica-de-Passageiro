@@ -7,9 +7,13 @@ namespace Tests\Fakes;
 use App\Domain\Maintenance\DTOs\MaintenanceOrderSummaryDTO;
 use App\Domain\Maintenance\Entities\MaintenanceOrder;
 use App\Domain\Maintenance\Repositories\MaintenanceOrderRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final class InMemoryMaintenanceOrderRepository implements MaintenanceOrderRepository
 {
+    use SlicesPages;
+
     /** @var array<string, MaintenanceOrder> */
     public array $orders = [];
 
@@ -20,9 +24,25 @@ final class InMemoryMaintenanceOrderRepository implements MaintenanceOrderReposi
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
     }
 
-    public function allWithDetails(): array
+    public function paginateWithDetails(PageQuery $query): Page
     {
-        $orders = array_values($this->orders);
+        return $this->pageOf($this->summaries($query), $query);
+    }
+
+    public function streamWithDetails(PageQuery $filters): iterable
+    {
+        return $this->summaries($filters);
+    }
+
+    /**
+     * @return list<MaintenanceOrderSummaryDTO>
+     */
+    private function summaries(PageQuery $query): array
+    {
+        $orders = array_values(array_filter(
+            $this->orders,
+            fn (MaintenanceOrder $order): bool => $query->status === null || $order->status->value === $query->status,
+        ));
 
         usort($orders, fn (MaintenanceOrder $a, MaintenanceOrder $b): int => $b->openedAt <=> $a->openedAt);
 

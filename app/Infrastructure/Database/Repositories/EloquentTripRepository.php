@@ -11,15 +11,21 @@ use App\Domain\Operations\Exceptions\DriverRestViolationException;
 use App\Domain\Operations\Exceptions\DriverScheduleConflictException;
 use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
 use App\Domain\Operations\Repositories\TripRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
+use App\Infrastructure\Database\Concerns\PaginatesQueries;
 use App\Infrastructure\Database\Models\TripModel;
 use DateTimeImmutable;
 use DateTimeZone;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 final class EloquentTripRepository implements TripRepository
 {
+    use PaginatesQueries;
+
     /** SQLSTATE do PostgreSQL para violação de constraint EXCLUDE. */
     private const EXCLUSION_VIOLATION = '23P01';
 
@@ -28,23 +34,48 @@ final class EloquentTripRepository implements TripRepository
         return Str::orderedUuid()->toString();
     }
 
-    public function allWithDetails(): array
+    public function paginateWithDetails(PageQuery $query): Page
     {
-        return array_values(
-            TripModel::query()
-                ->with(['line', 'vehicle', 'driver'])
-                ->orderBy('departure_time')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (TripModel $model): TripSummaryDTO => new TripSummaryDTO(
-                    trip: $this->toEntity($model),
-                    lineOrigin: $model->line->origin ?? '',
-                    lineDestination: $model->line->destination ?? '',
-                    lineDistanceKm: $model->line->distance_km ?? 0,
-                    vehiclePlate: $model->vehicle->plate ?? '',
-                    driverName: $model->driver->name ?? '',
-                ))
-                ->all(),
+        return $this->paginateQuery($this->filtered($query), $query, $this->toSummary(...));
+    }
+
+    public function streamWithDetails(PageQuery $filters): iterable
+    {
+        // lazy() busca em blocos: a exportação não carrega todas as viagens de uma vez.
+        foreach ($this->filtered($filters)->lazy(500) as $model) {
+            yield $this->toSummary($model);
+        }
+    }
+
+    /**
+     * @return Builder<TripModel>
+     */
+    private function filtered(PageQuery $query): Builder
+    {
+        return TripModel::query()
+            ->with(['line', 'vehicle', 'driver'])
+            ->when($query->status !== null, fn (Builder $trips) => $trips->where('status', $query->status))
+            ->when($query->search !== null, function (Builder $trips) use ($query): void {
+                $term = $this->likeTerm((string) $query->search);
+
+                $trips->where(fn (Builder $match) => $match
+                    ->whereHas('line', fn (Builder $line) => $line->where('origin', 'ilike', $term)->orWhere('destination', 'ilike', $term))
+                    ->orWhereHas('vehicle', fn (Builder $vehicle) => $vehicle->where('plate', 'ilike', $term))
+                    ->orWhereHas('driver', fn (Builder $driver) => $driver->where('name', 'ilike', $term)));
+            })
+            ->orderBy('departure_time')
+            ->orderBy('id');
+    }
+
+    private function toSummary(TripModel $model): TripSummaryDTO
+    {
+        return new TripSummaryDTO(
+            trip: $this->toEntity($model),
+            lineOrigin: $model->line->origin ?? '',
+            lineDestination: $model->line->destination ?? '',
+            lineDistanceKm: $model->line->distance_km ?? 0,
+            vehiclePlate: $model->vehicle->plate ?? '',
+            driverName: $model->driver->name ?? '',
         );
     }
 

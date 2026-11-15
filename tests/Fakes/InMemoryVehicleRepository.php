@@ -6,9 +6,13 @@ namespace Tests\Fakes;
 
 use App\Domain\Fleet\Entities\Vehicle;
 use App\Domain\Fleet\Repositories\VehicleRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final class InMemoryVehicleRepository implements VehicleRepository
 {
+    use SlicesPages;
+
     /** @var array<string, Vehicle> */
     public array $vehicles = [];
 
@@ -19,13 +23,17 @@ final class InMemoryVehicleRepository implements VehicleRepository
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
     }
 
-    public function all(): array
+    public function paginate(PageQuery $query): Page
     {
-        $vehicles = array_values($this->vehicles);
+        $vehicles = array_values(array_filter(
+            $this->vehicles,
+            fn (Vehicle $vehicle): bool => ($query->status === null || $vehicle->status->value === $query->status)
+                && ($query->search === null || str_contains($vehicle->plate.' '.$vehicle->chassis, mb_strtoupper($query->search))),
+        ));
 
         usort($vehicles, fn (Vehicle $a, Vehicle $b): int => $a->plate <=> $b->plate);
 
-        return $vehicles;
+        return $this->pageOf($vehicles, $query);
     }
 
     public function findById(string $id): ?Vehicle

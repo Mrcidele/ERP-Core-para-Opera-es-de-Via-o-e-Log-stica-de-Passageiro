@@ -6,6 +6,8 @@ namespace App\Domain\Operations\Actions;
 
 use App\Domain\Operations\DTOs\TripSummaryDTO;
 use App\Domain\Operations\Repositories\TripRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final readonly class ListTripsAction
 {
@@ -14,10 +16,10 @@ final readonly class ListTripsAction
     ) {}
 
     /**
-     * @return list<TripSummaryDTO>
+     * @return Page<TripSummaryDTO>
      */
-    public function execute(): array
+    public function execute(PageQuery $query = new PageQuery): Page
     {
-        return $this->trips->allWithDetails();
+        return $this->trips->paginateWithDetails($query);
     }
 }

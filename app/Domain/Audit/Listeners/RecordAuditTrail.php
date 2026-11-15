@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Audit\Listeners;
 
 use App\Domain\Audit\Actions\RecordAuditLogAction;
+use App\Domain\Shared\Events\LineCreated;
+use App\Domain\Shared\Events\LineDeleted;
+use App\Domain\Shared\Events\LineUpdated;
 use App\Domain\Shared\Events\LoginFailed;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
@@ -26,6 +29,21 @@ final readonly class RecordAuditTrail
             'chassis' => $event->chassis,
             'status' => $event->status,
         ], null);
+    }
+
+    public function lineCreated(LineCreated $event): void
+    {
+        $this->record->execute('line.created', 'line', $event->lineId, null, $event->line);
+    }
+
+    public function lineUpdated(LineUpdated $event): void
+    {
+        $this->record->execute('line.updated', 'line', $event->lineId, $event->before, $event->after);
+    }
+
+    public function lineDeleted(LineDeleted $event): void
+    {
+        $this->record->execute('line.deleted', 'line', $event->lineId, $event->line, null);
     }
 
     public function tripCompleted(TripCompleted $event): void

@@ -6,6 +6,8 @@ namespace App\Domain\Maintenance\Repositories;
 
 use App\Domain\Maintenance\DTOs\MaintenanceOrderSummaryDTO;
 use App\Domain\Maintenance\Entities\MaintenanceOrder;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 interface MaintenanceOrderRepository
 {
@@ -13,10 +15,18 @@ interface MaintenanceOrderRepository
 
     /**
      * Ordens da mais recente para a mais antiga, com veículo e mecânico.
+     * Busca por placa, mecânico ou descrição; filtro por status.
      *
-     * @return list<MaintenanceOrderSummaryDTO>
+     * @return Page<MaintenanceOrderSummaryDTO>
      */
-    public function allWithDetails(): array;
+    public function paginateWithDetails(PageQuery $query): Page;
+
+    /**
+     * Todas as ordens que atendem aos filtros (a página é ignorada), lidas aos poucos para exportação.
+     *
+     * @return iterable<MaintenanceOrderSummaryDTO>
+     */
+    public function streamWithDetails(PageQuery $filters): iterable;
 
     public function findById(string $id): ?MaintenanceOrder;
 

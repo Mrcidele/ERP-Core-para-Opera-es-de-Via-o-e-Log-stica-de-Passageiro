@@ -7,9 +7,13 @@ namespace Tests\Fakes;
 use App\Domain\Audit\DTOs\AuditLogSummaryDTO;
 use App\Domain\Audit\Entities\AuditLog;
 use App\Domain\Audit\Repositories\AuditLogRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final class InMemoryAuditLogRepository implements AuditLogRepository
 {
+    use SlicesPages;
+
     /** @var list<AuditLog> */
     public array $logs = [];
 
@@ -25,11 +29,16 @@ final class InMemoryAuditLogRepository implements AuditLogRepository
         $this->logs[] = $log;
     }
 
-    public function latest(int $limit): array
+    public function paginate(PageQuery $query): Page
     {
-        return array_map(
+        $logs = array_values(array_filter(
+            array_reverse($this->logs),
+            fn (AuditLog $log): bool => $query->search === null || str_contains($log->action, $query->search),
+        ));
+
+        return $this->pageOf(array_map(
             fn (AuditLog $log): AuditLogSummaryDTO => new AuditLogSummaryDTO($log, $log->userId === null ? null : 'Usuário'),
-            array_slice(array_reverse($this->logs), 0, $limit),
-        );
+            $logs,
+        ), $query);
     }
 }

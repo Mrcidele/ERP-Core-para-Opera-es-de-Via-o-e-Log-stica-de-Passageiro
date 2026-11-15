@@ -6,6 +6,8 @@ namespace App\Domain\Audit\Repositories;
 
 use App\Domain\Audit\DTOs\AuditLogSummaryDTO;
 use App\Domain\Audit\Entities\AuditLog;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 /** Registros de auditoria só são acrescentados; não há edição nem exclusão. */
 interface AuditLogRepository
@@ -15,9 +17,9 @@ interface AuditLogRepository
     public function append(AuditLog $log): void;
 
     /**
-     * Os registros mais recentes primeiro.
+     * Registros do mais recente para o mais antigo. Busca por ação, entidade, usuário ou IP.
      *
-     * @return list<AuditLogSummaryDTO>
+     * @return Page<AuditLogSummaryDTO>
      */
-    public function latest(int $limit): array;
+    public function paginate(PageQuery $query): Page;
 }

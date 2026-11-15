@@ -12,6 +12,12 @@ final class InMemoryLineRepository implements LineRepository
     /** @var array<string, Line> */
     public array $lines = [];
 
+    /** @var list<string> */
+    public array $deleted = [];
+
+    /** @var list<string> */
+    public array $linesWithActiveTrips = [];
+
     public function add(Line $line): void
     {
         $this->lines[$line->id] = $line;
@@ -19,7 +25,7 @@ final class InMemoryLineRepository implements LineRepository
 
     public function all(): array
     {
-        $lines = array_values($this->lines);
+        $lines = array_values(array_filter($this->lines, fn (Line $line): bool => ! in_array($line->id, $this->deleted, true)));
 
         usort($lines, fn (Line $a, Line $b): int => [$a->origin, $a->destination] <=> [$b->origin, $b->destination]);
 
@@ -31,8 +37,33 @@ final class InMemoryLineRepository implements LineRepository
         return $this->lines[$id] ?? null;
     }
 
+    public function nextIdentity(): string
+    {
+        return 'line-'.(count($this->lines) + count($this->deleted) + 1);
+    }
+
+    public function findActive(string $id): ?Line
+    {
+        return in_array($id, $this->deleted, true) ? null : ($this->lines[$id] ?? null);
+    }
+
+    public function hasActiveTrips(string $id): bool
+    {
+        return in_array($id, $this->linesWithActiveTrips, true);
+    }
+
+    public function save(Line $line): void
+    {
+        $this->lines[$line->id] = $line;
+    }
+
+    public function delete(string $id): void
+    {
+        $this->deleted[] = $id;
+    }
+
     public function exists(string $id): bool
     {
-        return isset($this->lines[$id]);
+        return $this->findActive($id) !== null;
     }
 }

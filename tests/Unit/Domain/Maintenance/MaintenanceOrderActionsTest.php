@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Maintenance\Actions\CancelMaintenanceOrderAction;
 use App\Domain\Maintenance\Actions\CompleteMaintenanceOrderAction;
+use App\Domain\Maintenance\Actions\ExportMaintenanceOrdersAction;
 use App\Domain\Maintenance\Actions\ListMaintenanceOrdersAction;
 use App\Domain\Maintenance\Actions\OpenMaintenanceOrderAction;
 use App\Domain\Maintenance\DTOs\CompleteMaintenanceOrderDTO;
@@ -21,6 +22,7 @@ use App\Domain\Operations\Entities\Line;
 use App\Domain\Operations\Exceptions\VehicleNotAvailableException;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
+use App\Domain\Shared\Pagination\PageQuery;
 use Tests\Fakes\FakeCrewGateway;
 use Tests\Fakes\FakeFleetGateway;
 use Tests\Fakes\FixedClock;
@@ -144,7 +146,19 @@ it('lists orders from the most recent to the oldest', function (): void {
 
     $result = (new ListMaintenanceOrdersAction($this->orders))->execute();
 
-    expect(array_map(fn ($summary): string => $summary->order->id, $result))->toBe([$recent->id, $old->id]);
+    expect(array_map(fn ($summary): string => $summary->order->id, $result->items))->toBe([$recent->id, $old->id]);
+});
+
+it('pages the orders and exports every one of them', function (): void {
+    $old = (new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-01 08:00:00'), $this->events))->execute(orderData());
+    $recent = $this->open->execute(orderData(vehicle: 'bus-2'));
+
+    $page = (new ListMaintenanceOrdersAction($this->orders))->execute(new PageQuery(page: 2, perPage: 1));
+    $exported = (new ExportMaintenanceOrdersAction($this->orders))->execute(new PageQuery(page: 2, perPage: 1));
+
+    expect(array_map(fn ($summary): string => $summary->order->id, $page->items))->toBe([$old->id])
+        ->and($page->lastPage())->toBe(2)
+        ->and(array_map(fn ($summary): string => $summary->order->id, [...$exported]))->toBe([$recent->id, $old->id]);
 });
 
 it('blocks scheduling trips for a vehicle with a pending order and frees it when the order is completed', function (): void {

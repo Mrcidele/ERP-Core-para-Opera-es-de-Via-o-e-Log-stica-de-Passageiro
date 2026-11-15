@@ -11,6 +11,7 @@ use App\Domain\Fleet\Actions\RegisterVehicleAction;
 use App\Domain\Fleet\Actions\UpdateVehicleAction;
 use App\Presentation\Http\Controllers\Controller;
 use App\Presentation\Http\Requests\Fleet\CreateVehicleRequest;
+use App\Presentation\Http\Requests\Fleet\ListVehiclesRequest;
 use App\Presentation\Http\Requests\Fleet\UpdateVehicleRequest;
 use App\Presentation\Http\Resources\Fleet\VehicleResource;
 use Illuminate\Http\JsonResponse;
@@ -19,9 +20,9 @@ use Illuminate\Http\Response;
 
 final class VehicleController extends Controller
 {
-    public function index(ListVehiclesAction $action): AnonymousResourceCollection
+    public function index(ListVehiclesRequest $request, ListVehiclesAction $action): AnonymousResourceCollection
     {
-        return VehicleResource::collection($action->execute());
+        return $this->paginated(VehicleResource::class, $action->execute($request->toPageQuery()));
     }
 
     public function show(string $vehicle, GetVehicleAction $action): VehicleResource

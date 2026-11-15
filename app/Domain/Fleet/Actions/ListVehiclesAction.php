@@ -6,6 +6,8 @@ namespace App\Domain\Fleet\Actions;
 
 use App\Domain\Fleet\Entities\Vehicle;
 use App\Domain\Fleet\Repositories\VehicleRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final readonly class ListVehiclesAction
 {
@@ -14,10 +16,10 @@ final readonly class ListVehiclesAction
     ) {}
 
     /**
-     * @return list<Vehicle>
+     * @return Page<Vehicle>
      */
-    public function execute(): array
+    public function execute(PageQuery $query = new PageQuery): Page
     {
-        return $this->vehicles->all();
+        return $this->vehicles->paginate($query);
     }
 }

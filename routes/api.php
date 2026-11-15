@@ -7,12 +7,16 @@ use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Crew\EmployeeController;
 use App\Presentation\Http\Controllers\Dashboard\DashboardController;
 use App\Presentation\Http\Controllers\Fleet\VehicleController;
+use App\Presentation\Http\Controllers\HealthController;
 use App\Presentation\Http\Controllers\Maintenance\MaintenanceOrderController;
 use App\Presentation\Http\Controllers\Operations\LineController;
 use App\Presentation\Http\Controllers\Operations\TripController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    // Público: usado pelo balanceador e pelo monitoramento para saber se a aplicação e o banco respondem.
+    Route::get('health', HealthController::class)->name('health');
+
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('auth.login');
 
     // Tudo abaixo exige token; cada rota declara a permissão que a libera.
@@ -38,6 +42,10 @@ Route::prefix('v1')->group(function (): void {
 
         Route::prefix('operations')->group(function (): void {
             Route::get('lines', [LineController::class, 'index'])->can('operations.view')->name('operations.lines.index');
+            Route::post('lines', [LineController::class, 'store'])->can('operations.manage')->name('operations.lines.store');
+            Route::put('lines/{line}', [LineController::class, 'update'])->can('operations.manage')->name('operations.lines.update');
+            Route::delete('lines/{line}', [LineController::class, 'destroy'])->can('operations.manage')->name('operations.lines.destroy');
+            Route::get('trips/export', [TripController::class, 'export'])->can('operations.view')->name('operations.trips.export');
             Route::get('trips', [TripController::class, 'index'])->can('operations.view')->name('operations.trips.index');
             Route::post('trips', [TripController::class, 'store'])->can('operations.manage')->name('operations.trips.store');
             Route::post('trips/{trip}/start', [TripController::class, 'start'])->can('operations.manage')->name('operations.trips.start');
@@ -46,6 +54,7 @@ Route::prefix('v1')->group(function (): void {
         });
 
         Route::prefix('maintenance')->group(function (): void {
+            Route::get('orders/export', [MaintenanceOrderController::class, 'export'])->can('maintenance.view')->name('maintenance.orders.export');
             Route::get('orders', [MaintenanceOrderController::class, 'index'])->can('maintenance.view')->name('maintenance.orders.index');
             Route::get('mechanics', [MaintenanceOrderController::class, 'mechanics'])->can('maintenance.view')->name('maintenance.mechanics.index');
             Route::post('orders', [MaintenanceOrderController::class, 'store'])->can('maintenance.manage')->name('maintenance.orders.store');

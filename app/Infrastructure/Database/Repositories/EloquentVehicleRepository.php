@@ -6,25 +6,36 @@ namespace App\Infrastructure\Database\Repositories;
 
 use App\Domain\Fleet\Entities\Vehicle;
 use App\Domain\Fleet\Repositories\VehicleRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
+use App\Infrastructure\Database\Concerns\PaginatesQueries;
 use App\Infrastructure\Database\Models\VehicleModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 final class EloquentVehicleRepository implements VehicleRepository
 {
+    use PaginatesQueries;
+
     public function nextIdentity(): string
     {
         return Str::orderedUuid()->toString();
     }
 
-    public function all(): array
+    public function paginate(PageQuery $query): Page
     {
-        return array_values(
-            VehicleModel::query()
-                ->orderBy('plate')
-                ->get()
-                ->map(fn (VehicleModel $model): Vehicle => $this->toEntity($model))
-                ->all(),
-        );
+        $builder = VehicleModel::query()
+            ->when($query->status !== null, fn (Builder $vehicles) => $vehicles->where('status', $query->status))
+            ->when($query->search !== null, function (Builder $vehicles) use ($query): void {
+                // Placa e chassi são gravados em maiúsculas, sem hífen nem espaço.
+                $term = $this->likeTerm((string) preg_replace('/[\s\-]/', '', (string) $query->search));
+
+                $vehicles->where(fn (Builder $match) => $match->where('plate', 'ilike', $term)->orWhere('chassis', 'ilike', $term));
+            })
+            ->orderBy('plate')
+            ->orderBy('id');
+
+        return $this->paginateQuery($builder, $query, fn (VehicleModel $model): Vehicle => $this->toEntity($model));
     }
 
     public function findById(string $id): ?Vehicle

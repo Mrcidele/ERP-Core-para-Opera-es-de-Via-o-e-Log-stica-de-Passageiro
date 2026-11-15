@@ -9,6 +9,7 @@ use App\Domain\Fleet\Enums\VehicleStatus;
 use App\Domain\Identity\Enums\UserRole;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use App\Infrastructure\Database\Models\LineModel;
+use App\Infrastructure\Database\Models\LineStopModel;
 use App\Infrastructure\Database\Models\MaintenanceOrderModel;
 use App\Infrastructure\Database\Models\TripModel;
 use App\Infrastructure\Database\Models\UserModel;
@@ -42,20 +43,31 @@ class DatabaseSeeder extends Seeder
         $mechanics = EmployeeModel::factory(5)->withoutLicense(EmployeeRole::Mechanic)->create();
         EmployeeModel::factory(3)->withoutLicense(EmployeeRole::Admin)->create();
 
+        // Linhas com as paradas intermediárias: [cidade, km acumulado, minutos desde a partida].
         foreach ([
-            ['Curitiba', 'Ourinhos', 400, 390],
-            ['Curitiba', 'Londrina', 380, 360],
-            ['Curitiba', 'Foz do Iguaçu', 640, 600],
-            ['Curitiba', 'Florianópolis', 300, 285],
-            ['Curitiba', 'São Paulo', 410, 390],
-            ['Curitiba', 'Ponta Grossa', 115, 120],
-        ] as [$origin, $destination, $distance, $minutes]) {
-            LineModel::factory()->create([
+            ['Curitiba', 'Ourinhos', 400, 390, [['Ponta Grossa', 115, 105], ['Castro', 160, 150], ['Jaguariaíva', 240, 230], ['Santo Antônio da Platina', 345, 335]]],
+            ['Curitiba', 'Londrina', 380, 360, [['Ponta Grossa', 115, 105], ['Ortigueira', 245, 230], ['Apucarana', 325, 305]]],
+            ['Curitiba', 'Foz do Iguaçu', 640, 600, [['Guarapuava', 255, 240], ['Laranjeiras do Sul', 365, 345], ['Cascavel', 500, 470], ['Medianeira', 580, 545]]],
+            ['Curitiba', 'Florianópolis', 300, 285, [['Joinville', 130, 120], ['Itajaí', 215, 200], ['Balneário Camboriú', 225, 215]]],
+            ['Curitiba', 'São Paulo', 410, 390, [['Registro', 215, 200]]],
+            ['Curitiba', 'Ponta Grossa', 115, 120, []],
+        ] as [$origin, $destination, $distance, $minutes, $stops]) {
+            $line = LineModel::factory()->create([
                 'origin' => $origin,
                 'destination' => $destination,
                 'distance_km' => $distance,
                 'estimated_duration_minutes' => $minutes,
             ]);
+
+            foreach ($stops as $index => [$city, $km, $elapsed]) {
+                LineStopModel::query()->create([
+                    'line_id' => $line->id,
+                    'sequence' => $index + 1,
+                    'city_name' => $city,
+                    'cumulative_km' => $km,
+                    'estimated_minutes' => $elapsed,
+                ]);
+            }
         }
 
         // Todo veículo em manutenção tem uma ordem aberta; alguns ativos têm histórico de ordens concluídas.

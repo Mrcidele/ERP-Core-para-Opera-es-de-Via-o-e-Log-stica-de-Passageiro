@@ -5,17 +5,19 @@ declare(strict_types=1);
 namespace App\Domain\Fleet\Repositories;
 
 use App\Domain\Fleet\Entities\Vehicle;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 interface VehicleRepository
 {
     public function nextIdentity(): string;
 
     /**
-     * Veículos ordenados por placa.
+     * Veículos ordenados por placa. Busca por placa ou chassi; filtro por status.
      *
-     * @return list<Vehicle>
+     * @return Page<Vehicle>
      */
-    public function all(): array;
+    public function paginate(PageQuery $query): Page;
 
     public function findById(string $id): ?Vehicle;
 

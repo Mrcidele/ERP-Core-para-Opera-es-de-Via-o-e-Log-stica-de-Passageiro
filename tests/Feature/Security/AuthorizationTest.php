@@ -34,12 +34,17 @@ function protectedRoutes(): array
         'crew.employees.index' => ['GET', '/api/v1/crew/employees', Permission::CrewView],
         'crew.employees.store' => ['POST', '/api/v1/crew/employees', Permission::CrewManage],
         'operations.lines.index' => ['GET', '/api/v1/operations/lines', Permission::OperationsView],
+        'operations.lines.store' => ['POST', '/api/v1/operations/lines', Permission::OperationsManage],
+        'operations.lines.update' => ['PUT', "/api/v1/operations/lines/{$id}", Permission::OperationsManage],
+        'operations.lines.destroy' => ['DELETE', "/api/v1/operations/lines/{$id}", Permission::OperationsManage],
+        'operations.trips.export' => ['GET', '/api/v1/operations/trips/export', Permission::OperationsView],
         'operations.trips.index' => ['GET', '/api/v1/operations/trips', Permission::OperationsView],
         'operations.trips.store' => ['POST', '/api/v1/operations/trips', Permission::OperationsManage],
         'operations.trips.start' => ['POST', "/api/v1/operations/trips/{$id}/start", Permission::OperationsManage],
         'operations.trips.complete' => ['POST', "/api/v1/operations/trips/{$id}/complete", Permission::OperationsManage],
         'operations.trips.cancel' => ['POST', "/api/v1/operations/trips/{$id}/cancel", Permission::OperationsManage],
         'maintenance.orders.index' => ['GET', '/api/v1/maintenance/orders', Permission::MaintenanceView],
+        'maintenance.orders.export' => ['GET', '/api/v1/maintenance/orders/export', Permission::MaintenanceView],
         'maintenance.mechanics.index' => ['GET', '/api/v1/maintenance/mechanics', Permission::MaintenanceView],
         'maintenance.orders.store' => ['POST', '/api/v1/maintenance/orders', Permission::MaintenanceManage],
         'maintenance.orders.update' => ['PATCH', "/api/v1/maintenance/orders/{$id}", Permission::MaintenanceManage],
@@ -47,11 +52,11 @@ function protectedRoutes(): array
     ];
 }
 
-it('lists in this test every API route except the login', function (): void {
+it('lists in this test every API route except the public ones (login and health)', function (): void {
     $registered = collect(Route::getRoutes()->getRoutes())
         ->filter(fn ($route): bool => str_starts_with($route->uri(), 'api/'))
         ->map(fn ($route): ?string => $route->getName())
-        ->reject(fn (?string $name): bool => $name === 'auth.login')
+        ->reject(fn (?string $name): bool => in_array($name, ['auth.login', 'health'], true))
         ->values()
         ->all();
 
@@ -81,9 +86,9 @@ it('allows or denies every route for every role according to the access matrix',
 
         if ($allowed) {
             // Passou pela autorização: o que vier depois (200, 404, 422) é do próprio endpoint.
-            expect($response->status())->not->toBeIn([401, 403], "{$role->value} deveria acessar {$name}");
+            expect($response->getStatusCode())->not->toBeIn([401, 403], "{$role->value} deveria acessar {$name}");
         } else {
-            expect($response->status())->toBe(403, "{$role->value} não deveria acessar {$name}");
+            expect($response->getStatusCode())->toBe(403, "{$role->value} não deveria acessar {$name}");
             expect($response->json())->toBe(['message' => 'Você não tem permissão para executar esta ação.']);
         }
     }

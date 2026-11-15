@@ -14,6 +14,6 @@ final class AuditLogController extends Controller
 {
     public function index(ListAuditLogsRequest $request, ListAuditLogsAction $action): AnonymousResourceCollection
     {
-        return AuditLogResource::collection($action->execute($request->limit()));
+        return $this->paginated(AuditLogResource::class, $action->execute($request->toPageQuery()));
     }
 }

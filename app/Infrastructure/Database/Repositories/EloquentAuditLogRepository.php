@@ -7,12 +7,18 @@ namespace App\Infrastructure\Database\Repositories;
 use App\Domain\Audit\DTOs\AuditLogSummaryDTO;
 use App\Domain\Audit\Entities\AuditLog;
 use App\Domain\Audit\Repositories\AuditLogRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
+use App\Infrastructure\Database\Concerns\PaginatesQueries;
 use App\Infrastructure\Database\Models\AuditLogModel;
 use DateTimeZone;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 final class EloquentAuditLogRepository implements AuditLogRepository
 {
+    use PaginatesQueries;
+
     public function nextIdentity(): string
     {
         return Str::orderedUuid()->toString();
@@ -33,30 +39,35 @@ final class EloquentAuditLogRepository implements AuditLogRepository
         ]);
     }
 
-    public function latest(int $limit): array
+    public function paginate(PageQuery $query): Page
     {
-        return array_values(
-            AuditLogModel::query()
-                ->with('user')
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->limit($limit)
-                ->get()
-                ->map(fn (AuditLogModel $model): AuditLogSummaryDTO => new AuditLogSummaryDTO(
-                    log: new AuditLog(
-                        id: $model->id,
-                        userId: $model->user_id,
-                        action: $model->action,
-                        auditableType: $model->auditable_type,
-                        auditableId: $model->auditable_id,
-                        oldValues: $model->old_values,
-                        newValues: $model->new_values,
-                        ipAddress: $model->ip_address,
-                        createdAt: $model->created_at->toDateTimeImmutable(),
-                    ),
-                    userName: $model->user?->name,
-                ))
-                ->all(),
-        );
+        $builder = AuditLogModel::query()
+            ->with('user')
+            ->when($query->search !== null, function (Builder $logs) use ($query): void {
+                $term = $this->likeTerm((string) $query->search);
+
+                $logs->where(fn (Builder $match) => $match
+                    ->where('action', 'ilike', $term)
+                    ->orWhere('auditable_type', 'ilike', $term)
+                    ->orWhere('ip_address', 'ilike', $term)
+                    ->orWhereHas('user', fn (Builder $user) => $user->where('name', 'ilike', $term)));
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        return $this->paginateQuery($builder, $query, fn (AuditLogModel $model): AuditLogSummaryDTO => new AuditLogSummaryDTO(
+            log: new AuditLog(
+                id: $model->id,
+                userId: $model->user_id,
+                action: $model->action,
+                auditableType: $model->auditable_type,
+                auditableId: $model->auditable_id,
+                oldValues: $model->old_values,
+                newValues: $model->new_values,
+                ipAddress: $model->ip_address,
+                createdAt: $model->created_at->toDateTimeImmutable(),
+            ),
+            userName: $model->user?->name,
+        ));
     }
 }

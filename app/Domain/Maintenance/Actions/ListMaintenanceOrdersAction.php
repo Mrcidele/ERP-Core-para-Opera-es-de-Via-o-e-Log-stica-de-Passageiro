@@ -6,6 +6,8 @@ namespace App\Domain\Maintenance\Actions;
 
 use App\Domain\Maintenance\DTOs\MaintenanceOrderSummaryDTO;
 use App\Domain\Maintenance\Repositories\MaintenanceOrderRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final readonly class ListMaintenanceOrdersAction
 {
@@ -14,10 +16,10 @@ final readonly class ListMaintenanceOrdersAction
     ) {}
 
     /**
-     * @return list<MaintenanceOrderSummaryDTO>
+     * @return Page<MaintenanceOrderSummaryDTO>
      */
-    public function execute(): array
+    public function execute(PageQuery $query = new PageQuery): Page
     {
-        return $this->orders->allWithDetails();
+        return $this->orders->paginateWithDetails($query);
     }
 }

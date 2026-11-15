@@ -7,13 +7,18 @@ namespace App\Infrastructure\Providers;
 use App\Domain\Audit\Listeners\RecordAuditTrail;
 use App\Domain\Fleet\Listeners\AddTripDistanceToVehicleMileage;
 use App\Domain\Shared\Contracts\Clock;
+use App\Domain\Shared\Contracts\DatabaseProbe;
 use App\Domain\Shared\Contracts\EventDispatcher;
+use App\Domain\Shared\Events\LineCreated;
+use App\Domain\Shared\Events\LineDeleted;
+use App\Domain\Shared\Events\LineUpdated;
 use App\Domain\Shared\Events\LoginFailed;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\VehicleDeleted;
+use App\Infrastructure\Database\ConnectionDatabaseProbe;
 use App\Infrastructure\Events\LaravelEventDispatcher;
 use App\Infrastructure\Support\SystemClock;
 use Illuminate\Support\Facades\Event;
@@ -24,6 +29,7 @@ final class AppServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     public array $bindings = [
         Clock::class => SystemClock::class,
+        DatabaseProbe::class => ConnectionDatabaseProbe::class,
         EventDispatcher::class => LaravelEventDispatcher::class,
     ];
 
@@ -34,6 +40,9 @@ final class AppServiceProvider extends ServiceProvider
 
         // Trilha de auditoria das operações críticas.
         Event::listen(VehicleDeleted::class, [RecordAuditTrail::class, 'vehicleDeleted']);
+        Event::listen(LineCreated::class, [RecordAuditTrail::class, 'lineCreated']);
+        Event::listen(LineUpdated::class, [RecordAuditTrail::class, 'lineUpdated']);
+        Event::listen(LineDeleted::class, [RecordAuditTrail::class, 'lineDeleted']);
         Event::listen(TripCompleted::class, [RecordAuditTrail::class, 'tripCompleted']);
         Event::listen(TripCanceled::class, [RecordAuditTrail::class, 'tripCanceled']);
         Event::listen(MaintenanceOrderOpened::class, [RecordAuditTrail::class, 'maintenanceOrderOpened']);

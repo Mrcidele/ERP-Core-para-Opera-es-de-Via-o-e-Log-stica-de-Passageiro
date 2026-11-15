@@ -6,20 +6,20 @@ namespace App\Domain\Audit\Actions;
 
 use App\Domain\Audit\DTOs\AuditLogSummaryDTO;
 use App\Domain\Audit\Repositories\AuditLogRepository;
+use App\Domain\Shared\Pagination\Page;
+use App\Domain\Shared\Pagination\PageQuery;
 
 final readonly class ListAuditLogsAction
 {
-    public const MAX_LIMIT = 200;
-
     public function __construct(
         private AuditLogRepository $logs,
     ) {}
 
     /**
-     * @return list<AuditLogSummaryDTO>
+     * @return Page<AuditLogSummaryDTO>
      */
-    public function execute(int $limit = 100): array
+    public function execute(PageQuery $query = new PageQuery): Page
     {
-        return $this->logs->latest(max(1, min($limit, self::MAX_LIMIT)));
+        return $this->logs->paginate($query);
     }
 }

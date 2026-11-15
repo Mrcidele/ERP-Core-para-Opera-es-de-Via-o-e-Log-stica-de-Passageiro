@@ -15,6 +15,7 @@ use App\Domain\Fleet\Exceptions\DuplicatePlateException;
 use App\Domain\Fleet\Exceptions\MileageDecreaseException;
 use App\Domain\Fleet\Exceptions\VehicleNotFoundException;
 use App\Domain\Shared\Events\VehicleDeleted;
+use App\Domain\Shared\Pagination\PageQuery;
 use Tests\Fakes\InMemoryVehicleRepository;
 use Tests\Fakes\RecordingEventDispatcher;
 
@@ -58,7 +59,16 @@ beforeEach(function (): void {
 it('lists vehicles ordered by plate', function (): void {
     $vehicles = (new ListVehiclesAction($this->repository))->execute();
 
-    expect(array_map(fn (Vehicle $v): string => $v->plate, $vehicles))->toBe(['AAA1A11', 'BBB1B11']);
+    expect(array_map(fn (Vehicle $v): string => $v->plate, $vehicles->items))->toBe(['AAA1A11', 'BBB1B11'])
+        ->and($vehicles->total)->toBe(2);
+});
+
+it('filters the vehicle list by search term and pages the result', function (): void {
+    $list = new ListVehiclesAction($this->repository);
+
+    expect(array_map(fn (Vehicle $v): string => $v->plate, $list->execute(new PageQuery(search: 'bbb'))->items))->toBe(['BBB1B11'])
+        ->and(array_map(fn (Vehicle $v): string => $v->plate, $list->execute(new PageQuery(page: 2, perPage: 1))->items))->toBe(['BBB1B11'])
+        ->and($list->execute(new PageQuery(status: 'inactive'))->total)->toBe(0);
 });
 
 it('gets a vehicle by id', function (): void {

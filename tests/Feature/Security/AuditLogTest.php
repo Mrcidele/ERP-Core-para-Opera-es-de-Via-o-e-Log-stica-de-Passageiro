@@ -165,12 +165,27 @@ it('lists the audit records, most recent first, with the user name', function ()
             'user' => ['id' => $this->admin->id, 'name' => $this->admin->name],
         ]);
 
-    $this->getJson('/api/v1/audit-logs?limit=1')->assertOk()->assertJsonCount(1, 'data');
+    $this->getJson('/api/v1/audit-logs?per_page=1&page=2')->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.action', 'vehicle.deleted')
+        ->assertJsonPath('data.0.auditable_id', $first->id)
+        ->assertJsonPath('meta.current_page', 2)
+        ->assertJsonPath('meta.total', 2)
+        ->assertJsonPath('meta.last_page', 2);
+
+    $this->getJson('/api/v1/audit-logs?search=vehicle.del')->assertOk()->assertJsonCount(2, 'data');
+    $this->getJson('/api/v1/audit-logs?search=nada-com-esse-nome')->assertOk()->assertJsonCount(0, 'data')->assertJsonPath('meta.total', 0);
 });
 
-it('rejects an invalid limit', function (string $limit): void {
-    $this->getJson("/api/v1/audit-logs?limit={$limit}")->assertUnprocessable()->assertJsonValidationErrors('limit');
-})->with(['0', '201', 'abc']);
+it('rejects invalid paging parameters', function (string $query, string $field): void {
+    $this->getJson("/api/v1/audit-logs?{$query}")->assertUnprocessable()->assertJsonValidationErrors($field);
+})->with([
+    ['per_page=0', 'per_page'],
+    ['per_page=101', 'per_page'],
+    ['per_page=abc', 'per_page'],
+    ['page=0', 'page'],
+    ['status=open', 'status'],
+]);
 
 it('shows the audit trail only to roles with audit.view', function (UserRole $role): void {
     actingAsRole($role);

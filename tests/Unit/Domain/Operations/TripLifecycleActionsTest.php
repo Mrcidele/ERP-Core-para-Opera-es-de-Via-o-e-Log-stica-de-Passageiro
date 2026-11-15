@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Operations\Actions\CancelTripAction;
 use App\Domain\Operations\Actions\CompleteTripAction;
+use App\Domain\Operations\Actions\ExportTripsAction;
 use App\Domain\Operations\Actions\ListTripsAction;
 use App\Domain\Operations\Actions\StartTripAction;
 use App\Domain\Operations\Entities\Line;
@@ -13,6 +14,7 @@ use App\Domain\Operations\Exceptions\InvalidTripTransitionException;
 use App\Domain\Operations\Exceptions\TripNotFoundException;
 use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
+use App\Domain\Shared\Pagination\PageQuery;
 use Tests\Fakes\InMemoryLineRepository;
 use Tests\Fakes\InMemoryTripRepository;
 use Tests\Fakes\RecordingEventDispatcher;
@@ -98,5 +100,19 @@ it('lists trips ordered by departure', function (): void {
 
     $result = (new ListTripsAction($this->trips))->execute();
 
-    expect(array_map(fn ($summary): string => $summary->trip->id, $result))->toBe([$early->id, $late->id]);
+    expect(array_map(fn ($summary): string => $summary->trip->id, $result->items))->toBe([$early->id, $late->id]);
+});
+
+it('filters trips by status and exports every match regardless of page size', function (): void {
+    $scheduled = storedTrip($this->trips, TripStatus::Scheduled, '2026-11-20 08:00');
+    $completed = storedTrip($this->trips, TripStatus::Completed, '2026-11-21 08:00');
+    $other = storedTrip($this->trips, TripStatus::Completed, '2026-11-22 08:00');
+
+    $page = (new ListTripsAction($this->trips))->execute(new PageQuery(perPage: 1, status: 'completed'));
+    $exported = (new ExportTripsAction($this->trips))->execute(new PageQuery(perPage: 1, status: 'completed'));
+
+    expect(array_map(fn ($summary): string => $summary->trip->id, $page->items))->toBe([$completed->id])
+        ->and($page->total)->toBe(2)
+        ->and(array_map(fn ($summary): string => $summary->trip->id, [...$exported]))->toBe([$completed->id, $other->id])
+        ->and($scheduled->status)->toBe(TripStatus::Scheduled);
 });
