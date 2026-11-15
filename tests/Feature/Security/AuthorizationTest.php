@@ -25,6 +25,7 @@ function protectedRoutes(): array
     return [
         'auth.logout' => ['POST', '/api/v1/auth/logout', null],
         'auth.me' => ['GET', '/api/v1/auth/me', null],
+        'dashboard.summary' => ['GET', '/api/v1/dashboard/summary', null],
         'fleet.vehicles.index' => ['GET', '/api/v1/fleet/vehicles', Permission::FleetView],
         'fleet.vehicles.show' => ['GET', "/api/v1/fleet/vehicles/{$id}", Permission::FleetView],
         'fleet.vehicles.store' => ['POST', '/api/v1/fleet/vehicles', Permission::FleetManage],

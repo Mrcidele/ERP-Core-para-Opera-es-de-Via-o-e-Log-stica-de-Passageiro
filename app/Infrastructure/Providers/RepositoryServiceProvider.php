@@ -6,6 +6,7 @@ namespace App\Infrastructure\Providers;
 
 use App\Domain\Audit\Repositories\AuditLogRepository;
 use App\Domain\Crew\Repositories\EmployeeRepository;
+use App\Domain\Dashboard\Contracts\DashboardReader;
 use App\Domain\Fleet\Repositories\VehicleRepository;
 use App\Domain\Identity\Repositories\UserRepository;
 use App\Domain\Maintenance\Contracts\CrewGateway as MaintenanceCrewGateway;
@@ -16,6 +17,7 @@ use App\Domain\Operations\Contracts\FleetGateway as OperationsFleetGateway;
 use App\Domain\Operations\Repositories\LineRepository;
 use App\Domain\Operations\Repositories\TripRepository;
 use App\Infrastructure\Database\Gateways\EloquentCrewGateway;
+use App\Infrastructure\Database\Gateways\EloquentDashboardReader;
 use App\Infrastructure\Database\Gateways\EloquentFleetGateway;
 use App\Infrastructure\Database\Repositories\EloquentAuditLogRepository;
 use App\Infrastructure\Database\Repositories\EloquentEmployeeRepository;
@@ -36,6 +38,7 @@ final class RepositoryServiceProvider extends ServiceProvider
         VehicleRepository::class => EloquentVehicleRepository::class,
         LineRepository::class => EloquentLineRepository::class,
         TripRepository::class => EloquentTripRepository::class,
+        DashboardReader::class => EloquentDashboardReader::class,
         MaintenanceOrderRepository::class => EloquentMaintenanceOrderRepository::class,
         OperationsFleetGateway::class => EloquentFleetGateway::class,
         OperationsCrewGateway::class => EloquentCrewGateway::class,

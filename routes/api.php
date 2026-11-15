@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Presentation\Http\Controllers\Audit\AuditLogController;
 use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Crew\EmployeeController;
+use App\Presentation\Http\Controllers\Dashboard\DashboardController;
 use App\Presentation\Http\Controllers\Fleet\VehicleController;
 use App\Presentation\Http\Controllers\Maintenance\MaintenanceOrderController;
 use App\Presentation\Http\Controllers\Operations\LineController;
@@ -18,6 +19,9 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
+
+        // Sem permissão própria: o controller entrega só os blocos que o usuário pode consultar.
+        Route::get('dashboard/summary', [DashboardController::class, 'summary'])->name('dashboard.summary');
 
         Route::prefix('fleet')->group(function (): void {
             Route::get('vehicles', [VehicleController::class, 'index'])->can('fleet.view')->name('fleet.vehicles.index');
