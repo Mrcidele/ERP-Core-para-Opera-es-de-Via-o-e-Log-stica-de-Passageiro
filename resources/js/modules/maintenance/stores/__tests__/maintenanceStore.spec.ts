@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { page, pageParams } from '@/tests/paging';
 import { useMaintenanceStore } from '../maintenanceStore';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
@@ -16,7 +17,7 @@ describe('maintenanceStore', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         Object.values(http).forEach((mock) => mock.mockReset());
-        http.get.mockResolvedValue({ data: { data: [summary] } });
+        http.get.mockResolvedValue(page([summary]));
     });
 
     it('loads the orders', async () => {
@@ -24,7 +25,7 @@ describe('maintenanceStore', () => {
 
         await store.fetchOrders();
 
-        expect(http.get).toHaveBeenCalledWith('/maintenance/orders');
+        expect(http.get).toHaveBeenCalledWith('/maintenance/orders', pageParams());
         expect(store.listStatus).toBe('success');
         expect(store.orders).toEqual([summary]);
     });
@@ -40,14 +41,11 @@ describe('maintenanceStore', () => {
 
     it('offers every vehicle and the mechanics listed by the maintenance module', async () => {
         http.get.mockImplementation((url: string) =>
-            Promise.resolve({
-                data: {
-                    data:
-                        url === '/fleet/vehicles'
-                            ? [{ id: 'bus-1', status: 'active' }, { id: 'bus-2', status: 'maintenance' }]
-                            : [{ id: 'm1', name: 'Maria Souza' }],
-                },
-            }),
+            Promise.resolve(
+                url === '/fleet/vehicles'
+                    ? page([{ id: 'bus-1', status: 'active' }, { id: 'bus-2', status: 'maintenance' }])
+                    : { data: { data: [{ id: 'm1', name: 'Maria Souza' }] } },
+            ),
         );
         const store = useMaintenanceStore();
 
@@ -60,6 +58,7 @@ describe('maintenanceStore', () => {
 
     it('opens an order and reloads the list', async () => {
         http.post.mockResolvedValue({ data: { data: order } });
+        http.get.mockResolvedValue(page([summary]));
         const store = useMaintenanceStore();
         const payload = { vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective' as const, description: 'Reparo' };
 
@@ -67,7 +66,8 @@ describe('maintenanceStore', () => {
 
         expect(result).toEqual(order);
         expect(http.post).toHaveBeenCalledWith('/maintenance/orders', payload);
-        expect(http.get).toHaveBeenCalledWith('/maintenance/orders');
+        expect(http.get).toHaveBeenCalledWith('/maintenance/orders', pageParams());
+        expect(store.orders).toEqual([summary]);
         expect(store.saveStatus).toBe('success');
     });
 

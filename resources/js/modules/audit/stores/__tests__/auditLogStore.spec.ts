@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { page, pageParams } from '@/tests/paging';
 import { auditActionLabel, auditEntityLabel, isSensitiveAction } from '../../types/auditLog';
 import { useAuditLogStore } from '../auditLogStore';
 
@@ -16,14 +17,14 @@ describe('auditLogStore', () => {
         http.get.mockReset();
     });
 
-    it('loads the most recent records, asking for the maximum the API allows', async () => {
+    it('loads the first page of the trail', async () => {
         const logs = [{ id: 'log-1', action: 'vehicle.deleted' }];
-        http.get.mockResolvedValue({ data: { data: logs } });
+        http.get.mockResolvedValue(page(logs));
         const store = useAuditLogStore();
 
         await store.fetchLogs();
 
-        expect(http.get).toHaveBeenCalledWith('/audit-logs', { params: { limit: 200 } });
+        expect(http.get).toHaveBeenCalledWith('/audit-logs', pageParams());
         expect(store.status).toBe('success');
         expect(store.logs).toEqual(logs);
     });
@@ -42,6 +43,9 @@ describe('auditLogStore', () => {
 describe('audit labels', () => {
     it.each([
         ['vehicle.deleted', 'Veículo excluído'],
+        ['line.created', 'Linha criada'],
+        ['line.updated', 'Linha alterada'],
+        ['line.deleted', 'Linha excluída'],
         ['trip.completed', 'Viagem concluída'],
         ['trip.canceled', 'Viagem cancelada'],
         ['maintenance_order.opened', 'Ordem de serviço aberta'],
@@ -57,6 +61,6 @@ describe('audit labels', () => {
     });
 
     it('treats deletions and refused logins as sensitive', () => {
-        expect(['vehicle.deleted', 'auth.login_failed', 'trip.completed', 'maintenance_order.opened'].map(isSensitiveAction)).toEqual([true, true, false, false]);
+        expect(['vehicle.deleted', 'line.deleted', 'auth.login_failed', 'trip.completed', 'maintenance_order.opened'].map(isSensitiveAction)).toEqual([true, true, true, false, false]);
     });
 });

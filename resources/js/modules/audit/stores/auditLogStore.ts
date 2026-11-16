@@ -1,29 +1,21 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { http } from '@/core/api/http';
+import { usePagedList, type RequestStatus } from '@/core/api/pagination';
 import type { AuditLog } from '../types/auditLog';
 
-export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
-
-/** Quantos registros a tela pede; o máximo que a API aceita por consulta. */
-export const AUDIT_LOG_LIMIT = 200;
+export type { RequestStatus };
 
 export const useAuditLogStore = defineStore('audit/logs', () => {
-    const logs = ref<AuditLog[]>([]);
-    const status = ref<RequestStatus>('idle');
+    // A trilha vem paginada do servidor, com busca por ação, entidade, usuário ou IP.
+    const list = usePagedList<AuditLog>('/audit-logs');
 
-    async function fetchLogs(): Promise<void> {
-        status.value = 'loading';
-
-        try {
-            const response = await http.get<{ data: AuditLog[] }>('/audit-logs', { params: { limit: AUDIT_LOG_LIMIT } });
-
-            logs.value = response.data.data;
-            status.value = 'success';
-        } catch {
-            status.value = 'error';
-        }
-    }
-
-    return { logs, status, fetchLogs };
+    return {
+        logs: list.items,
+        meta: list.meta,
+        search: list.search,
+        status: list.listStatus,
+        refreshing: list.refreshing,
+        filtering: list.filtering,
+        fetchLogs: list.fetchPage,
+        applyFilters: list.applyFilters,
+    };
 });

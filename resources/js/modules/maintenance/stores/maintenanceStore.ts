@@ -1,15 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { downloadFile } from '@/core/api/download';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
+import { fetchEveryPage, usePagedList, type RequestStatus } from '@/core/api/pagination';
 import type { Vehicle } from '@/modules/fleet/types/vehicle';
 import type { CompleteMaintenanceOrderPayload, OpenMaintenanceOrderPayload } from '../schemas/maintenanceOrderSchemas';
 import type { MaintenanceOrder, MaintenanceOrderSummary, Mechanic } from '../types/maintenance';
 
-export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
+export type { RequestStatus };
 
 export const useMaintenanceStore = defineStore('maintenance/orders', () => {
-    const orders = ref<MaintenanceOrderSummary[]>([]);
-    const listStatus = ref<RequestStatus>('idle');
+    // As ordens vêm paginadas do servidor, com busca por placa, mecânico ou descrição e filtro por status.
+    const list = usePagedList<MaintenanceOrderSummary>('/maintenance/orders');
 
     // Opções do formulário de abertura: qualquer veículo da frota e mecânicos ativos.
     const vehicles = ref<Vehicle[]>([]);
@@ -20,16 +22,21 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
     const validationErrors = ref<ValidationErrors>({});
     const saveError = ref<string | null>(null);
 
-    async function fetchOrders(): Promise<void> {
-        listStatus.value = 'loading';
+    const exportStatus = ref<RequestStatus>('idle');
+
+    /** Baixa o CSV com tudo o que atende aos filtros da tela (não só a página visível). */
+    async function exportCsv(): Promise<boolean> {
+        exportStatus.value = 'loading';
 
         try {
-            const response = await http.get<{ data: MaintenanceOrderSummary[] }>('/maintenance/orders');
+            await downloadFile('/maintenance/orders/export', list.filterParams(), 'ordens-de-servico.csv');
+            exportStatus.value = 'success';
 
-            orders.value = response.data.data;
-            listStatus.value = 'success';
+            return true;
         } catch {
-            listStatus.value = 'error';
+            exportStatus.value = 'error';
+
+            return false;
         }
     }
 
@@ -38,12 +45,12 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
 
         try {
             // Os mecânicos vêm do próprio módulo: a supervisão de oficina não tem acesso à Tripulação.
-            const [vehicleList, mechanicList] = await Promise.all([
-                http.get<{ data: Vehicle[] }>('/fleet/vehicles'),
+            const [allVehicles, mechanicList] = await Promise.all([
+                fetchEveryPage<Vehicle>('/fleet/vehicles'),
                 http.get<{ data: Mechanic[] }>('/maintenance/mechanics'),
             ]);
 
-            vehicles.value = vehicleList.data.data;
+            vehicles.value = allVehicles;
             mechanics.value = mechanicList.data.data;
             optionsStatus.value = 'success';
         } catch {
@@ -66,7 +73,7 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
             const order = (await request()).data.data;
 
             saveStatus.value = 'success';
-            await fetchOrders();
+            await list.fetchPage();
 
             return order;
         } catch (error) {
@@ -96,15 +103,23 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
         save(() => http.patch(`/maintenance/orders/${id}`, { status: 'canceled' }), 'Não foi possível cancelar a ordem de serviço. Tente novamente.');
 
     return {
-        orders,
-        listStatus,
+        orders: list.items,
+        meta: list.meta,
+        search: list.search,
+        status: list.status,
+        listStatus: list.listStatus,
+        refreshing: list.refreshing,
+        filtering: list.filtering,
+        applyFilters: list.applyFilters,
+        exportStatus,
+        exportCsv,
         vehicles,
         mechanics,
         optionsStatus,
         saveStatus,
         validationErrors,
         saveError,
-        fetchOrders,
+        fetchOrders: list.fetchPage,
         loadOptions,
         resetSaveState,
         open,

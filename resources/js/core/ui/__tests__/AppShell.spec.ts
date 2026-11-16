@@ -18,7 +18,7 @@ const Blank = { template: '<div />' };
 async function mountShell(): Promise<{ wrapper: VueWrapper; router: Router }> {
     const router = createRouter({
         history: createMemoryHistory(),
-        routes: ['dashboard', 'fleet', 'operations', 'crew', 'maintenance', 'audit', 'login'].map((name) => ({
+        routes: ['dashboard', 'fleet', 'operations', 'lines', 'crew', 'maintenance', 'audit', 'login'].map((name) => ({
             path: name === 'dashboard' ? '/' : `/${name}`,
             name,
             component: Blank,
@@ -41,9 +41,9 @@ describe('AppShell', () => {
     });
 
     it.each([
-        ['admin', ['Painel', 'Frota', 'Operações', 'Tripulação', 'Manutenção', 'Auditoria']],
-        ['dispatcher', ['Painel', 'Frota', 'Operações', 'Tripulação']],
-        ['fleet_manager', ['Painel', 'Frota', 'Operações', 'Tripulação', 'Manutenção']],
+        ['admin', ['Painel', 'Frota', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção', 'Auditoria']],
+        ['dispatcher', ['Painel', 'Frota', 'Operações', 'Linhas e rotas', 'Tripulação']],
+        ['fleet_manager', ['Painel', 'Frota', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção']],
         ['mechanic_supervisor', ['Painel', 'Frota', 'Manutenção']],
     ] as const)('shows to %s only the areas it can open', async (role, expected) => {
         signInAs(role);

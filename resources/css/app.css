@@ -135,6 +135,24 @@
     .segmented button[aria-pressed='true'] {
         @apply bg-white text-ink-900 shadow-card;
     }
+
+    /* Rótulo de um campo de parada: visível no celular; em telas largas o cabeçalho da lista o substitui. */
+    .stop-label {
+        @apply mb-1 block text-xs font-medium text-ink-500 sm:sr-only;
+    }
+
+    /* ---------- Paginação no rodapé das tabelas ---------- */
+    .page-step {
+        @apply inline-flex h-8 items-center rounded-md border border-ink-200 bg-white px-3 text-sm font-medium text-ink-700 transition-colors hover:border-ink-300 hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40;
+    }
+
+    .page-number {
+        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-40;
+    }
+
+    .page-number[aria-current='page'] {
+        @apply bg-ink-900 text-white hover:bg-ink-900 hover:text-white;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

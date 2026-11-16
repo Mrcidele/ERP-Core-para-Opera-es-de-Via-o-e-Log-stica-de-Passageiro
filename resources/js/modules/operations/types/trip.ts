@@ -31,12 +31,23 @@ export interface TripSummary {
 export const TRIP_TRANSITIONS = ['start', 'complete', 'cancel'] as const;
 export type TripTransition = (typeof TRIP_TRANSITIONS)[number];
 
+/** Parada intermediária de uma linha, na ordem de passagem. */
+export interface LineStop {
+    sequence: number;
+    city_name: string;
+    /** Quilômetros desde a origem. */
+    cumulative_km: number;
+    /** Minutos desde a partida. */
+    estimated_minutes: number;
+}
+
 export interface Line {
     id: string;
     origin: string;
     destination: string;
     distance_km: number;
     estimated_duration_minutes: number;
+    stops: LineStop[];
 }
 
 export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {

@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { page, pageParams } from '@/tests/paging';
 import { signInAs } from '@/tests/auth';
 import { lastToast } from '@/tests/toast';
 import type { Vehicle } from '../../types/vehicle';
@@ -28,7 +29,7 @@ const make = (id: string, plate: string, status: Vehicle['status']): Vehicle => 
 const fleet = [make('1', 'AAA1A11', 'active'), make('2', 'BBB2B22', 'maintenance'), make('3', 'CCC3C33', 'active')];
 
 async function mountPage(vehicles: Vehicle[] = fleet): Promise<VueWrapper> {
-    http.get.mockResolvedValue({ data: { data: vehicles } });
+    http.get.mockResolvedValue(page(vehicles));
     const wrapper = mount(FleetView);
     await flushPromises();
 
@@ -45,26 +46,60 @@ describe('FleetView', () => {
         Object.values(http).forEach((mock) => mock.mockReset());
     });
 
-    it('loads and lists the vehicles with counts per status', async () => {
-        const wrapper = await mountPage();
+    afterEach(() => vi.useRealTimers());
 
-        expect(http.get).toHaveBeenCalledWith('/fleet/vehicles');
+    it('asks the API for the first page and lists what it returns with the total', async () => {
+        http.get.mockResolvedValue(page(fleet, { total: 48, last_page: 4 }));
+        const wrapper = mount(FleetView);
+        await flushPromises();
+
+        expect(http.get).toHaveBeenCalledWith('/fleet/vehicles', pageParams());
         expect(plates(wrapper)).toEqual(['AAA1A11', 'BBB2B22', 'CCC3C33']);
-        expect(wrapper.get('[data-test="filter-all"]').text()).toContain('3');
-        expect(wrapper.get('[data-test="filter-maintenance"]').text()).toContain('1');
+        expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('1 a 15 de 48 veículos');
+    });
+
+    it('changes page through the pagination bar', async () => {
+        http.get.mockResolvedValue(page(fleet, { total: 48, last_page: 4 }));
+        const wrapper = mount(FleetView);
+        await flushPromises();
+
+        http.get.mockResolvedValue(page([make('9', 'ZZZ9Z99', 'active')], { current_page: 2, total: 48, last_page: 4 }));
+        await wrapper.get('[data-test="page-next"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams({ page: 2 }));
+        expect(plates(wrapper)).toEqual(['ZZZ9Z99']);
+        expect(wrapper.get('[data-test="page-2"]').attributes('aria-current')).toBe('page');
     });
 
     it('filters by status and by search', async () => {
+        vi.useFakeTimers();
         const wrapper = await mountPage();
 
+        http.get.mockResolvedValue(page([fleet[0]!, fleet[2]!]));
         await wrapper.get('[data-test="filter-active"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams({ status: 'active' }));
         expect(plates(wrapper)).toEqual(['AAA1A11', 'CCC3C33']);
+        expect(wrapper.get('[data-test="filter-active"]').attributes('aria-pressed')).toBe('true');
 
-        await wrapper.get('[data-test="search"]').setValue('ccc-3');
-        expect(plates(wrapper)).toEqual(['CCC3C33']);
-
+        // A busca só vai ao servidor quando a digitação para.
+        http.get.mockResolvedValue(page([]));
         await wrapper.get('[data-test="search"]').setValue('QQQ');
+        expect(http.get).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(400);
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams({ status: 'active', search: 'QQQ' }));
         expect(wrapper.find('[data-test="no-results"]').exists()).toBe(true);
+
+        http.get.mockResolvedValue(page(fleet));
+        await wrapper.get('[data-test="clear-filters"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams());
+        expect(plates(wrapper)).toHaveLength(3);
     });
 
     it('shows the empty state when there are no vehicles', async () => {
@@ -81,10 +116,11 @@ describe('FleetView', () => {
         expect(wrapper.find('[data-test="list-error"]').exists()).toBe(true);
     });
 
-    it('creates a vehicle from the drawer and adds it to the list in plate order', async () => {
+    it('creates a vehicle from the drawer and reloads the page from the API', async () => {
         const created = make('4', 'ABC1D23', 'active');
         http.post.mockResolvedValue({ data: { data: created } });
         const wrapper = await mountPage();
+        http.get.mockResolvedValue(page([fleet[0]!, created, fleet[1]!, fleet[2]!]));
 
         await wrapper.get('[data-test="new-vehicle"]').trigger('click');
         await wrapper.get('[data-test="plate"]').setValue('ABC1D23');
@@ -102,6 +138,7 @@ describe('FleetView', () => {
     it('edits a vehicle from the drawer', async () => {
         http.put.mockResolvedValue({ data: { data: { ...fleet[1], status: 'active' } } });
         const wrapper = await mountPage();
+        http.get.mockResolvedValue(page([fleet[0]!, { ...fleet[1]!, status: 'active' }, fleet[2]!]));
 
         await wrapper.findAll('[data-test="edit"]')[1]!.trigger('click');
         expect((wrapper.get('[data-test="plate"]').element as HTMLInputElement).value).toBe('BBB2B22');
@@ -111,13 +148,14 @@ describe('FleetView', () => {
         await flushPromises();
 
         expect(http.put).toHaveBeenCalledWith('/fleet/vehicles/2', expect.objectContaining({ status: 'active' }));
-        expect(wrapper.get('[data-test="filter-maintenance"]').text()).toContain('0');
+        expect(wrapper.findAll('[data-test="vehicle-row"]')[1]!.get('[data-test="status-badge"]').text()).toBe('Ativo');
         expect(lastToast()).toContain('Veículo BBB2B22 atualizado.');
     });
 
     it('deletes a vehicle only after confirmation', async () => {
         http.delete.mockResolvedValue({});
         const wrapper = await mountPage();
+        http.get.mockResolvedValue(page([fleet[1]!, fleet[2]!]));
 
         await wrapper.findAll('[data-test="remove"]')[0]!.trigger('click');
         expect(http.delete).not.toHaveBeenCalled();

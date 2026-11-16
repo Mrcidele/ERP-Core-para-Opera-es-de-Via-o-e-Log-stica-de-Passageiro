@@ -10,7 +10,7 @@ const emit = defineEmits<{ transition: [trip: TripSummary, action: TripTransitio
 
 <template>
     <div class="overflow-x-auto">
-        <table class="data-table min-w-[900px]">
+        <table class="data-table min-w-[900px] [&_td]:!px-3.5 [&_th]:!px-3.5">
             <thead>
                 <tr>
                     <th scope="col">Linha</th>

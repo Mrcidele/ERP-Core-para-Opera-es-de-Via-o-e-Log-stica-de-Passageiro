@@ -1,34 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import AppIcon from '@/core/ui/AppIcon.vue';
 import EmptyState from '@/core/ui/EmptyState.vue';
+import ListToolbar from '@/core/ui/ListToolbar.vue';
+import PaginationBar from '@/core/ui/PaginationBar.vue';
 import SlideOver from '@/core/ui/SlideOver.vue';
 import TableSkeleton from '@/core/ui/TableSkeleton.vue';
-import { countLabel, formatDateTime } from '@/core/utils/format';
-import { AUDIT_LOG_LIMIT, useAuditLogStore } from '../stores/auditLogStore';
+import { formatDateTime } from '@/core/utils/format';
+import { useAuditLogStore } from '../stores/auditLogStore';
 import { auditActionLabel, auditEntityLabel, isSensitiveAction, type AuditLog, type AuditValues } from '../types/auditLog';
 
 const store = useAuditLogStore();
 
-const search = ref('');
 const selected = ref<AuditLog | null>(null);
 
 onMounted(() => store.fetchLogs());
-
-const visibleLogs = computed(() => {
-    const term = search.value.trim().toLocaleLowerCase('pt-BR');
-
-    if (term === '') {
-        return store.logs;
-    }
-
-    return store.logs.filter((log) =>
-        [auditActionLabel(log.action), auditEntityLabel(log.auditable_type), log.user?.name ?? '', log.ip_address ?? '', log.auditable_id ?? '']
-            .join(' ')
-            .toLocaleLowerCase('pt-BR')
-            .includes(term),
-    );
-});
 
 /** JSON com recuo, como aparece no painel de antes e depois. */
 const pretty = (values: AuditValues | null): string => (values === null ? '' : JSON.stringify(values, null, 2));
@@ -48,19 +33,13 @@ const changedKeys = computed(() => {
             <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Auditoria</h1>
             <p class="mt-1 text-sm text-ink-500">Quem fez o quê nas operações críticas, do mais recente para o mais antigo.</p>
         </div>
-        <button type="button" class="btn btn-quiet" data-test="refresh" :disabled="store.status === 'loading'" @click="store.fetchLogs()">Atualizar</button>
+        <button type="button" class="btn btn-quiet" data-test="refresh" :disabled="store.status === 'loading' || store.refreshing" @click="store.fetchLogs()">Atualizar</button>
     </header>
 
     <section class="card mt-6 overflow-hidden">
-        <div class="flex flex-wrap items-center gap-3 border-b border-ink-200 p-3">
-            <label class="relative block w-full sm:w-80">
-                <span class="sr-only">Buscar por ação, entidade, usuário ou IP</span>
-                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-400"><AppIcon name="search" /></span>
-                <input v-model="search" type="search" data-test="search" class="field-input !mt-0 !h-9 pl-10" placeholder="Buscar por ação, entidade, usuário ou IP" />
-            </label>
-        </div>
+        <ListToolbar :search="store.search" search-label="Buscar por usuário ou IP" @update:search="store.applyFilters({ search: $event })" />
 
-        <TableSkeleton v-if="store.status === 'idle' || (store.status === 'loading' && store.logs.length === 0)" data-test="loading" :columns="6" label="Carregando registros de auditoria" />
+        <TableSkeleton v-if="store.status === 'idle' || store.status === 'loading'" data-test="loading" :columns="6" label="Carregando registros de auditoria" />
 
         <EmptyState
             v-else-if="store.status === 'error'"
@@ -73,19 +52,19 @@ const changedKeys = computed(() => {
         </EmptyState>
 
         <EmptyState
-            v-else-if="store.logs.length === 0"
+            v-else-if="store.logs.length === 0 && !store.filtering"
             data-test="empty"
             icon="shield"
             title="Nenhum registro de auditoria"
             description="Exclusões de veículo, viagens concluídas ou canceladas, ordens de serviço e logins recusados aparecem aqui."
         />
 
-        <EmptyState v-else-if="visibleLogs.length === 0" data-test="no-results" icon="search" title="Nenhum registro corresponde à busca">
-            <button type="button" class="btn btn-quiet" @click="search = ''">Limpar busca</button>
+        <EmptyState v-else-if="store.logs.length === 0" data-test="no-results" icon="search" title="Nenhum registro corresponde à busca">
+            <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="store.applyFilters({ search: '' })">Limpar busca</button>
         </EmptyState>
 
         <template v-else>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto" :class="{ 'opacity-60': store.refreshing }" :aria-busy="store.refreshing">
                 <table class="data-table min-w-[860px]">
                     <thead>
                         <tr>
@@ -98,7 +77,7 @@ const changedKeys = computed(() => {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="log in visibleLogs" :key="log.id" data-test="audit-row">
+                        <tr v-for="log in store.logs" :key="log.id" data-test="audit-row">
                             <td class="num whitespace-nowrap" data-test="created-at">{{ formatDateTime(log.created_at) }}</td>
                             <td class="whitespace-nowrap">
                                 <span v-if="log.user" class="font-medium text-ink-900">{{ log.user.name }}</span>
@@ -125,11 +104,7 @@ const changedKeys = computed(() => {
                     </tbody>
                 </table>
             </div>
-            <p class="border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500" data-test="count">
-                <template v-if="search.trim() !== ''">{{ visibleLogs.length }} de {{ countLabel(store.logs.length, 'registro', 'registros') }}</template>
-                <template v-else>{{ countLabel(store.logs.length, 'registro', 'registros') }}</template>
-                <template v-if="store.logs.length >= AUDIT_LOG_LIMIT">. A tela mostra os {{ AUDIT_LOG_LIMIT }} mais recentes.</template>
-            </p>
+            <PaginationBar :meta="store.meta" singular="registro" plural="registros" :busy="store.refreshing" @change="store.fetchLogs($event)" />
         </template>
     </section>
 

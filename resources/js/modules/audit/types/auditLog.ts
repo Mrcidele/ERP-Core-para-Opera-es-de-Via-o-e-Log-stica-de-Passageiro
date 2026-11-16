@@ -18,6 +18,9 @@ export interface AuditLog {
 
 const ACTION_LABELS: Record<string, string> = {
     'vehicle.deleted': 'Veículo excluído',
+    'line.created': 'Linha criada',
+    'line.updated': 'Linha alterada',
+    'line.deleted': 'Linha excluída',
     'trip.completed': 'Viagem concluída',
     'trip.canceled': 'Viagem cancelada',
     'maintenance_order.opened': 'Ordem de serviço aberta',
@@ -27,6 +30,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ENTITY_LABELS: Record<string, string> = {
     vehicle: 'Veículo',
+    line: 'Linha',
     trip: 'Viagem',
     maintenance_order: 'Ordem de serviço',
     user: 'Usuário',

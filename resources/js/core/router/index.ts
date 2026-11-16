@@ -37,6 +37,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: 'Operações', permission: 'operations.view' },
     },
     {
+        path: '/linhas',
+        name: 'lines',
+        component: () => import('@/modules/operations/pages/LinesView.vue'),
+        meta: { title: 'Linhas e rotas', permission: 'operations.view' },
+    },
+    {
         path: '/tripulacao',
         name: 'crew',
         component: () => import('@/modules/crew/pages/CrewView.vue'),

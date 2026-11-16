@@ -1,16 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
+import { usePagedList, type RequestStatus } from '@/core/api/pagination';
 import type { CreateVehiclePayload, UpdateVehiclePayload } from '../schemas/createVehicleSchema';
 import type { Vehicle } from '../types/vehicle';
 
-export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
-
-const byPlate = (a: Vehicle, b: Vehicle): number => a.plate.localeCompare(b.plate);
+export type { RequestStatus };
 
 export const useVehicleStore = defineStore('fleet/vehicles', () => {
-    const vehicles = ref<Vehicle[]>([]);
-    const listStatus = ref<RequestStatus>('idle');
+    // A lista vem paginada do servidor, com busca por placa ou chassi e filtro por status.
+    const list = usePagedList<Vehicle>('/fleet/vehicles');
 
     const saveStatus = ref<RequestStatus>('idle');
     const validationErrors = ref<ValidationErrors>({});
@@ -18,19 +17,6 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
 
     const removeStatus = ref<RequestStatus>('idle');
     const removeError = ref<string | null>(null);
-
-    async function fetchAll(): Promise<void> {
-        listStatus.value = 'loading';
-
-        try {
-            const response = await http.get<{ data: Vehicle[] }>('/fleet/vehicles');
-
-            vehicles.value = response.data.data;
-            listStatus.value = 'success';
-        } catch {
-            listStatus.value = 'error';
-        }
-    }
 
     function resetSaveState(): void {
         saveStatus.value = 'idle';
@@ -45,8 +31,9 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
         try {
             const vehicle = (await request()).data.data;
 
-            vehicles.value = [...vehicles.value.filter((item) => item.id !== vehicle.id), vehicle].sort(byPlate);
             saveStatus.value = 'success';
+            // A ordem e a página de cada veículo são do servidor: recarrega a página atual.
+            await list.fetchPage();
 
             return vehicle;
         } catch (error) {
@@ -77,8 +64,8 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
         try {
             await http.delete(`/fleet/vehicles/${id}`);
 
-            vehicles.value = vehicles.value.filter((item) => item.id !== id);
             removeStatus.value = 'success';
+            await list.fetchPage();
 
             return true;
         } catch (error) {
@@ -90,14 +77,20 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
     }
 
     return {
-        vehicles,
-        listStatus,
+        vehicles: list.items,
+        meta: list.meta,
+        search: list.search,
+        status: list.status,
+        listStatus: list.listStatus,
+        refreshing: list.refreshing,
+        filtering: list.filtering,
+        fetchAll: list.fetchPage,
+        applyFilters: list.applyFilters,
         saveStatus,
         validationErrors,
         saveError,
         removeStatus,
         removeError,
-        fetchAll,
         resetSaveState,
         create,
         update,

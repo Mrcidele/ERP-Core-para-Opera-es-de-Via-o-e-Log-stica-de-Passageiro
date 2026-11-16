@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { page } from '@/tests/paging';
 import type { Trip } from '../../types/trip';
 import TripForm from '../TripForm.vue';
 
@@ -55,7 +56,13 @@ const scheduled: Trip = {
 };
 
 async function mountForm(overrides: Record<string, unknown[]> = {}): Promise<VueWrapper> {
-    http.get.mockImplementation((url: string) => Promise.resolve({ data: { data: overrides[url] ?? options[url] } }));
+    // Linhas vêm em lista simples; veículos e funcionários, paginados e filtrados por status no servidor.
+    http.get.mockImplementation((url: string, config?: { params?: { status?: string } }) => {
+        const list = (overrides[url] ?? options[url] ?? []) as { status?: string }[];
+        const status = config?.params?.status;
+
+        return Promise.resolve(url === '/operations/lines' ? { data: { data: list } } : page(list.filter((item) => status === undefined || item.status === status)));
+    });
     const wrapper = mount(TripForm);
     await flushPromises();
 

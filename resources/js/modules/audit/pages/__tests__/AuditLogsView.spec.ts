@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatDateTime } from '@/core/utils/format';
 import { signInAs } from '@/tests/auth';
+import { page, pageParams } from '@/tests/paging';
 import type { AuditLog } from '../../types/auditLog';
 import AuditLogsView from '../AuditLogsView.vue';
 
@@ -53,7 +54,7 @@ async function mountView(data: AuditLog[] | Error = logs): Promise<VueWrapper> {
     if (data instanceof Error) {
         http.get.mockRejectedValue(data);
     } else {
-        http.get.mockResolvedValue({ data: { data } });
+        http.get.mockResolvedValue(page(data));
     }
 
     const wrapper = mount(AuditLogsView);
@@ -82,7 +83,8 @@ describe('AuditLogsView', () => {
         expect(first).toContain('Viagem concluída');
         expect(first).toContain('Viagem 0193a5b0');
         expect(first).toContain('10.0.0.7');
-        expect(wrapper.get('[data-test="count"]').text()).toBe('3 registros');
+        expect(http.get).toHaveBeenCalledWith('/audit-logs', pageParams());
+        expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('3 registros');
     });
 
     it('shows a record without a user and without an entity id', async () => {
@@ -126,20 +128,28 @@ describe('AuditLogsView', () => {
         expect(wrapper.get('[role="dialog"]').text()).toContain('por ninguém autenticado');
     });
 
-    it('searches by action, entity, user or IP', async () => {
+    it('searches on the server and pages the trail', async () => {
         const wrapper = await mountView();
 
-        await wrapper.get('[data-test="search"]').setValue('excluído');
-        expect(rows(wrapper).map((row) => row.get('[data-test="action"]').text())).toEqual(['Veículo excluído']);
-        expect(wrapper.get('[data-test="count"]').text()).toBe('1 de 3 registros');
-
-        await wrapper.get('[data-test="search"]').setValue('diego');
-        expect(rows(wrapper)).toHaveLength(1);
-
+        http.get.mockResolvedValue(page([logs[2]!], { total: 40, last_page: 3 }));
         await wrapper.get('[data-test="search"]').setValue('203.0.113');
-        expect(rows(wrapper).map((row) => row.get('[data-test="action"]').text())).toEqual(['Login recusado']);
+        await wrapper.get('[data-test="search"]').trigger('keydown.enter');
+        await flushPromises();
 
+        expect(http.get).toHaveBeenLastCalledWith('/audit-logs', pageParams({ search: '203.0.113' }));
+        expect(rows(wrapper).map((row) => row.get('[data-test="action"]').text())).toEqual(['Login recusado']);
+        expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('1 a 15 de 40 registros');
+
+        await wrapper.get('[data-test="page-next"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/audit-logs', pageParams({ page: 2, search: '203.0.113' }));
+
+        http.get.mockResolvedValue(page([]));
         await wrapper.get('[data-test="search"]').setValue('nada parecido');
+        await wrapper.get('[data-test="search"]').trigger('keydown.enter');
+        await flushPromises();
+
         expect(wrapper.find('[data-test="no-results"]').exists()).toBe(true);
     });
 

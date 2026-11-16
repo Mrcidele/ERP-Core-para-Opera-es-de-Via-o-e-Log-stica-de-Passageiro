@@ -3,15 +3,16 @@ import { computed, onMounted, ref } from 'vue';
 import AppIcon from '@/core/ui/AppIcon.vue';
 import ConfirmDialog from '@/core/ui/ConfirmDialog.vue';
 import EmptyState from '@/core/ui/EmptyState.vue';
+import ListToolbar from '@/core/ui/ListToolbar.vue';
+import PaginationBar from '@/core/ui/PaginationBar.vue';
 import SlideOver from '@/core/ui/SlideOver.vue';
 import TableSkeleton from '@/core/ui/TableSkeleton.vue';
 import { useToast } from '@/core/ui/useToast';
-import { countLabel } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import VehicleForm from '../components/VehicleForm.vue';
 import VehicleTable from '../components/VehicleTable.vue';
 import { useVehicleStore } from '../stores/vehicleStore';
-import { VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, type Vehicle, type VehicleStatus } from '../types/vehicle';
+import { VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, type Vehicle } from '../types/vehicle';
 
 const store = useVehicleStore();
 const auth = useAuthStore();
@@ -20,45 +21,13 @@ const toast = useToast();
 // Sem fleet.manage a tela é só de consulta.
 const canManage = computed(() => auth.can('fleet.manage'));
 
-const statusFilter = ref<VehicleStatus | 'all'>('all');
-const onlyDue = ref(false);
-const search = ref('');
-
 const formOpen = ref(false);
 const editing = ref<Vehicle | null>(null);
 const removing = ref<Vehicle | null>(null);
 
 onMounted(() => store.fetchAll());
 
-const filters = computed(() => [
-    { value: 'all' as const, label: 'Todos', count: store.vehicles.length },
-    ...VEHICLE_STATUSES.map((status) => ({
-        value: status,
-        label: VEHICLE_STATUS_LABELS[status],
-        count: store.vehicles.filter((vehicle) => vehicle.status === status).length,
-    })),
-]);
-
-const dueCount = computed(() => store.vehicles.filter((vehicle) => vehicle.needs_preventive_maintenance).length);
-
-const visibleVehicles = computed(() => {
-    const term = search.value.replace(/[\s-]/g, '').toUpperCase();
-
-    return store.vehicles.filter(
-        (vehicle) =>
-            (statusFilter.value === 'all' || vehicle.status === statusFilter.value) &&
-            (!onlyDue.value || vehicle.needs_preventive_maintenance) &&
-            (term === '' || vehicle.plate.includes(term) || vehicle.chassis.includes(term)),
-    );
-});
-
-const filtering = computed(() => statusFilter.value !== 'all' || onlyDue.value || search.value.trim() !== '');
-
-function clearFilters(): void {
-    statusFilter.value = 'all';
-    onlyDue.value = false;
-    search.value = '';
-}
+const STATUS_OPTIONS = VEHICLE_STATUSES.map((status) => ({ value: status, label: VEHICLE_STATUS_LABELS[status] }));
 
 function openCreate(): void {
     editing.value = null;
@@ -98,41 +67,14 @@ async function confirmRemove(): Promise<void> {
     </header>
 
     <section class="card mt-6 overflow-hidden">
-        <div class="flex flex-wrap items-center gap-3 border-b border-ink-200 p-3">
-            <div role="group" aria-label="Filtrar por status" class="segmented">
-                <button
-                    v-for="filter in filters"
-                    :key="filter.value"
-                    type="button"
-                    :data-test="`filter-${filter.value}`"
-                    :aria-pressed="statusFilter === filter.value"
-                    @click="statusFilter = filter.value"
-                >
-                    {{ filter.label }}
-                    <span class="num ml-1 text-xs text-ink-400">{{ filter.count }}</span>
-                </button>
-            </div>
-
-            <button
-                v-if="dueCount > 0"
-                type="button"
-                data-test="filter-due"
-                :aria-pressed="onlyDue"
-                class="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors"
-                :class="onlyDue ? 'border-signal-500 bg-signal-50 text-signal-700' : 'border-ink-200 bg-white text-ink-600 hover:border-ink-300 hover:text-ink-900'"
-                @click="onlyDue = !onlyDue"
-            >
-                <AppIcon name="alert" />
-                Revisão vencida
-                <span class="num text-xs">{{ dueCount }}</span>
-            </button>
-
-            <label class="relative ml-auto block w-full sm:w-72">
-                <span class="sr-only">Buscar por placa ou chassi</span>
-                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-400"><AppIcon name="search" /></span>
-                <input v-model="search" type="search" data-test="search" class="field-input !mt-0 !h-9 pl-10" placeholder="Buscar por placa ou chassi" />
-            </label>
-        </div>
+        <ListToolbar
+            :statuses="STATUS_OPTIONS"
+            :status="store.status"
+            :search="store.search"
+            search-label="Buscar por placa ou chassi"
+            @update:status="store.applyFilters({ status: $event })"
+            @update:search="store.applyFilters({ search: $event })"
+        />
 
         <TableSkeleton v-if="store.listStatus === 'loading' || store.listStatus === 'idle'" data-test="loading" :columns="7" label="Carregando veículos" />
 
@@ -147,7 +89,7 @@ async function confirmRemove(): Promise<void> {
         </EmptyState>
 
         <EmptyState
-            v-else-if="store.vehicles.length === 0"
+            v-else-if="store.vehicles.length === 0 && !store.filtering"
             data-test="empty"
             icon="bus"
             title="Nenhum veículo cadastrado"
@@ -156,16 +98,15 @@ async function confirmRemove(): Promise<void> {
             <button v-if="canManage" type="button" class="btn btn-primary" @click="openCreate">Cadastrar veículo</button>
         </EmptyState>
 
-        <EmptyState v-else-if="visibleVehicles.length === 0" data-test="no-results" icon="search" title="Nenhum veículo corresponde ao filtro">
-            <button type="button" class="btn btn-quiet" @click="clearFilters">Limpar filtros</button>
+        <EmptyState v-else-if="store.vehicles.length === 0" data-test="no-results" icon="search" title="Nenhum veículo corresponde ao filtro">
+            <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="store.applyFilters({ search: '', status: null })">Limpar filtros</button>
         </EmptyState>
 
         <template v-else>
-            <VehicleTable :vehicles="visibleVehicles" :can-manage="canManage" @edit="openEdit" @remove="removing = $event" />
-            <p class="border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500">
-                <template v-if="filtering">{{ visibleVehicles.length }} de {{ countLabel(store.vehicles.length, 'veículo', 'veículos') }}</template>
-                <template v-else>{{ countLabel(store.vehicles.length, 'veículo', 'veículos') }}</template>
-            </p>
+            <div :class="{ 'opacity-60': store.refreshing }" :aria-busy="store.refreshing">
+                <VehicleTable :vehicles="store.vehicles" :can-manage="canManage" @edit="openEdit" @remove="removing = $event" />
+            </div>
+            <PaginationBar :meta="store.meta" singular="veículo" plural="veículos" :busy="store.refreshing" @change="store.fetchAll($event)" />
         </template>
     </section>
 

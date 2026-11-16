@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { downloadFile } from '@/core/api/download';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
+import { fetchEveryPage, usePagedList, type RequestStatus } from '@/core/api/pagination';
 import type { Employee } from '@/modules/crew/types/employee';
 import type { Vehicle } from '@/modules/fleet/types/vehicle';
 import type { ScheduleTripPayload } from '../schemas/scheduleTripSchema';
 import type { Line, Trip, TripSummary, TripTransition } from '../types/trip';
 
-export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
+export type { RequestStatus };
 
 export const useTripStore = defineStore('operations/trips', () => {
     // Opções do formulário: só o que pode ser escalado (veículos ativos, motoristas ativos).
@@ -20,23 +22,28 @@ export const useTripStore = defineStore('operations/trips', () => {
     const saveError = ref<string | null>(null);
     const lastScheduled = ref<Trip | null>(null);
 
-    const trips = ref<TripSummary[]>([]);
-    const listStatus = ref<RequestStatus>('idle');
+    // A escala vem paginada do servidor, com busca por linha, placa ou motorista e filtro por status.
+    const list = usePagedList<TripSummary>('/operations/trips');
 
     /** Id da viagem cuja mudança de status está em andamento. */
     const transitioningId = ref<string | null>(null);
     const transitionError = ref<string | null>(null);
 
-    async function fetchTrips(): Promise<void> {
-        listStatus.value = 'loading';
+    const exportStatus = ref<RequestStatus>('idle');
+
+    /** Baixa o CSV com tudo o que atende aos filtros da tela (não só a página visível). */
+    async function exportCsv(): Promise<boolean> {
+        exportStatus.value = 'loading';
 
         try {
-            const response = await http.get<{ data: TripSummary[] }>('/operations/trips');
+            await downloadFile('/operations/trips/export', list.filterParams(), 'manifesto-de-viagens.csv');
+            exportStatus.value = 'success';
 
-            trips.value = response.data.data;
-            listStatus.value = 'success';
+            return true;
         } catch {
-            listStatus.value = 'error';
+            exportStatus.value = 'error';
+
+            return false;
         }
     }
 
@@ -46,9 +53,9 @@ export const useTripStore = defineStore('operations/trips', () => {
         transitionError.value = null;
 
         try {
-            const response = await http.post<{ data: Trip }>(`/operations/trips/${id}/${action}`);
-
-            trips.value = trips.value.map((trip) => (trip.id === id ? { ...trip, status: response.data.data.status } : trip));
+            await http.post<{ data: Trip }>(`/operations/trips/${id}/${action}`);
+            // Com filtro por status, a viagem pode sair da lista: quem decide é o servidor.
+            await list.fetchPage();
 
             return true;
         } catch (error) {
@@ -67,15 +74,16 @@ export const useTripStore = defineStore('operations/trips', () => {
         optionsStatus.value = 'loading';
 
         try {
-            const [lineList, vehicleList, employeeList] = await Promise.all([
+            // Veículos e funcionários são paginados: o formulário precisa de todos os ativos, não de uma página.
+            const [lineList, activeVehicles, activeEmployees] = await Promise.all([
                 http.get<{ data: Line[] }>('/operations/lines'),
-                http.get<{ data: Vehicle[] }>('/fleet/vehicles'),
-                http.get<{ data: Employee[] }>('/crew/employees'),
+                fetchEveryPage<Vehicle>('/fleet/vehicles', { status: 'active' }),
+                fetchEveryPage<Employee>('/crew/employees', { status: 'active' }),
             ]);
 
             lines.value = lineList.data.data;
-            vehicles.value = vehicleList.data.data.filter((vehicle) => vehicle.status === 'active');
-            drivers.value = employeeList.data.data.filter((employee) => employee.role === 'driver' && employee.status === 'active');
+            vehicles.value = activeVehicles;
+            drivers.value = activeEmployees.filter((employee) => employee.role === 'driver');
             optionsStatus.value = 'success';
         } catch {
             optionsStatus.value = 'error';
@@ -115,8 +123,16 @@ export const useTripStore = defineStore('operations/trips', () => {
     }
 
     return {
-        trips,
-        listStatus,
+        trips: list.items,
+        meta: list.meta,
+        search: list.search,
+        status: list.status,
+        listStatus: list.listStatus,
+        refreshing: list.refreshing,
+        filtering: list.filtering,
+        applyFilters: list.applyFilters,
+        exportStatus,
+        exportCsv,
         transitioningId,
         transitionError,
         lines,
@@ -127,7 +143,7 @@ export const useTripStore = defineStore('operations/trips', () => {
         validationErrors,
         saveError,
         lastScheduled,
-        fetchTrips,
+        fetchTrips: list.fetchPage,
         transition,
         loadOptions,
         resetSaveState,

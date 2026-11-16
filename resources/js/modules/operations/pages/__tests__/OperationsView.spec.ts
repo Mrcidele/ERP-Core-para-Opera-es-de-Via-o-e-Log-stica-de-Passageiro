@@ -2,6 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { signInAs } from '@/tests/auth';
+import { page, pageParams } from '@/tests/paging';
 import { lastToast } from '@/tests/toast';
 import { formatDateTime } from '@/core/utils/format';
 import type { TripSummary } from '../../types/trip';
@@ -24,8 +25,13 @@ const trip = (id: string, status: TripSummary['status'], destination = 'Ourinhos
     driver: { id: 'driver-1', name: 'João da Silva' },
 });
 
+/** O que a API devolve: a escala paginada em /operations/trips e listas vazias nas opções do formulário. */
+function serve(trips: TripSummary[]): void {
+    http.get.mockImplementation((url: string) => Promise.resolve(url === '/operations/lines' ? { data: { data: [] } } : page(url === '/operations/trips' ? trips : [])));
+}
+
 async function mountPage(trips: TripSummary[]): Promise<VueWrapper> {
-    http.get.mockImplementation((url: string) => Promise.resolve({ data: { data: url === '/operations/trips' ? trips : [] } }));
+    serve(trips);
     const wrapper = mount(OperationsView);
     await flushPromises();
 
@@ -66,6 +72,7 @@ describe('OperationsView', () => {
     it('starts a trip', async () => {
         http.post.mockResolvedValue({ data: { data: { id: '1', status: 'in_progress' } } });
         const wrapper = await mountPage([trip('1', 'scheduled')]);
+        serve([trip('1', 'in_progress')]);
 
         await wrapper.get('[data-test="start"]').trigger('click');
         await flushPromises();
@@ -78,6 +85,7 @@ describe('OperationsView', () => {
     it('completes a trip and says the distance went to the vehicle mileage', async () => {
         http.post.mockResolvedValue({ data: { data: { id: '1', status: 'completed' } } });
         const wrapper = await mountPage([trip('1', 'in_progress')]);
+        serve([trip('1', 'completed')]);
 
         await wrapper.get('[data-test="complete"]').trigger('click');
         await flushPromises();
@@ -90,6 +98,7 @@ describe('OperationsView', () => {
     it('cancels a trip only after confirmation', async () => {
         http.post.mockResolvedValue({ data: { data: { id: '1', status: 'canceled' } } });
         const wrapper = await mountPage([trip('1', 'scheduled')]);
+        serve([trip('1', 'canceled')]);
 
         await wrapper.get('[data-test="cancel"]').trigger('click');
         expect(http.post).not.toHaveBeenCalled();
@@ -135,6 +144,58 @@ describe('OperationsView', () => {
         await flushPromises();
 
         expect(failed.find('[data-test="list-error"]').exists()).toBe(true);
+    });
+
+    it('filters by status on the server and pages the result', async () => {
+        const wrapper = await mountPage([trip('1', 'scheduled'), trip('2', 'completed')]);
+
+        http.get.mockResolvedValue(page([trip('2', 'completed')], { total: 31, last_page: 3 }));
+        await wrapper.get('[data-test="filter-completed"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/operations/trips', pageParams({ status: 'completed' }));
+        expect(rows(wrapper)).toHaveLength(1);
+        expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('1 a 15 de 31 viagens');
+
+        await wrapper.get('[data-test="page-3"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/operations/trips', pageParams({ page: 3, status: 'completed' }));
+    });
+
+    it('exports the CSV with the filters on screen', async () => {
+        const createObjectURL = vi.fn(() => 'blob:manifesto');
+        const revokeObjectURL = vi.fn();
+        vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+        const wrapper = await mountPage([trip('1', 'completed')]);
+        await wrapper.get('[data-test="filter-completed"]').trigger('click');
+        await flushPromises();
+
+        const csv = new Blob(['Linha;Placa'], { type: 'text/csv' });
+        http.get.mockResolvedValue({ data: csv, headers: { 'content-disposition': 'attachment; filename=manifesto-de-viagens-2026-11-15.csv' } });
+        await wrapper.get('[data-test="export-csv"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/operations/trips/export', { params: { status: 'completed' }, responseType: 'blob' });
+        expect(createObjectURL).toHaveBeenCalledWith(csv);
+        expect(click).toHaveBeenCalledTimes(1);
+        expect(revokeObjectURL).toHaveBeenCalledWith('blob:manifesto');
+        expect(lastToast()).toContain('Manifesto de viagens exportado');
+
+        click.mockRestore();
+    });
+
+    it('says when the export fails', async () => {
+        const wrapper = await mountPage([trip('1', 'completed')]);
+
+        http.get.mockRejectedValue(new Error('network'));
+        await wrapper.get('[data-test="export-csv"]').trigger('click');
+        await flushPromises();
+
+        expect(lastToast()).toContain('Não foi possível exportar as viagens');
+        expect(wrapper.get('[data-test="export-csv"]').text()).toBe('Exportar CSV');
     });
 
     it('opens the scheduling form in the side panel', async () => {

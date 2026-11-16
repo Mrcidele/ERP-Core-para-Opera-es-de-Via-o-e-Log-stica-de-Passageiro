@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import { signInAs } from '@/tests/auth';
+import { page, pageParams } from '@/tests/paging';
 import { lastToast } from '@/tests/toast';
 import type { MaintenanceOrderSummary } from '../../types/maintenance';
 import MaintenanceView from '../MaintenanceView.vue';
@@ -34,7 +35,8 @@ let orders: MaintenanceOrderSummary[] = [];
 async function mountPage(initial: MaintenanceOrderSummary[]): Promise<VueWrapper> {
     orders = initial;
     http.get.mockImplementation((url: string) =>
-        Promise.resolve({ data: { data: url === '/maintenance/orders' ? orders : url === '/fleet/vehicles' ? vehicles : url === '/maintenance/mechanics' ? mechanics : [] } }),
+        // Ordens e veículos chegam paginados; os mecânicos, em lista simples.
+        Promise.resolve(url === '/maintenance/mechanics' ? { data: { data: mechanics } } : page<unknown>(url === '/maintenance/orders' ? orders : vehicles)),
     );
     const wrapper = mount(MaintenanceView);
     await flushPromises();
@@ -70,18 +72,42 @@ describe('MaintenanceView', () => {
         expect(rows(wrapper).map((row) => row.findAll('button').map((button) => button.text()))).toEqual([['Concluir', 'Cancelar'], [], []]);
     });
 
-    it('filters by status and counts each one', async () => {
+    it('filters by status on the server', async () => {
         const wrapper = await mountPage([order('1', 'open'), order('2', 'completed'), order('3', 'completed')]);
 
-        expect(wrapper.get('[data-test="filter-all"]').text()).toContain('3');
-        expect(wrapper.get('[data-test="filter-completed"]').text()).toContain('2');
-        expect(wrapper.find('[data-test="filter-in_progress"]').exists()).toBe(false);
-
+        orders = [order('1', 'open')];
         await wrapper.get('[data-test="filter-open"]').trigger('click');
-        expect(rows(wrapper)).toHaveLength(1);
+        await flushPromises();
 
+        expect(http.get).toHaveBeenLastCalledWith('/maintenance/orders', pageParams({ status: 'open' }));
+        expect(rows(wrapper)).toHaveLength(1);
+        expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('1 ordem');
+
+        orders = [];
         await wrapper.get('[data-test="filter-canceled"]').trigger('click');
+        await flushPromises();
+
         expect(wrapper.find('[data-test="no-results"]').exists()).toBe(true);
+    });
+
+    it('exports the CSV with the filters on screen', async () => {
+        const createObjectURL = vi.fn(() => 'blob:ordens');
+        vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+        const wrapper = await mountPage([order('1', 'completed')]);
+
+        await wrapper.get('[data-test="filter-completed"]').trigger('click');
+        await flushPromises();
+
+        http.get.mockResolvedValue({ data: new Blob(['Placa;Custo']), headers: {} });
+        await wrapper.get('[data-test="export-csv"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/maintenance/orders/export', { params: { status: 'completed' }, responseType: 'blob' });
+        expect(click).toHaveBeenCalledTimes(1);
+        expect(lastToast()).toContain('Relatório de ordens de serviço exportado');
+
+        click.mockRestore();
     });
 
     it('opens an order from the side panel and reloads the list', async () => {

@@ -3,10 +3,12 @@ import { computed, onMounted, ref } from 'vue';
 import AppIcon from '@/core/ui/AppIcon.vue';
 import ConfirmDialog from '@/core/ui/ConfirmDialog.vue';
 import EmptyState from '@/core/ui/EmptyState.vue';
+import ListToolbar from '@/core/ui/ListToolbar.vue';
+import PaginationBar from '@/core/ui/PaginationBar.vue';
 import SlideOver from '@/core/ui/SlideOver.vue';
 import TableSkeleton from '@/core/ui/TableSkeleton.vue';
 import { useToast } from '@/core/ui/useToast';
-import { countLabel, formatCents } from '@/core/utils/format';
+import { formatCents } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import CompleteMaintenanceOrderForm from '../components/CompleteMaintenanceOrderForm.vue';
 import MaintenanceOrderTable from '../components/MaintenanceOrderTable.vue';
@@ -17,7 +19,6 @@ import {
     MAINTENANCE_STATUSES,
     type MaintenanceOrder,
     type MaintenanceOrderSummary,
-    type MaintenanceStatus,
 } from '../types/maintenance';
 
 const store = useMaintenanceStore();
@@ -27,26 +28,21 @@ const toast = useToast();
 // Sem maintenance.manage a tela é só de consulta.
 const canManage = computed(() => auth.can('maintenance.manage'));
 
-const statusFilter = ref<MaintenanceStatus | 'all'>('all');
 const openFormVisible = ref(false);
 const completing = ref<MaintenanceOrderSummary | null>(null);
 const canceling = ref<MaintenanceOrderSummary | null>(null);
 
 onMounted(() => store.fetchOrders());
 
-// "Em andamento" só entra no filtro quando existe alguma ordem nesse status.
-const filters = computed(() => [
-    { value: 'all' as const, label: 'Todas', count: store.orders.length },
-    ...MAINTENANCE_STATUSES.map((status) => ({
-        value: status,
-        label: MAINTENANCE_STATUS_LABELS[status],
-        count: store.orders.filter((order) => order.status === status).length,
-    })).filter((filter) => filter.value !== 'in_progress' || filter.count > 0),
-]);
+const STATUS_OPTIONS = MAINTENANCE_STATUSES.map((status) => ({ value: status, label: MAINTENANCE_STATUS_LABELS[status] }));
 
-const visibleOrders = computed(() =>
-    statusFilter.value === 'all' ? store.orders : store.orders.filter((order) => order.status === statusFilter.value),
-);
+async function exportCsv(): Promise<void> {
+    if (await store.exportCsv()) {
+        toast.success('Relatório de ordens de serviço exportado com os filtros da tela.');
+    } else {
+        toast.error('Não foi possível exportar as ordens de serviço. Tente novamente.');
+    }
+}
 
 function onOpened(): void {
     toast.success('Ordem de serviço aberta. O veículo está em manutenção.');
@@ -86,24 +82,23 @@ async function confirmCancel(): Promise<void> {
     </header>
 
     <section class="card mt-6 overflow-hidden">
-        <div class="border-b border-ink-200 p-3">
-            <div role="group" aria-label="Filtrar por status" class="segmented">
-                <button
-                    v-for="filter in filters"
-                    :key="filter.value"
-                    type="button"
-                    :data-test="`filter-${filter.value}`"
-                    :aria-pressed="statusFilter === filter.value"
-                    @click="statusFilter = filter.value"
-                >
-                    {{ filter.label }}
-                    <span class="num ml-1 text-xs text-ink-400">{{ filter.count }}</span>
-                </button>
-            </div>
-        </div>
+        <ListToolbar
+            :statuses="STATUS_OPTIONS"
+            all-label="Todas"
+            :status="store.status"
+            :search="store.search"
+            search-label="Buscar por placa, mecânico ou serviço"
+            @update:status="store.applyFilters({ status: $event })"
+            @update:search="store.applyFilters({ search: $event })"
+        >
+            <button type="button" class="btn btn-quiet !h-9" data-test="export-csv" :disabled="store.exportStatus === 'loading'" @click="exportCsv">
+                <AppIcon name="download" />
+                {{ store.exportStatus === 'loading' ? 'Exportando…' : 'Exportar CSV' }}
+            </button>
+        </ListToolbar>
 
         <TableSkeleton
-            v-if="store.listStatus === 'idle' || (store.listStatus === 'loading' && store.orders.length === 0)"
+            v-if="store.listStatus === 'idle' || store.listStatus === 'loading'"
             data-test="loading"
             :columns="6"
             label="Carregando ordens de serviço"
@@ -120,7 +115,7 @@ async function confirmCancel(): Promise<void> {
         </EmptyState>
 
         <EmptyState
-            v-else-if="store.orders.length === 0"
+            v-else-if="store.orders.length === 0 && !store.filtering"
             data-test="empty"
             icon="wrench"
             title="Nenhuma ordem de serviço"
@@ -129,16 +124,15 @@ async function confirmCancel(): Promise<void> {
             <button v-if="canManage" type="button" class="btn btn-primary" @click="openFormVisible = true">Abrir ordem de serviço</button>
         </EmptyState>
 
-        <EmptyState v-else-if="visibleOrders.length === 0" data-test="no-results" icon="search" title="Nenhuma ordem com esse status">
-            <button type="button" class="btn btn-quiet" @click="statusFilter = 'all'">Ver todas</button>
+        <EmptyState v-else-if="store.orders.length === 0" data-test="no-results" icon="search" title="Nenhuma ordem corresponde ao filtro">
+            <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="store.applyFilters({ search: '', status: null })">Limpar filtros</button>
         </EmptyState>
 
         <template v-else>
-            <MaintenanceOrderTable :orders="visibleOrders" :can-manage="canManage" @complete="completing = $event" @cancel="askCancel" />
-            <p class="border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500">
-                <template v-if="statusFilter !== 'all'">{{ visibleOrders.length }} de {{ countLabel(store.orders.length, 'ordem', 'ordens') }}</template>
-                <template v-else>{{ countLabel(store.orders.length, 'ordem', 'ordens') }}</template>
-            </p>
+            <div :class="{ 'opacity-60': store.refreshing }" :aria-busy="store.refreshing">
+                <MaintenanceOrderTable :orders="store.orders" :can-manage="canManage" @complete="completing = $event" @cancel="askCancel" />
+            </div>
+            <PaginationBar :meta="store.meta" singular="ordem" plural="ordens" :busy="store.refreshing" @change="store.fetchOrders($event)" />
         </template>
     </section>
 

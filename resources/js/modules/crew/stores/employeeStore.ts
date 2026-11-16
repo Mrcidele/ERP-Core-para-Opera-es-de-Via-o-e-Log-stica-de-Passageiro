@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
+import { usePagedList, type RequestStatus } from '@/core/api/pagination';
 import type { CreateEmployeePayload } from '../schemas/createEmployeeSchema';
 import type { Employee } from '../types/employee';
 
-export type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
+export type { RequestStatus };
 
 export const useEmployeeStore = defineStore('crew/employees', () => {
     const saveStatus = ref<RequestStatus>('idle');
@@ -12,21 +13,8 @@ export const useEmployeeStore = defineStore('crew/employees', () => {
     const saveError = ref<string | null>(null);
     const lastCreated = ref<Employee | null>(null);
 
-    const employees = ref<Employee[]>([]);
-    const listStatus = ref<RequestStatus>('idle');
-
-    async function fetchAll(): Promise<void> {
-        listStatus.value = 'loading';
-
-        try {
-            const response = await http.get<{ data: Employee[] }>('/crew/employees');
-
-            employees.value = response.data.data;
-            listStatus.value = 'success';
-        } catch {
-            listStatus.value = 'error';
-        }
-    }
+    // A lista vem paginada do servidor, com busca por nome ou CPF e filtro por status.
+    const list = usePagedList<Employee>('/crew/employees');
 
     function resetSaveState(): void {
         saveStatus.value = 'idle';
@@ -42,9 +30,8 @@ export const useEmployeeStore = defineStore('crew/employees', () => {
             const response = await http.post<{ data: Employee }>('/crew/employees', payload);
 
             lastCreated.value = response.data.data;
-            // A lista é ordenada por nome, como a API devolve.
-            employees.value = [...employees.value, response.data.data].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
             saveStatus.value = 'success';
+            await list.fetchPage();
 
             return lastCreated.value;
         } catch (error) {
@@ -62,5 +49,21 @@ export const useEmployeeStore = defineStore('crew/employees', () => {
         }
     }
 
-    return { employees, listStatus, fetchAll, saveStatus, validationErrors, saveError, lastCreated, resetSaveState, create };
+    return {
+        employees: list.items,
+        meta: list.meta,
+        search: list.search,
+        status: list.status,
+        listStatus: list.listStatus,
+        refreshing: list.refreshing,
+        filtering: list.filtering,
+        fetchAll: list.fetchPage,
+        applyFilters: list.applyFilters,
+        saveStatus,
+        validationErrors,
+        saveError,
+        lastCreated,
+        resetSaveState,
+        create,
+    };
 });

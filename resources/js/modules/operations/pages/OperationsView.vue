@@ -3,15 +3,17 @@ import { computed, onMounted, ref } from 'vue';
 import AppIcon from '@/core/ui/AppIcon.vue';
 import ConfirmDialog from '@/core/ui/ConfirmDialog.vue';
 import EmptyState from '@/core/ui/EmptyState.vue';
+import ListToolbar from '@/core/ui/ListToolbar.vue';
+import PaginationBar from '@/core/ui/PaginationBar.vue';
 import SlideOver from '@/core/ui/SlideOver.vue';
 import TableSkeleton from '@/core/ui/TableSkeleton.vue';
 import { useToast } from '@/core/ui/useToast';
-import { countLabel, formatDateTime, formatKm } from '@/core/utils/format';
+import { formatDateTime, formatKm } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import TripForm from '../components/TripForm.vue';
 import TripTable from '../components/TripTable.vue';
 import { useTripStore } from '../stores/tripStore';
-import { TRIP_STATUS_LABELS, TRIP_STATUSES, type Trip, type TripStatus, type TripSummary, type TripTransition } from '../types/trip';
+import { TRIP_STATUS_LABELS, TRIP_STATUSES, type Trip, type TripSummary, type TripTransition } from '../types/trip';
 
 const store = useTripStore();
 const auth = useAuthStore();
@@ -20,22 +22,20 @@ const toast = useToast();
 // Sem operations.manage a tela é só de consulta.
 const canManage = computed(() => auth.can('operations.manage'));
 
-const statusFilter = ref<TripStatus | 'all'>('all');
 const formOpen = ref(false);
 const canceling = ref<TripSummary | null>(null);
 
 onMounted(() => store.fetchTrips());
 
-const filters = computed(() => [
-    { value: 'all' as const, label: 'Todas', count: store.trips.length },
-    ...TRIP_STATUSES.map((status) => ({
-        value: status,
-        label: TRIP_STATUS_LABELS[status],
-        count: store.trips.filter((trip) => trip.status === status).length,
-    })),
-]);
+const STATUS_OPTIONS = TRIP_STATUSES.map((status) => ({ value: status, label: TRIP_STATUS_LABELS[status] }));
 
-const visibleTrips = computed(() => (statusFilter.value === 'all' ? store.trips : store.trips.filter((trip) => trip.status === statusFilter.value)));
+async function exportCsv(): Promise<void> {
+    if (await store.exportCsv()) {
+        toast.success('Manifesto de viagens exportado com os filtros da tela.');
+    } else {
+        toast.error('Não foi possível exportar as viagens. Tente novamente.');
+    }
+}
 
 const route = (trip: TripSummary): string => `${trip.line.origin} → ${trip.line.destination}`;
 
@@ -97,21 +97,20 @@ async function confirmCancel(): Promise<void> {
     </p>
 
     <section class="card mt-6 overflow-hidden">
-        <div class="border-b border-ink-200 p-3">
-            <div role="group" aria-label="Filtrar por status" class="segmented">
-                <button
-                    v-for="filter in filters"
-                    :key="filter.value"
-                    type="button"
-                    :data-test="`filter-${filter.value}`"
-                    :aria-pressed="statusFilter === filter.value"
-                    @click="statusFilter = filter.value"
-                >
-                    {{ filter.label }}
-                    <span class="num ml-1 text-xs text-ink-400">{{ filter.count }}</span>
-                </button>
-            </div>
-        </div>
+        <ListToolbar
+            :statuses="STATUS_OPTIONS"
+            all-label="Todas"
+            :status="store.status"
+            :search="store.search"
+            search-label="Buscar por cidade, placa ou motorista"
+            @update:status="store.applyFilters({ status: $event })"
+            @update:search="store.applyFilters({ search: $event })"
+        >
+            <button type="button" class="btn btn-quiet !h-9" data-test="export-csv" :disabled="store.exportStatus === 'loading'" @click="exportCsv">
+                <AppIcon name="download" />
+                {{ store.exportStatus === 'loading' ? 'Exportando…' : 'Exportar CSV' }}
+            </button>
+        </ListToolbar>
 
         <TableSkeleton v-if="store.listStatus === 'loading' || store.listStatus === 'idle'" data-test="loading" :columns="6" label="Carregando viagens" />
 
@@ -126,7 +125,7 @@ async function confirmCancel(): Promise<void> {
         </EmptyState>
 
         <EmptyState
-            v-else-if="store.trips.length === 0"
+            v-else-if="store.trips.length === 0 && !store.filtering"
             data-test="empty"
             icon="route"
             title="Nenhuma viagem agendada"
@@ -135,16 +134,15 @@ async function confirmCancel(): Promise<void> {
             <button v-if="canManage" type="button" class="btn btn-primary" @click="formOpen = true">Agendar viagem</button>
         </EmptyState>
 
-        <EmptyState v-else-if="visibleTrips.length === 0" data-test="no-results" icon="search" title="Nenhuma viagem com esse status">
-            <button type="button" class="btn btn-quiet" @click="statusFilter = 'all'">Ver todas</button>
+        <EmptyState v-else-if="store.trips.length === 0" data-test="no-results" icon="search" title="Nenhuma viagem corresponde ao filtro">
+            <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="store.applyFilters({ search: '', status: null })">Limpar filtros</button>
         </EmptyState>
 
         <template v-else>
-            <TripTable :trips="visibleTrips" :busy-id="store.transitioningId" :can-manage="canManage" @transition="onTransition" />
-            <p class="border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500">
-                <template v-if="statusFilter !== 'all'">{{ visibleTrips.length }} de {{ countLabel(store.trips.length, 'viagem', 'viagens') }}</template>
-                <template v-else>{{ countLabel(store.trips.length, 'viagem', 'viagens') }}</template>
-            </p>
+            <div :class="{ 'opacity-60': store.refreshing }" :aria-busy="store.refreshing">
+                <TripTable :trips="store.trips" :busy-id="store.transitioningId" :can-manage="canManage" @transition="onTransition" />
+            </div>
+            <PaginationBar :meta="store.meta" singular="viagem" plural="viagens" :busy="store.refreshing" @change="store.fetchTrips($event)" />
         </template>
     </section>
 

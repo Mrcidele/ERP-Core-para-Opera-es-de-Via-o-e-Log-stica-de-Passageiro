@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { page, pageParams } from '@/tests/paging';
 import { signInAs } from '@/tests/auth';
 import { lastToast } from '@/tests/toast';
 import type { Employee } from '../../types/employee';
@@ -31,7 +32,7 @@ const crew = [
 ];
 
 async function mountView(employees: Employee[] = crew): Promise<VueWrapper> {
-    http.get.mockResolvedValue({ data: { data: employees } });
+    http.get.mockResolvedValue(page(employees));
     const wrapper = mount(CrewView);
     await flushPromises();
 
@@ -56,7 +57,8 @@ describe('CrewView', () => {
         const wrapper = await mountView();
         const rows = wrapper.findAll('[data-test="employee-row"]');
 
-        expect(http.get).toHaveBeenCalledWith('/crew/employees');
+        expect(http.get).toHaveBeenCalledWith('/crew/employees', pageParams());
+        expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('3 funcionários');
         expect(rows[0]!.text()).toContain('Ana Motorista');
         expect(rows[0]!.text()).toContain('529.982.247-25');
         expect(rows[0]!.text()).toContain('Motorista');
@@ -84,27 +86,35 @@ describe('CrewView', () => {
     it('filters by status and searches by name or CPF', async () => {
         const wrapper = await mountView();
 
-        expect(wrapper.get('[data-test="filter-all"]').text()).toContain('3');
-        expect(wrapper.get('[data-test="filter-on_leave"]').text()).toContain('1');
-
+        http.get.mockResolvedValue(page([crew[0]!, crew[2]!]));
         await wrapper.get('[data-test="filter-active"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/crew/employees', pageParams({ status: 'active' }));
         expect(names(wrapper)).toEqual(['Ana Motorista', 'Carla Mecânica']);
 
-        await wrapper.get('[data-test="search"]').setValue('carla');
-        expect(names(wrapper)).toEqual(['Carla Mecânica']);
-
-        await wrapper.get('[data-test="filter-all"]').trigger('click');
+        // Enter envia a busca na hora, sem esperar a pausa da digitação.
+        http.get.mockResolvedValue(page([crew[0]!]));
         await wrapper.get('[data-test="search"]').setValue('529.982');
+        await wrapper.get('[data-test="search"]').trigger('keydown.enter');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/crew/employees', pageParams({ status: 'active', search: '529.982' }));
         expect(names(wrapper)).toEqual(['Ana Motorista']);
 
+        http.get.mockResolvedValue(page([]));
         await wrapper.get('[data-test="search"]').setValue('ninguém');
+        await wrapper.get('[data-test="search"]').trigger('keydown.enter');
+        await flushPromises();
+
         expect(wrapper.find('[data-test="no-results"]').exists()).toBe(true);
     });
 
-    it('registers an employee from the side panel, adds it to the list in name order and confirms with a toast', async () => {
+    it('registers an employee from the side panel, reloads the list and confirms with a toast', async () => {
         const created = employee('4', 'Beto Novo', 'admin', 'active');
         http.post.mockResolvedValue({ data: { data: created } });
         const wrapper = await mountView();
+        http.get.mockResolvedValue(page([crew[0]!, created, crew[1]!, crew[2]!]));
 
         await wrapper.get('[data-test="new-employee"]').trigger('click');
         await wrapper.get('[data-test="name"]').setValue('Beto Novo');
