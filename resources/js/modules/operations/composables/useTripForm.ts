@@ -1,6 +1,7 @@
 import { computed, reactive, ref } from 'vue';
 import { scheduleTripSchema, type TripField } from '../schemas/scheduleTripSchema';
 import { useTripStore } from '../stores/tripStore';
+import type { TripPrefill } from '../types/timeline';
 import type { Trip } from '../types/trip';
 
 interface TripFormState {
@@ -13,13 +14,14 @@ interface TripFormState {
 
 type FieldErrors = Partial<Record<TripField, string>>;
 
-export function useTripForm(onScheduled: (trip: Trip) => void) {
+/** `initial` vem da grade de escala: veículo ou motorista da linha clicada e o horário escolhido. */
+export function useTripForm(onScheduled: (trip: Trip) => void, initial: TripPrefill = {}) {
     const store = useTripStore();
     const form = reactive<TripFormState>({
         line_id: '',
-        vehicle_id: '',
-        driver_id: '',
-        departure_time: '',
+        vehicle_id: initial.vehicle_id ?? '',
+        driver_id: initial.driver_id ?? '',
+        departure_time: initial.departure_time ?? '',
         arrival_time: '',
     });
     const clientErrors = ref<FieldErrors>({});

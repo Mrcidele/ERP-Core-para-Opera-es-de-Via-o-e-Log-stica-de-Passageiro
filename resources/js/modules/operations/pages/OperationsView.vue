@@ -10,9 +10,12 @@ import TableSkeleton from '@/core/ui/TableSkeleton.vue';
 import { useToast } from '@/core/ui/useToast';
 import { formatDateTime, formatKm } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
+import ScheduleGrid from '../components/ScheduleGrid.vue';
 import TripForm from '../components/TripForm.vue';
 import TripTable from '../components/TripTable.vue';
+import { useTimelineStore } from '../stores/timelineStore';
 import { useTripStore } from '../stores/tripStore';
+import type { TripPrefill } from '../types/timeline';
 import { TRIP_STATUS_LABELS, TRIP_STATUSES, type Trip, type TripSummary, type TripTransition } from '../types/trip';
 
 const store = useTripStore();
@@ -25,7 +28,28 @@ const canManage = computed(() => auth.can('operations.manage'));
 const formOpen = ref(false);
 const canceling = ref<TripSummary | null>(null);
 
+// Duas leituras da mesma escala: a lista paginada e a grade por veículo e motorista.
+const view = ref<'list' | 'grid'>('list');
+const timeline = useTimelineStore();
+/** Veículo, motorista e horário escolhidos na grade; vazio quando o formulário abre pelo botão. */
+const prefill = ref<TripPrefill>({});
+const formSession = ref(0);
+
 onMounted(() => store.fetchTrips());
+
+function show(mode: 'list' | 'grid'): void {
+    view.value = mode;
+
+    if (mode === 'grid') {
+        void timeline.fetch();
+    }
+}
+
+function openForm(initial: TripPrefill = {}): void {
+    prefill.value = initial;
+    formSession.value += 1;
+    formOpen.value = true;
+}
 
 const STATUS_OPTIONS = TRIP_STATUSES.map((status) => ({ value: status, label: TRIP_STATUS_LABELS[status] }));
 
@@ -45,7 +69,7 @@ async function onScheduled(trip: Trip): Promise<void> {
     toast.success(`${line ? `${line.origin} → ${line.destination}` : 'Viagem'} agendada para ${formatDateTime(trip.departure_time)}.`);
     formOpen.value = false;
 
-    await store.fetchTrips();
+    await Promise.all([store.fetchTrips(), view.value === 'grid' ? timeline.fetch() : Promise.resolve()]);
 }
 
 async function onTransition(trip: TripSummary, action: TripTransition): Promise<void> {
@@ -81,10 +105,16 @@ async function confirmCancel(): Promise<void> {
             <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Operações</h1>
             <p class="mt-1 text-sm text-ink-500">Viagens por linha, veículo e motorista, nos horários deste computador.</p>
         </div>
-        <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-trip" @click="formOpen = true">
-            <AppIcon name="plus" />
-            Agendar viagem
-        </button>
+        <div class="flex flex-wrap items-center gap-3">
+            <div role="group" aria-label="Visualização da escala" class="segmented">
+                <button type="button" data-test="view-list" :aria-pressed="view === 'list'" @click="show('list')">Lista</button>
+                <button type="button" data-test="view-grid" :aria-pressed="view === 'grid'" @click="show('grid')">Grade de escala</button>
+            </div>
+            <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-trip" @click="openForm()">
+                <AppIcon name="plus" />
+                Agendar viagem
+            </button>
+        </div>
     </header>
 
     <p
@@ -96,7 +126,7 @@ async function confirmCancel(): Promise<void> {
         {{ store.transitionError }}
     </p>
 
-    <section class="card mt-6 overflow-hidden">
+    <section v-if="view === 'list'" class="card mt-6 overflow-hidden" data-test="list-view">
         <ListToolbar
             :statuses="STATUS_OPTIONS"
             all-label="Todas"
@@ -131,7 +161,7 @@ async function confirmCancel(): Promise<void> {
             title="Nenhuma viagem agendada"
             :description="canManage ? 'Agende a primeira escolhendo linha, veículo e motorista.' : 'Ainda não há viagens na escala.'"
         >
-            <button v-if="canManage" type="button" class="btn btn-primary" @click="formOpen = true">Agendar viagem</button>
+            <button v-if="canManage" type="button" class="btn btn-primary" @click="openForm()">Agendar viagem</button>
         </EmptyState>
 
         <EmptyState v-else-if="store.trips.length === 0" data-test="no-results" icon="search" title="Nenhuma viagem corresponde ao filtro">
@@ -146,8 +176,56 @@ async function confirmCancel(): Promise<void> {
         </template>
     </section>
 
+    <section v-else class="card mt-6 overflow-hidden" data-test="grid-view">
+        <div class="flex flex-wrap items-center gap-3 border-b border-ink-200 p-3">
+            <div class="flex items-center gap-1">
+                <button type="button" class="icon-btn" data-test="previous-day" aria-label="Dia anterior" @click="timeline.shiftDays(-1)"><AppIcon name="chevron-left" /></button>
+                <label class="sr-only" for="timeline-date">Dia da grade</label>
+                <input
+                    id="timeline-date"
+                    type="date"
+                    class="field-input num !mt-0 !h-9 !w-auto"
+                    data-test="timeline-date"
+                    :value="timeline.date"
+                    @change="timeline.showDate(($event.target as HTMLInputElement).value)"
+                />
+                <button type="button" class="icon-btn" data-test="next-day" aria-label="Dia seguinte" @click="timeline.shiftDays(1)"><AppIcon name="chevron-right" /></button>
+                <button type="button" class="btn btn-quiet btn-sm ml-1 !h-9" data-test="today" @click="timeline.showToday()">Hoje</button>
+            </div>
+
+            <ul class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-600" aria-label="Legenda">
+                <li class="flex items-center gap-1.5"><span class="h-3 w-5 rounded-sm bg-ink-800" />Agendada</li>
+                <li class="flex items-center gap-1.5"><span class="h-3 w-5 rounded-sm bg-signal-500" />Em andamento</li>
+                <li class="flex items-center gap-1.5"><span class="h-3 w-5 rounded-sm bg-ink-200" />Concluída</li>
+                <li class="flex items-center gap-1.5"><span class="timeline-rest h-3 w-5 rounded-sm" />Descanso de 11 h</li>
+                <li class="flex items-center gap-1.5"><span class="timeline-maintenance h-3 w-5 rounded-sm" />Oficina</li>
+            </ul>
+        </div>
+
+        <TableSkeleton v-if="timeline.status === 'loading' || timeline.status === 'idle'" data-test="grid-loading" :columns="6" label="Carregando a grade de escala" />
+
+        <EmptyState
+            v-else-if="timeline.status === 'error' || !timeline.timeline"
+            data-test="grid-error"
+            icon="alert"
+            title="Não foi possível carregar a grade de escala"
+            description="Verifique a conexão e tente de novo."
+        >
+            <button type="button" class="btn btn-quiet" @click="timeline.fetch()">Tentar novamente</button>
+        </EmptyState>
+
+        <template v-else>
+            <div :class="{ 'opacity-60': timeline.refreshing }" :aria-busy="timeline.refreshing">
+                <ScheduleGrid :timeline="timeline.timeline" :start="timeline.start" :can-schedule="canManage" @schedule="openForm" />
+            </div>
+            <p v-if="canManage" class="border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500" data-test="grid-hint">
+                Clique em um horário livre de um veículo ou de um motorista para agendar uma viagem a partir dali.
+            </p>
+        </template>
+    </section>
+
     <SlideOver :open="formOpen" title="Agendar viagem" subtitle="O motorista precisa de 11 horas de descanso entre viagens." @close="formOpen = false">
-        <TripForm @scheduled="onScheduled" @cancel="formOpen = false" />
+        <TripForm :key="formSession" :initial="prefill" @scheduled="onScheduled" @cancel="formOpen = false" />
     </SlideOver>
 
     <ConfirmDialog

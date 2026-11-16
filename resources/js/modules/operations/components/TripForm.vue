@@ -2,11 +2,13 @@
 import { formatDuration, formatKm } from '@/core/utils/format';
 import { VEHICLE_CLASS_LABELS } from '@/modules/fleet/types/vehicle';
 import { useTripForm } from '../composables/useTripForm';
+import type { TripPrefill } from '../types/timeline';
 import type { Trip } from '../types/trip';
 
+const props = withDefaults(defineProps<{ initial?: TripPrefill }>(), { initial: () => ({}) });
 const emit = defineEmits<{ scheduled: [trip: Trip]; cancel: [] }>();
 
-const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit('scheduled', trip));
+const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit('scheduled', trip), props.initial);
 </script>
 
 <template>

@@ -2,6 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from '@/tests/paging';
+import type { TripPrefill } from '../../types/timeline';
 import type { Trip } from '../../types/trip';
 import TripForm from '../TripForm.vue';
 
@@ -55,7 +56,7 @@ const scheduled: Trip = {
     status: 'scheduled',
 };
 
-async function mountForm(overrides: Record<string, unknown[]> = {}): Promise<VueWrapper> {
+async function mountForm(overrides: Record<string, unknown[]> = {}, initial: TripPrefill = {}): Promise<VueWrapper> {
     // Linhas vêm em lista simples; veículos e funcionários, paginados e filtrados por status no servidor.
     http.get.mockImplementation((url: string, config?: { params?: { status?: string } }) => {
         const list = (overrides[url] ?? options[url] ?? []) as { status?: string }[];
@@ -63,7 +64,7 @@ async function mountForm(overrides: Record<string, unknown[]> = {}): Promise<Vue
 
         return Promise.resolve(url === '/operations/lines' ? { data: { data: list } } : page(list.filter((item) => status === undefined || item.status === status)));
     });
-    const wrapper = mount(TripForm);
+    const wrapper = mount(TripForm, { props: { initial } });
     await flushPromises();
 
     return wrapper;
@@ -189,5 +190,15 @@ describe('TripForm', () => {
         await submit(wrapper);
 
         expect(wrapper.get('[data-test="error"]').text()).toContain('Não foi possível agendar');
+    });
+
+    it('starts with the vehicle, the driver and the departure chosen on the schedule grid', async () => {
+        const wrapper = await mountForm({}, { vehicle_id: 'bus-1', driver_id: 'driver-1', departure_time: '2099-11-20T08:00' });
+
+        expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('bus-1');
+        expect((wrapper.get('[data-test="driver_id"]').element as HTMLSelectElement).value).toBe('driver-1');
+        expect((wrapper.get('[data-test="departure_time"]').element as HTMLInputElement).value).toBe('2099-11-20T08:00');
+        expect((wrapper.get('[data-test="line_id"]').element as HTMLSelectElement).value).toBe('');
+        expect((wrapper.get('[data-test="arrival_time"]').element as HTMLInputElement).value).toBe('');
     });
 });

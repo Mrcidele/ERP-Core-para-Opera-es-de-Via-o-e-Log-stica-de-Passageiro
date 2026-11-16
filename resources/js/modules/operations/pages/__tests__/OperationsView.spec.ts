@@ -5,6 +5,7 @@ import { signInAs } from '@/tests/auth';
 import { page, pageParams } from '@/tests/paging';
 import { lastToast } from '@/tests/toast';
 import { formatDateTime } from '@/core/utils/format';
+import type { ScheduleTimeline } from '../../types/timeline';
 import type { TripSummary } from '../../types/trip';
 import OperationsView from '../OperationsView.vue';
 
@@ -26,8 +27,51 @@ const trip = (id: string, status: TripSummary['status'], destination = 'Ourinhos
 });
 
 /** O que a API devolve: a escala paginada em /operations/trips e listas vazias nas opções do formulário. */
+const bus = { id: 'bus-1', plate: 'ABC1D23', chassis: '9BWZZZ377VT004251', capacity: 46, class_type: 'executivo', status: 'active', current_mileage: 1000 };
+const driver = { id: 'driver-1', name: 'João da Silva', cpf: '52998224725', role: 'driver', status: 'active', cnh_number: '12345678901', cnh_category: 'D', cnh_expiration_date: '2099-01-01' };
+
+/** Grade de dois dias, do início de hoje (horário local) em diante. */
+function timelineFrom(start: Date): ScheduleTimeline {
+    const at = (hours: number): string => new Date(start.getTime() + hours * 3_600_000).toISOString();
+    const scheduled = {
+        id: 'trip-1',
+        status: 'scheduled' as const,
+        departure_time: at(30),
+        arrival_time: at(36),
+        rest_until: at(47),
+        line: { origin: 'Curitiba', destination: 'Ourinhos' },
+        vehicle: { id: 'bus-1', plate: 'ABC1D23' },
+        driver: { id: 'driver-1', name: 'João da Silva' },
+    };
+
+    return {
+        from: at(-3),
+        to: at(45),
+        driver_rest_hours: 11,
+        vehicles: [{ id: 'bus-1', plate: 'ABC1D23', status: 'active', trips: [scheduled], maintenance_orders: [] }],
+        drivers: [{ id: 'driver-1', name: 'João da Silva', trips: [scheduled] }],
+    };
+}
+
+const today = (): Date => {
+    const now = new Date();
+
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+/** O que a API devolve: a escala paginada, a grade e as opções do formulário (um veículo e um motorista). */
 function serve(trips: TripSummary[]): void {
-    http.get.mockImplementation((url: string) => Promise.resolve(url === '/operations/lines' ? { data: { data: [] } } : page(url === '/operations/trips' ? trips : [])));
+    http.get.mockImplementation((url: string) => {
+        if (url === '/operations/schedule-timeline') {
+            return Promise.resolve({ data: { data: timelineFrom(today()) } });
+        }
+
+        if (url === '/operations/lines') {
+            return Promise.resolve({ data: { data: [] } });
+        }
+
+        return Promise.resolve(page<unknown>(url === '/operations/trips' ? trips : url === '/fleet/vehicles' ? [bus] : [driver]));
+    });
 }
 
 async function mountPage(trips: TripSummary[]): Promise<VueWrapper> {
@@ -216,5 +260,123 @@ describe('OperationsView', () => {
         expect(wrapper.find('[data-test="start"]').exists()).toBe(false);
         expect(wrapper.find('[data-test="complete"]').exists()).toBe(false);
         expect(wrapper.find('[data-test="cancel"]').exists()).toBe(false);
+    });
+
+    describe('schedule grid', () => {
+        async function openGrid(wrapper: VueWrapper): Promise<void> {
+            await wrapper.get('[data-test="view-grid"]').trigger('click');
+            await flushPromises();
+        }
+
+        it('starts on the list and loads the grid only when it is chosen', async () => {
+            const wrapper = await mountPage([trip('1', 'scheduled')]);
+
+            expect(wrapper.get('[data-test="view-list"]').attributes('aria-pressed')).toBe('true');
+            expect(wrapper.find('[data-test="list-view"]').exists()).toBe(true);
+            expect(wrapper.find('[data-test="grid-view"]').exists()).toBe(false);
+            expect(http.get.mock.calls.map(([url]) => url)).not.toContain('/operations/schedule-timeline');
+
+            await openGrid(wrapper);
+
+            expect(wrapper.get('[data-test="view-grid"]').attributes('aria-pressed')).toBe('true');
+            expect(wrapper.find('[data-test="list-view"]').exists()).toBe(false);
+            expect(wrapper.find('[data-test="schedule-grid"]').exists()).toBe(true);
+            expect(http.get).toHaveBeenLastCalledWith('/operations/schedule-timeline', { params: { date: today().toISOString().slice(0, 10) } });
+            expect(wrapper.findAll('[data-test="vehicle-row"]')).toHaveLength(1);
+            expect(wrapper.findAll('[data-test="block-trip"]')).toHaveLength(2);
+            expect(wrapper.findAll('[data-test="block-rest"]')).toHaveLength(1);
+        });
+
+        it('goes back to the list keeping what was loaded', async () => {
+            const wrapper = await mountPage([trip('1', 'scheduled')]);
+
+            await openGrid(wrapper);
+            await wrapper.get('[data-test="view-list"]').trigger('click');
+
+            expect(rows(wrapper)).toHaveLength(1);
+            expect(wrapper.find('[data-test="schedule-grid"]').exists()).toBe(false);
+        });
+
+        it('changes the day of the grid', async () => {
+            const wrapper = await mountPage([]);
+            await openGrid(wrapper);
+
+            const tomorrow = today();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            await wrapper.get('[data-test="next-day"]').trigger('click');
+            await flushPromises();
+            expect(http.get).toHaveBeenLastCalledWith('/operations/schedule-timeline', { params: { date: tomorrow.toISOString().slice(0, 10) } });
+
+            await wrapper.get('[data-test="today"]').trigger('click');
+            await flushPromises();
+            expect(http.get).toHaveBeenLastCalledWith('/operations/schedule-timeline', { params: { date: today().toISOString().slice(0, 10) } });
+
+            await wrapper.get('[data-test="timeline-date"]').setValue('2026-12-25');
+            await flushPromises();
+            expect(http.get).toHaveBeenLastCalledWith('/operations/schedule-timeline', { params: { date: new Date(2026, 11, 25).toISOString().slice(0, 10) } });
+        });
+
+        it('opens the trip form already filled with the vehicle of the row', async () => {
+            const wrapper = await mountPage([]);
+            await openGrid(wrapper);
+
+            await wrapper.findAll('[data-test="schedule-row"]')[0]!.trigger('click');
+            await flushPromises();
+
+            expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('bus-1');
+            expect((wrapper.get('[data-test="driver_id"]').element as HTMLSelectElement).value).toBe('');
+        });
+
+        it('opens the trip form with the driver and the free time that was clicked', async () => {
+            const wrapper = await mountPage([]);
+            await openGrid(wrapper);
+
+            const track = wrapper.get('[data-test="driver-row"] [data-test="track"]');
+            track.element.getBoundingClientRect = () => ({ left: 0, width: 900, top: 0, right: 900, bottom: 48, height: 48, x: 0, y: 0, toJSON: () => ({}) });
+            // 40 de 45 horas: amanhã às 16h, sempre no futuro.
+            await track.trigger('click', { clientX: 800 });
+            await flushPromises();
+
+            const expected = new Date(today().getTime() + 40 * 3_600_000);
+            const pad = (value: number): string => String(value).padStart(2, '0');
+
+            expect((wrapper.get('[data-test="driver_id"]').element as HTMLSelectElement).value).toBe('driver-1');
+            expect((wrapper.get('[data-test="departure_time"]').element as HTMLInputElement).value).toBe(
+                `${expected.getFullYear()}-${pad(expected.getMonth() + 1)}-${pad(expected.getDate())}T${pad(expected.getHours())}:${pad(expected.getMinutes())}`,
+            );
+        });
+
+        it('opens an empty form from the main button after a prefilled one', async () => {
+            const wrapper = await mountPage([]);
+            await openGrid(wrapper);
+
+            await wrapper.findAll('[data-test="schedule-row"]')[0]!.trigger('click');
+            await flushPromises();
+            await wrapper.get('[data-test="cancel"]').trigger('click');
+            await wrapper.get('[data-test="new-trip"]').trigger('click');
+            await flushPromises();
+
+            expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('');
+        });
+
+        it('is read-only for a role without operations.manage', async () => {
+            signInAs('fleet_manager');
+            const wrapper = await mountPage([]);
+            await openGrid(wrapper);
+
+            expect(wrapper.findAll('[data-test="block-trip"]')).toHaveLength(2);
+            expect(wrapper.find('[data-test="schedule-row"]').exists()).toBe(false);
+            expect(wrapper.find('[data-test="grid-hint"]').exists()).toBe(false);
+        });
+
+        it('shows an error state when the grid cannot be loaded', async () => {
+            const wrapper = await mountPage([]);
+
+            http.get.mockRejectedValue(new Error('network'));
+            await openGrid(wrapper);
+
+            expect(wrapper.find('[data-test="grid-error"]').exists()).toBe(true);
+        });
     });
 });
