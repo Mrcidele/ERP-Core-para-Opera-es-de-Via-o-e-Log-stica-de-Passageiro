@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, análise estática, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      # A imagem oficial já traz os módulos contrib; a migration cria a extensão btree_gist
+      # (o usuário abaixo é superusuário do banco de testes).
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: erp
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U erp -d erp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath, pcntl
+          coverage: none
+          tools: composer:v2
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dependências PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Dependências do frontend
+        run: npm ci
+
+      # Mesmo banco e credenciais do phpunit.xml: host 127.0.0.1, banco erp_test.
+      - name: Ambiente de testes
+        run: cp .env.testing .env
+
+      - name: Extensão btree_gist disponível
+        run: psql "postgresql://erp:secret@127.0.0.1:5432/erp_test" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS btree_gist"
+
+      - name: Pint
+        run: ./vendor/bin/pint --test
+
+      - name: Larastan (nível 9)
+        run: ./vendor/bin/phpstan analyse --memory-limit=2G --no-progress
+
+      - name: Migrations
+        run: php artisan migrate --force
+
+      - name: Pest
+        run: ./vendor/bin/pest
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Vitest
+        run: npm run test:unit
+
+      - name: Build do frontend
+        run: npm run build
