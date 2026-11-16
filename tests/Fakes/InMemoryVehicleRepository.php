@@ -23,11 +23,12 @@ final class InMemoryVehicleRepository implements VehicleRepository
         return sprintf('00000000-0000-0000-0000-%012d', ++$this->sequence);
     }
 
-    public function paginate(PageQuery $query): Page
+    public function paginate(PageQuery $query, bool $onlyDueForMaintenance = false): Page
     {
         $vehicles = array_values(array_filter(
             $this->vehicles,
-            fn (Vehicle $vehicle): bool => ($query->status === null || $vehicle->status->value === $query->status)
+            fn (Vehicle $vehicle): bool => (! $onlyDueForMaintenance || $vehicle->needsPreventiveMaintenance())
+                && ($query->status === null || $vehicle->status->value === $query->status)
                 && ($query->search === null || str_contains($vehicle->plate.' '.$vehicle->chassis, mb_strtoupper($query->search))),
         ));
 

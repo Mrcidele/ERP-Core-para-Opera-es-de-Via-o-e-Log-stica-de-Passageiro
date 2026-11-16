@@ -45,6 +45,24 @@ describe('usePagedList', () => {
         expect(list.filterParams()).toEqual({});
     });
 
+    it('sends the extra filters of a listing and counts them as filtering', async () => {
+        http.get.mockResolvedValue(page(['a']));
+        const list = usePagedList<string>('/things');
+
+        await list.applyFilters({ extra: { needs_maintenance: '1' } });
+
+        expect(http.get).toHaveBeenLastCalledWith('/things', pageParams({ needs_maintenance: '1' }));
+        expect(list.filtering.value).toBe(true);
+        expect(list.filterParams()).toEqual({ needs_maintenance: '1' });
+
+        // Mudar outro filtro não apaga o extra; passar um extra vazio apaga.
+        await list.applyFilters({ status: 'active' });
+        expect(http.get).toHaveBeenLastCalledWith('/things', pageParams({ status: 'active', needs_maintenance: '1' }));
+
+        await list.applyFilters({ extra: {} });
+        expect(http.get).toHaveBeenLastCalledWith('/things', pageParams({ status: 'active' }));
+    });
+
     it('reloads the current page by default', async () => {
         http.get.mockResolvedValue(page(['a'], { current_page: 2, total: 20, last_page: 2 }));
         const list = usePagedList<string>('/things');

@@ -16,10 +16,11 @@ final readonly class ListVehiclesAction
     ) {}
 
     /**
+     * @param  bool  $onlyDueForMaintenance  só veículos com a revisão preventiva vencida
      * @return Page<Vehicle>
      */
-    public function execute(PageQuery $query = new PageQuery): Page
+    public function execute(PageQuery $query = new PageQuery, bool $onlyDueForMaintenance = false): Page
     {
-        return $this->vehicles->paginate($query);
+        return $this->vehicles->paginate($query, $onlyDueForMaintenance);
     }
 }

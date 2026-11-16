@@ -74,7 +74,19 @@ async function confirmRemove(): Promise<void> {
             search-label="Buscar por placa ou chassi"
             @update:status="store.applyFilters({ status: $event })"
             @update:search="store.applyFilters({ search: $event })"
-        />
+        >
+            <button
+                type="button"
+                data-test="filter-due"
+                :aria-pressed="store.onlyDue"
+                class="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors"
+                :class="store.onlyDue ? 'border-signal-500 bg-signal-50 text-signal-700' : 'border-ink-200 bg-white text-ink-600 hover:border-ink-300 hover:text-ink-900'"
+                @click="store.showOnlyDue(!store.onlyDue)"
+            >
+                <AppIcon name="alert" />
+                Revisão vencida
+            </button>
+        </ListToolbar>
 
         <TableSkeleton v-if="store.listStatus === 'loading' || store.listStatus === 'idle'" data-test="loading" :columns="7" label="Carregando veículos" />
 
@@ -99,7 +111,7 @@ async function confirmRemove(): Promise<void> {
         </EmptyState>
 
         <EmptyState v-else-if="store.vehicles.length === 0" data-test="no-results" icon="search" title="Nenhum veículo corresponde ao filtro">
-            <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="store.applyFilters({ search: '', status: null })">Limpar filtros</button>
+            <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="store.applyFilters({ search: '', status: null, extra: {} })">Limpar filtros</button>
         </EmptyState>
 
         <template v-else>

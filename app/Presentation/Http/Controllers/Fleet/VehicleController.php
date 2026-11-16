@@ -22,7 +22,7 @@ final class VehicleController extends Controller
 {
     public function index(ListVehiclesRequest $request, ListVehiclesAction $action): AnonymousResourceCollection
     {
-        return $this->paginated(VehicleResource::class, $action->execute($request->toPageQuery()));
+        return $this->paginated(VehicleResource::class, $action->execute($request->toPageQuery(), $request->needsMaintenance()));
     }
 
     public function show(string $vehicle, GetVehicleAction $action): VehicleResource

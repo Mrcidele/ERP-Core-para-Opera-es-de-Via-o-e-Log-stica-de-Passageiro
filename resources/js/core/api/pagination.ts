@@ -23,11 +23,14 @@ export const MAX_PER_PAGE = 100;
 export interface ListFilters {
     search?: string;
     status?: string | null;
+    /** Filtros próprios de uma listagem (ex.: `needs_maintenance` na Frota); substituem os anteriores. */
+    extra?: Record<string, string>;
 }
 
-const cleanParams = (search: string, status: string | null): Record<string, string> => ({
+const cleanParams = (search: string, status: string | null, extra: Record<string, string>): Record<string, string> => ({
     ...(search.trim() === '' ? {} : { search: search.trim() }),
     ...(status === null ? {} : { status }),
+    ...extra,
 });
 
 /**
@@ -39,11 +42,12 @@ export function usePagedList<T>(url: string, perPage: number = DEFAULT_PER_PAGE)
     const meta = ref<PageMeta>({ current_page: 1, last_page: 1, per_page: perPage, total: 0 });
     const search = ref('');
     const status = ref<string | null>(null);
+    const extra = ref<Record<string, string>>({});
     const listStatus = ref<RequestStatus>('idle');
     /** Recarregando uma lista que já está na tela (troca de página, filtro, gravação). */
     const refreshing = ref(false);
 
-    const filtering = computed(() => search.value.trim() !== '' || status.value !== null);
+    const filtering = computed(() => search.value.trim() !== '' || status.value !== null || Object.keys(extra.value).length > 0);
 
     // Respostas fora de ordem: só vale a da requisição mais recente.
     let latest = 0;
@@ -59,7 +63,7 @@ export function usePagedList<T>(url: string, perPage: number = DEFAULT_PER_PAGE)
 
         try {
             const response = await http.get<Paginated<T>>(url, {
-                params: { page, per_page: perPage, ...cleanParams(search.value, status.value) },
+                params: { page, per_page: perPage, ...cleanParams(search.value, status.value, extra.value) },
             });
 
             if (ticket !== latest) {
@@ -94,13 +98,17 @@ export function usePagedList<T>(url: string, perPage: number = DEFAULT_PER_PAGE)
             status.value = filters.status;
         }
 
+        if (filters.extra !== undefined) {
+            extra.value = filters.extra;
+        }
+
         return fetchPage(1);
     }
 
     /** Filtros atuais no formato da query string (usado também pelas exportações). */
-    const filterParams = (): Record<string, string> => cleanParams(search.value, status.value);
+    const filterParams = (): Record<string, string> => cleanParams(search.value, status.value, extra.value);
 
-    return { items, meta, search, status, listStatus, refreshing, filtering, fetchPage, applyFilters, filterParams };
+    return { items, meta, search, status, extra, listStatus, refreshing, filtering, fetchPage, applyFilters, filterParams };
 }
 
 /**

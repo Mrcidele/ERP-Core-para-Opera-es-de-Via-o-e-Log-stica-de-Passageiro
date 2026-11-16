@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
 import { usePagedList, type RequestStatus } from '@/core/api/pagination';
 import type { CreateVehiclePayload, UpdateVehiclePayload } from '../schemas/createVehicleSchema';
@@ -10,6 +10,11 @@ export type { RequestStatus };
 export const useVehicleStore = defineStore('fleet/vehicles', () => {
     // A lista vem paginada do servidor, com busca por placa ou chassi e filtro por status.
     const list = usePagedList<Vehicle>('/fleet/vehicles');
+
+    /** Filtro "revisão vencida": só veículos que já alcançaram a quilometragem da próxima preventiva. */
+    const onlyDue = computed(() => list.extra.value.needs_maintenance === '1');
+
+    const showOnlyDue = (enabled: boolean): Promise<void> => list.applyFilters({ extra: enabled ? { needs_maintenance: '1' } : {} });
 
     const saveStatus = ref<RequestStatus>('idle');
     const validationErrors = ref<ValidationErrors>({});
@@ -81,6 +86,8 @@ export const useVehicleStore = defineStore('fleet/vehicles', () => {
         meta: list.meta,
         search: list.search,
         status: list.status,
+        onlyDue,
+        showOnlyDue,
         listStatus: list.listStatus,
         refreshing: list.refreshing,
         filtering: list.filtering,

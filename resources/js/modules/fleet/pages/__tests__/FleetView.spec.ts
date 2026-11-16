@@ -116,6 +116,50 @@ describe('FleetView', () => {
         expect(wrapper.find('[data-test="list-error"]').exists()).toBe(true);
     });
 
+    it('filters the vehicles with the preventive maintenance overdue on the server', async () => {
+        const wrapper = await mountPage();
+        const due = wrapper.get('[data-test="filter-due"]');
+
+        expect(due.text()).toBe('Revisão vencida');
+        expect(due.attributes('aria-pressed')).toBe('false');
+
+        http.get.mockResolvedValue(page([{ ...fleet[1]!, needs_preventive_maintenance: true }]));
+        await due.trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams({ needs_maintenance: '1' }));
+        expect(plates(wrapper)).toEqual(['BBB2B22']);
+        expect(due.attributes('aria-pressed')).toBe('true');
+
+        // Combina com o status e volta para a primeira página.
+        await wrapper.get('[data-test="filter-maintenance"]').trigger('click');
+        await flushPromises();
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams({ status: 'maintenance', needs_maintenance: '1' }));
+
+        http.get.mockResolvedValue(page(fleet));
+        await due.trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams({ status: 'maintenance' }));
+        expect(due.attributes('aria-pressed')).toBe('false');
+    });
+
+    it('clears the overdue filter together with the others', async () => {
+        const wrapper = await mountPage();
+
+        http.get.mockResolvedValue(page([]));
+        await wrapper.get('[data-test="filter-due"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="no-results"]').exists()).toBe(true);
+
+        http.get.mockResolvedValue(page(fleet));
+        await wrapper.get('[data-test="clear-filters"]').trigger('click');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/fleet/vehicles', pageParams());
+        expect(plates(wrapper)).toHaveLength(3);
+    });
+
     it('creates a vehicle from the drawer and reloads the page from the API', async () => {
         const created = make('4', 'ABC1D23', 'active');
         http.post.mockResolvedValue({ data: { data: created } });

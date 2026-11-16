@@ -127,3 +127,12 @@ it('fails to delete an unknown vehicle', function (): void {
 
     expect($this->events->events)->toBeEmpty();
 });
+
+it('lists only the vehicles due for preventive maintenance when asked', function (): void {
+    $this->repository->save(new Vehicle('due', 'DUE1A11', '9BWZZZ377VT004299', 46, VehicleClass::Executivo, VehicleStatus::Active, 100_000, 90_000));
+
+    $list = new ListVehiclesAction($this->repository);
+
+    expect(array_map(fn (Vehicle $v): string => $v->plate, $list->execute(onlyDueForMaintenance: true)->items))->toBe(['DUE1A11'])
+        ->and($list->execute()->total)->toBe(3);
+});

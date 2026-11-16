@@ -22,9 +22,13 @@ final class EloquentVehicleRepository implements VehicleRepository
         return Str::orderedUuid()->toString();
     }
 
-    public function paginate(PageQuery $query): Page
+    public function paginate(PageQuery $query, bool $onlyDueForMaintenance = false): Page
     {
         $builder = VehicleModel::query()
+            // Mesma regra de Vehicle::needsPreventiveMaintenance().
+            ->when($onlyDueForMaintenance, fn (Builder $vehicles) => $vehicles
+                ->whereNotNull('next_preventive_maintenance_km')
+                ->whereColumn('current_mileage', '>=', 'next_preventive_maintenance_km'))
             ->when($query->status !== null, fn (Builder $vehicles) => $vehicles->where('status', $query->status))
             ->when($query->search !== null, function (Builder $vehicles) use ($query): void {
                 // Placa e chassi são gravados em maiúsculas, sem hífen nem espaço.

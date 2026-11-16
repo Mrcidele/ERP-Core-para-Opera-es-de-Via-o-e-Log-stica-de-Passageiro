@@ -15,9 +15,10 @@ interface VehicleRepository
     /**
      * Veículos ordenados por placa. Busca por placa ou chassi; filtro por status.
      *
+     * @param  bool  $onlyDueForMaintenance  só veículos que já alcançaram a quilometragem da próxima revisão preventiva
      * @return Page<Vehicle>
      */
-    public function paginate(PageQuery $query): Page;
+    public function paginate(PageQuery $query, bool $onlyDueForMaintenance = false): Page;
 
     public function findById(string $id): ?Vehicle;
 

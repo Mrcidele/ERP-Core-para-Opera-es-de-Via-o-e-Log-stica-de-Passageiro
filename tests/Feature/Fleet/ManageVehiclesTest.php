@@ -146,3 +146,29 @@ it('refuses at the database a negative next preventive maintenance mileage', fun
     expect(fn () => DB::transaction(fn () => VehicleModel::factory()->create(['next_preventive_maintenance_km' => -1])))
         ->toThrow(QueryException::class, 'vehicles_next_preventive_km_not_negative');
 });
+
+it('lists only the vehicles with the preventive maintenance overdue', function (): void {
+    VehicleModel::factory()->create(['plate' => 'DUE1A11', 'current_mileage' => 100_000, 'next_preventive_maintenance_km' => 100_000]);
+    VehicleModel::factory()->create(['plate' => 'DUE2B22', 'current_mileage' => 120_500, 'next_preventive_maintenance_km' => 110_000, 'status' => 'maintenance']);
+    VehicleModel::factory()->create(['plate' => 'OKK3C33', 'current_mileage' => 99_999, 'next_preventive_maintenance_km' => 100_000]);
+    VehicleModel::factory()->create(['plate' => 'OKK4D44', 'current_mileage' => 500_000, 'next_preventive_maintenance_km' => null]);
+
+    $plates = fn (string $query): array => $this->getJson("/api/v1/fleet/vehicles?{$query}")->assertOk()->json('data.*.plate');
+
+    expect($plates('needs_maintenance=1'))->toBe(['DUE1A11', 'DUE2B22'])
+        ->and($plates('needs_maintenance=true'))->toBe(['DUE1A11', 'DUE2B22'])
+        ->and($plates('needs_maintenance=1&status=maintenance'))->toBe(['DUE2B22'])
+        ->and($plates('needs_maintenance=1&search=due1'))->toBe(['DUE1A11'])
+        ->and($plates('needs_maintenance=0'))->toHaveCount(4)
+        ->and($plates(''))->toHaveCount(4);
+
+    $this->getJson('/api/v1/fleet/vehicles?needs_maintenance=1&per_page=1&page=2')
+        ->assertOk()
+        ->assertJsonPath('data.0.plate', 'DUE2B22')
+        ->assertJsonPath('data.0.needs_preventive_maintenance', true)
+        ->assertJsonPath('meta.total', 2);
+});
+
+it('rejects a needs_maintenance filter that is not a boolean', function (): void {
+    $this->getJson('/api/v1/fleet/vehicles?needs_maintenance=talvez')->assertUnprocessable()->assertJsonValidationErrors('needs_maintenance');
+});
