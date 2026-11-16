@@ -6,10 +6,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     plugins: [
-        laravel({
-            input: ['resources/css/app.css', 'resources/js/app.ts'],
-            refresh: true,
-        }),
+        // Os testes não usam o plugin do Laravel, que se recusa a subir o servidor de desenvolvimento em CI.
+        ...(process.env.VITEST ? [] : [laravel({ input: ['resources/css/app.css', 'resources/js/app.ts'], refresh: true })]),
         vue(),
     ],
     resolve: {
