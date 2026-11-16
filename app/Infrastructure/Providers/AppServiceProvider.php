@@ -21,6 +21,7 @@ use App\Domain\Shared\Events\VehicleDeleted;
 use App\Infrastructure\Database\ConnectionDatabaseProbe;
 use App\Infrastructure\Events\LaravelEventDispatcher;
 use App\Infrastructure\Support\SystemClock;
+use App\Infrastructure\Support\TrustedProxies;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,6 +36,9 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $proxies = config('app.trusted_proxies');
+        TrustedProxies::apply(is_string($proxies) ? $proxies : null);
+
         // Reações entre módulos a eventos de domínio.
         Event::listen(TripCompleted::class, AddTripDistanceToVehicleMileage::class);
 

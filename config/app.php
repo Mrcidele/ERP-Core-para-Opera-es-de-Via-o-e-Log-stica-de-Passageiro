@@ -76,6 +76,13 @@ return [
     'report_timezone' => env('APP_REPORT_TIMEZONE', 'America/Sao_Paulo'),
 
     /*
+    | Proxies (balanceador, CDN) de quem a aplicação aceita os cabeçalhos X-Forwarded-*:
+    | IPs ou faixas CIDR separados por vírgula, ou "*" quando a aplicação só é alcançável pelo proxy.
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
