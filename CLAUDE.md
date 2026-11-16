@@ -21,12 +21,13 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Datas com hora entram e saem da API em ISO 8601 com fuso e são gravadas em UTC.
 - Banco: somente PostgreSQL 16 (Supabase/Neon em produção, configurado por `DB_SSLMODE` e `DB_EMULATE_PREPARES`), inclusive nos testes (banco dedicado `erp_test`). Migrations usam recursos nativos (timestamptz, CHECK, EXCLUDE, índices parciais) sem condicional de driver.
 - Regra crítica de integridade tem também uma constraint no banco; o repositório converte a violação na `DomainException` correspondente.
+- Caso de uso que precisa de atomicidade ou de trava recebe o contrato `TransactionRunner` (`Domain/Shared/Contracts`) e trava o registro por um método `lock...` do repositório (`SELECT ... FOR UPDATE`); a Action não usa `DB::` nem Eloquent. Nos testes, `Tests\Fakes\ImmediateTransactionRunner`.
 - Módulos reagem uns aos outros por eventos em `Domain/Shared/Events`, publicados pelo contrato `EventDispatcher`; os listeners são registrados em `AppServiceProvider`.
 - Rotas de API em `routes/api.php`, prefixo `/api/v1/<módulo>`. Toda rota, menos o login e o `GET /api/v1/health`, fica atrás de `auth:sanctum` e declara com `->can('<permissão>')` a permissão que a libera.
 - Listagem que cresce é paginada no servidor: o FormRequest estende `ListRequest` (`page`, `per_page` até 100, `search`, `status`), a Action recebe `PageQuery` e devolve `Page`, o repositório usa o trait `PaginatesQueries` e o controller responde com `$this->paginated(...)` (`meta.current_page`, `last_page`, `per_page`, `total`). Listas curtas usadas como opções de formulário (linhas, mecânicos) vêm inteiras.
 - Exportação CSV sai em streaming por `CsvStream::download(...)`, com o repositório entregando os registros por `lazy()`; datas no fuso `APP_REPORT_TIMEZONE`.
 - Permissões e papéis são os enums `Permission` e `UserRole` de `Domain/Identity`; a matriz de acesso vive só em `UserRole::permissions()`. Permissão nova entra no enum, na matriz e no teste `AuthorizationTest`.
-- Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Senhas e tokens nunca entram em log nem em auditoria.
+- Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Toda ação auditada é um caso do enum `Domain/Shared/Enums/AuditAction`, com o nome em português em `label()`; a API devolve `action_label` e a busca da auditoria aceita esse nome. Senhas e tokens nunca entram em log nem em auditoria.
 
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
 

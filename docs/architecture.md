@@ -106,4 +106,8 @@ resources/js/
 | Todos | Paginação no servidor (`page`, `per_page`, `search`, `status`, com `meta`) em veículos, funcionários, viagens, ordens de serviço e auditoria; `PaginationBar` nas telas | Implementado |
 | Operations / Maintenance | Exportação CSV em streaming (`GET /operations/trips/export`, `GET /maintenance/orders/export`) com os filtros da tela | Implementado |
 | Infra | `GET /api/v1/health` (200/503 conforme o banco), imagem de produção (`docker/production/Dockerfile`) e CI no GitHub Actions (`.github/workflows/ci.yml`) | Implementado |
+| Fleet | Filtro `needs_maintenance` na listagem (revisão preventiva vencida), com o filtro rápido na tela | Implementado |
+| Audit | Ações com nome em português (`AuditAction`, `action_label`) e busca por esse nome | Implementado |
+| Operations | Agendamento e exclusão de linha em transação com a linha travada (`FOR UPDATE`): nunca há viagem ativa em linha excluída | Implementado |
+| Infra | Smoke test da imagem de produção no CI: build, migrations, health 200/503, login e assets | Implementado |
 | Identity | Cadastro e gestão de usuários, troca e recuperação de senha | Pendente |

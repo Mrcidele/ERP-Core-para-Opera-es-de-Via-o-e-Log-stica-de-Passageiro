@@ -98,4 +98,4 @@ npm run type-check  # vue-tsc
 npm test            # Vitest
 ```
 
-O GitHub Actions (`.github/workflows/ci.yml`) roda a mesma sequência a cada push e pull request para `main`, com um PostgreSQL 16 de serviço: Pint, Larastan, migrations, Pest, type-check, Vitest e build.
+O GitHub Actions (`.github/workflows/ci.yml`) roda a mesma sequência a cada push e pull request para `main`, com um PostgreSQL 16 de serviço: Pint, Larastan, migrations, Pest, type-check, Vitest e build. Em seguida, o job `docker-smoke-test` constrói a imagem de produção, sobe o contêiner contra um PostgreSQL, aplica as migrations e confere o health check, a API e os assets.
