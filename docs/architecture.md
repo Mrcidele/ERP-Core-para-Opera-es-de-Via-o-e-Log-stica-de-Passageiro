@@ -14,6 +14,7 @@
 - `vehicles`: `id`, `plate`, `chassis`, `capacity`, `class_type`, `status`, `current_mileage`
 - `employees`: `id`, `name`, `cpf`, `role` (driver, mechanic, admin), `cnh_number`, `cnh_category`, `cnh_expiration_date`, `status` (active, on_leave, inactive)
 - `lines`: `id`, `origin`, `destination`, `distance_km`, `estimated_duration_minutes`
+- `line_stops`: `id`, `line_id` (cascade), `sequence` (> 0, única por linha), `city_name`, `cumulative_km`, `estimated_minutes`
 - `trips`: `id`, `line_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time` (UTC), `status` (scheduled, in_progress, completed, canceled)
 - `maintenance_orders`: `id`, `vehicle_id`, `mechanic_id`, `type` (preventive, corrective), `status` (open, in_progress, completed, canceled), `description`, `cost_cents`, `opened_at`, `completed_at`
 
@@ -79,7 +80,6 @@ resources/js/
 | Módulo | Fatia | Estado |
 | --- | --- | --- |
 | Fleet | CRUD de veículos (`/api/v1/fleet/vehicles`) com tela de listagem, cadastro, edição e exclusão lógica (soft delete) | Implementado |
-| Fleet | Paginação da listagem | Pendente |
 | Crew | Cadastro de funcionário (`POST /api/v1/crew/employees`) com formulário em painel lateral | Implementado |
 | Crew | Edição e exclusão de funcionários; jornada e escalas | Pendente |
 | Crew | Listagem de funcionários (`GET /api/v1/crew/employees`), usada pelo agendamento | Implementado |
@@ -87,8 +87,8 @@ resources/js/
 | Operations | Trava de concorrência no banco (`EXCLUDE USING GIST`) contra viagens sobrepostas do mesmo veículo ou motorista | Implementado |
 | Operations | Listagem (`GET /operations/trips`) e mudança de status (`POST /operations/trips/{id}/start`, `/complete`, `/cancel`) com tela em tabela | Implementado |
 | Operations | Evento `TripCompleted`: ao concluir a viagem, a Frota soma a distância da linha à quilometragem do veículo | Implementado |
-| Operations | Listagem de linhas (`GET /api/v1/operations/lines`); as linhas vêm do seeder | Implementado |
-| Operations | Cadastro de linhas, controle de lotação | Pendente |
+| Operations | Linhas com paradas intermediárias (`GET`/`POST /api/v1/operations/lines`, `PUT`/`DELETE /operations/lines/{id}`): linha e paradas gravadas em uma transação, auditoria, exclusão lógica bloqueada com viagem agendada ou em andamento; tela Linhas e rotas | Implementado |
+| Operations | Controle de lotação | Pendente |
 | Maintenance | Ordens de serviço (`GET`/`POST /api/v1/maintenance/orders`, `PATCH /maintenance/orders/{id}` para concluir ou cancelar) com tela em tabela | Implementado |
 | Maintenance | Abrir a ordem põe o veículo em manutenção; encerrar a última pendente devolve o veículo a ativo | Implementado |
 | Maintenance | Transição para "em andamento", histórico por veículo, estoque de peças | Pendente |
@@ -103,4 +103,7 @@ resources/js/
 | Audit | Tela de auditoria (`/audit-logs`) com painel de antes e depois | Implementado |
 | Crew | Tela de listagem de funcionários com alerta de CNH | Implementado |
 | Frontend | Design system em `core/ui` e redesenho de todas as telas | Implementado |
+| Todos | Paginação no servidor (`page`, `per_page`, `search`, `status`, com `meta`) em veículos, funcionários, viagens, ordens de serviço e auditoria; `PaginationBar` nas telas | Implementado |
+| Operations / Maintenance | Exportação CSV em streaming (`GET /operations/trips/export`, `GET /maintenance/orders/export`) com os filtros da tela | Implementado |
+| Infra | `GET /api/v1/health` (200/503 conforme o banco), imagem de produção (`docker/production/Dockerfile`) e CI no GitHub Actions (`.github/workflows/ci.yml`) | Implementado |
 | Identity | Cadastro e gestão de usuários, troca e recuperação de senha | Pendente |

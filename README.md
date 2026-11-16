@@ -2,9 +2,54 @@
 
 Laravel 11 (PHP 8.4) + Vue 3/TypeScript, organizado em domínios com Clean Architecture. Regras em [`CLAUDE.md`](CLAUDE.md), desenho em [`docs/architecture.md`](docs/architecture.md).
 
-## Banco de dados (PostgreSQL serverless)
+## Banco de dados na nuvem (Neon ou Supabase)
 
-O banco é um PostgreSQL na nuvem (Supabase ou Neon). No `.env`, preencha `DB_HOST`, `DB_DATABASE`, `DB_USERNAME` e `DB_PASSWORD` (ou `DB_URL`) com os dados do provedor e mantenha `DB_SSLMODE=require`. Ao conectar pelo pooler em modo transação (Supabase na porta 6543, Neon com `-pooler` no host), defina `DB_EMULATE_PREPARES=true`. Rode as migrations pela conexão direta.
+A aplicação usa somente PostgreSQL 16. Em produção, o banco é um PostgreSQL serverless; a conexão exige TLS (`DB_SSLMODE=require`).
+
+1. **Crie o banco.** No [Neon](https://neon.tech) ou no [Supabase](https://supabase.com), crie um projeto com PostgreSQL 16 na região mais próxima dos usuários (para o Brasil, São Paulo).
+2. **Copie os dados de conexão** no painel do provedor (botão *Connect*). Cada um oferece dois endereços:
+
+   | | Conexão direta (migrations) | Pooler em modo transação (aplicação) |
+   | --- | --- | --- |
+   | Neon | host sem `-pooler`, porta `5432` | mesmo host com `-pooler` no nome, porta `5432` |
+   | Supabase | *Direct connection* ou *Session pooler*, porta `5432` | *Transaction pooler*, porta `6543` |
+
+3. **Preencha o `.env`** com o endereço do pooler:
+
+   ```dotenv
+   DB_CONNECTION=pgsql
+   DB_HOST=<host do pooler>
+   DB_PORT=<5432 no Neon, 6543 no Supabase>
+   DB_DATABASE=<banco>
+   DB_USERNAME=<usuário>
+   DB_PASSWORD=<senha>
+   DB_SSLMODE=require
+   DB_EMULATE_PREPARES=true
+   ```
+
+   `DB_EMULATE_PREPARES=true` é obrigatório no pooler em modo transação, que não mantém *prepared statements* entre consultas. Na conexão direta, use `false`. Em vez dos campos separados, pode-se colar a string completa em `DB_URL`.
+4. **Rode as migrations pela conexão direta**, uma vez por deploy. A primeira cria a extensão `btree_gist`, disponível nos dois provedores:
+
+   ```bash
+   DB_HOST=<host direto> DB_PORT=5432 DB_EMULATE_PREPARES=false php artisan migrate --force
+   ```
+
+5. **Confira**: `curl https://<sua-aplicação>/api/v1/health` deve responder `200` com `"database":"up"`. Se responder `503`, o motivo está no log da aplicação.
+
+Não rode `php artisan db:seed` em produção: o seeder cria frota, funcionários e viagens de demonstração (os usuários de teste com senha conhecida só são criados fora de produção).
+
+## Produção (Docker)
+
+`docker/production/Dockerfile` gera uma imagem única com Nginx e PHP-FPM 8.4 (Alpine) sob o Supervisor, com os assets do Vue já compilados.
+
+```bash
+docker build -f docker/production/Dockerfile -t erp-viacao .
+docker run -d -p 8080:8080 --env-file .env.production -e RUN_MIGRATIONS=true erp-viacao
+```
+
+Variáveis mínimas do `.env.production`: `APP_KEY` (gere com `php artisan key:generate --show`), `APP_URL`, os `DB_*` da seção anterior e, atrás de balanceador, `TRUSTED_PROXIES` (IPs do proxy, ou `*` se só ele alcança o contêiner) para que o limite de tentativas e a auditoria vejam o IP real do usuário. A imagem já define `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `DB_SSLMODE=require` e cache e sessão no banco (`CACHE_STORE=database`); para usar Redis, informe `CACHE_STORE=redis` e `REDIS_HOST`.
+
+Na subida, o contêiner executa `config:cache`, `route:cache` e `view:cache`; com `RUN_MIGRATIONS=true` também aplica as migrations (com várias réplicas, deixe isso para uma etapa do deploy). O balanceador deve monitorar `GET /api/v1/health` na porta `8080`: `200` quando a aplicação e o banco respondem, `503` quando o banco não responde.
 
 ## Subindo o ambiente (Sail: PostgreSQL + Redis)
 
@@ -52,3 +97,5 @@ composer lint       # Pint
 npm run type-check  # vue-tsc
 npm test            # Vitest
 ```
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda a mesma sequência a cada push e pull request para `main`, com um PostgreSQL 16 de serviço: Pint, Larastan, migrations, Pest, type-check, Vitest e build.

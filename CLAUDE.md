@@ -22,7 +22,9 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Banco: somente PostgreSQL 16 (Supabase/Neon em produção, configurado por `DB_SSLMODE` e `DB_EMULATE_PREPARES`), inclusive nos testes (banco dedicado `erp_test`). Migrations usam recursos nativos (timestamptz, CHECK, EXCLUDE, índices parciais) sem condicional de driver.
 - Regra crítica de integridade tem também uma constraint no banco; o repositório converte a violação na `DomainException` correspondente.
 - Módulos reagem uns aos outros por eventos em `Domain/Shared/Events`, publicados pelo contrato `EventDispatcher`; os listeners são registrados em `AppServiceProvider`.
-- Rotas de API em `routes/api.php`, prefixo `/api/v1/<módulo>`. Toda rota, menos o login, fica atrás de `auth:sanctum` e declara com `->can('<permissão>')` a permissão que a libera.
+- Rotas de API em `routes/api.php`, prefixo `/api/v1/<módulo>`. Toda rota, menos o login e o `GET /api/v1/health`, fica atrás de `auth:sanctum` e declara com `->can('<permissão>')` a permissão que a libera.
+- Listagem que cresce é paginada no servidor: o FormRequest estende `ListRequest` (`page`, `per_page` até 100, `search`, `status`), a Action recebe `PageQuery` e devolve `Page`, o repositório usa o trait `PaginatesQueries` e o controller responde com `$this->paginated(...)` (`meta.current_page`, `last_page`, `per_page`, `total`). Listas curtas usadas como opções de formulário (linhas, mecânicos) vêm inteiras.
+- Exportação CSV sai em streaming por `CsvStream::download(...)`, com o repositório entregando os registros por `lazy()`; datas no fuso `APP_REPORT_TIMEZONE`.
 - Permissões e papéis são os enums `Permission` e `UserRole` de `Domain/Identity`; a matriz de acesso vive só em `UserRole::permissions()`. Permissão nova entra no enum, na matriz e no teste `AuthorizationTest`.
 - Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Senhas e tokens nunca entram em log nem em auditoria.
 
@@ -34,11 +36,12 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Estado de requisição em stores Pinia isoladas por módulo; HTTP somente via `core/api/http.ts`.
 - Erros 422 da API são exibidos por campo no formulário.
 - Sessão: `authStore` guarda token, usuário e permissões (vindas da API, nunca recalculadas no frontend). `core/session/installSession.ts` liga a sessão ao Axios (token, 401, 403) e à guarda do router. Rota interna declara `meta.permission`; botão de ação só aparece com `authStore.can(...)`. Esconder é conveniência: quem barra é a API.
-- Design system em `resources/js/core/ui`: `AppShell`, `StatCard`, `StatusBadge` (com `statusCatalog.ts`), `MercosulPlate`, `SlideOver`, `ConfirmDialog`, `ToastContainer` + `useToast`, `EmptyState`, `TableSkeleton`, `AppIcon`. Tela nova usa esses componentes; não se recria tabela, pílula de status, placa ou painel lateral à mão.
+- Design system em `resources/js/core/ui`: `AppShell`, `StatCard`, `StatusBadge` (com `statusCatalog.ts`), `MercosulPlate`, `SlideOver`, `ConfirmDialog`, `ToastContainer` + `useToast`, `EmptyState`, `TableSkeleton`, `AppIcon`, `ListToolbar` (filtro por status + `SearchField`) e `PaginationBar`. Tela nova usa esses componentes; não se recria tabela, pílula de status, placa ou painel lateral à mão.
 - Tokens em `tailwind.config.js` (`ink` = azul-asfalto/slate com `ink-950` na barra lateral, `signal` = âmbar, `road` = verde, `brake` = vermelho) e classes em `resources/css/app.css` (`card`, `btn`, `field-*`, `data-table`, `segmented`, `drawer-actions`, `num`).
 - Placas, chassis, horários, quilometragens e valores em R$ usam a classe `num` (fonte mono com algarismos tabulares).
 - Formulários abrem em `SlideOver` com as ações em `drawer-actions`; exclusões e cancelamentos pedem confirmação em `ConfirmDialog`; confirmações de sucesso saem por `useToast().success(...)`. 403, 409 e 422 da API viram toast automaticamente (não repetir na tela).
 - Toda lista trata carregando (`TableSkeleton`), vazio e erro (`EmptyState`).
+- Lista paginada: a store usa `usePagedList(url)` de `core/api/pagination.ts` (busca e status vão ao servidor; depois de gravar, recarrega a página) e a tela usa `ListToolbar` + `PaginationBar`. Opções de formulário que vêm de listagem paginada usam `fetchEveryPage`. Download autenticado usa `downloadFile` de `core/api/download.ts`.
 - Telas ficam em `modules/<módulo>/pages/<Nome>View.vue`.
 
 ## Qualidade
