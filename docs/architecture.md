@@ -8,6 +8,7 @@
 | **Operations** (Operação) | Linhas, trechos, alocação de ônibus em viagens, controle de catraca/lotação. |
 | **Crew** (Tripulação) | Motoristas, jornada de trabalho e descanso, exames toxicológicos, CNH. |
 | **Maintenance** (Manutenção) | Ordens de serviço, estoque de peças (pneus, óleo), preventivas e corretivas. |
+| **Fuel** (Abastecimento) | Abastecimentos por veículo, rendimento em km/L e alerta de consumo. |
 
 ## Modelagem (PostgreSQL 16)
 
@@ -16,6 +17,7 @@
 - `lines`: `id`, `origin`, `destination`, `distance_km`, `estimated_duration_minutes`
 - `line_stops`: `id`, `line_id` (cascade), `sequence` (> 0, única por linha), `city_name`, `cumulative_km`, `estimated_minutes`
 - `trips`: `id`, `line_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time` (UTC), `status` (scheduled, in_progress, completed, canceled)
+- `fuel_logs`: `id`, `vehicle_id`, `recorded_by_user_id`, `odometer_km`, `liters_milliliters`, `total_cost_cents`, `station_name`, `fueled_at` (UTC), soft delete; índice `(vehicle_id, fueled_at)`
 - `maintenance_orders`: `id`, `vehicle_id`, `mechanic_id`, `type` (preventive, corrective), `status` (open, in_progress, completed, canceled), `description`, `cost_cents`, `opened_at`, `completed_at`
 
 ## Papéis e permissões
@@ -110,4 +112,8 @@ resources/js/
 | Audit | Ações com nome em português (`AuditAction`, `action_label`) e busca por esse nome | Implementado |
 | Operations | Agendamento e exclusão de linha em transação com a linha travada (`FOR UPDATE`): nunca há viagem ativa em linha excluída | Implementado |
 | Infra | Smoke test da imagem de produção no CI: build, migrations, health 200/503, login e assets | Implementado |
+| Audit | Agendamento de viagem auditado (`trip.scheduled`) | Implementado |
+| Fuel | Abastecimentos (`GET`/`POST /api/v1/fuel/logs`): veículo travado, hodômetro e data nunca anteriores ao último abastecimento do veículo, hodômetro eleva a quilometragem da frota, rendimento em km/L por trecho e alerta abaixo de 2,2 km/L, auditoria `fuel_log.recorded`, gasto do mês no painel; tela Abastecimento | Implementado |
+| Fuel | Edição e exclusão de abastecimentos, relatório de consumo por veículo | Pendente |
+| Operations | Grade de escala (`GET /api/v1/operations/schedule-timeline?date=`): 48 horas por veículo e por motorista, com ordens de serviço pendentes e o descanso de 11 horas; na tela, alternância Lista / Grade e agendamento a partir de um horário livre | Implementado |
 | Identity | Cadastro e gestão de usuários, troca e recuperação de senha | Pendente |
