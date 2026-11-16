@@ -35,7 +35,8 @@ RUN apk add --no-cache nginx supervisor libpq \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY docker/production/php.ini /usr/local/etc/php/conf.d/zz-app.ini
-COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
+# O nome começa com zzz para ser lido depois do zz-docker.conf da imagem base, que também define `listen`.
+COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zzz-app.conf
 COPY docker/production/nginx.conf /etc/nginx/nginx.conf
 COPY docker/production/supervisord.conf /etc/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/entrypoint
@@ -48,7 +49,6 @@ COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && rm -f bootstrap/cache/*.php \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
     && chown -R www-data:www-data storage bootstrap/cache
 

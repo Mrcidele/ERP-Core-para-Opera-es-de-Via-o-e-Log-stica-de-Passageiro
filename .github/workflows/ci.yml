@@ -86,3 +86,85 @@ jobs:
 
       - name: Build do frontend
         run: npm run build
+
+  docker-smoke-test:
+    name: Imagem de produção (build e smoke test)
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: erp
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: erp_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U erp -d erp_smoke"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem
+        run: docker build -f docker/production/Dockerfile -t erp-viacao:ci .
+
+      # Rede do host: o contêiner alcança o Postgres do CI em 127.0.0.1:5432 e publica a aplicação em :8080.
+      # O Postgres do CI não usa TLS, por isso DB_SSLMODE=disable (em produção a imagem exige `require`).
+      - name: Sobe o contêiner
+        run: |
+          docker run -d --name erp --network host \
+            -e APP_KEY="base64:$(openssl rand -base64 32)" \
+            -e APP_URL=http://localhost:8080 \
+            -e DB_HOST=127.0.0.1 -e DB_PORT=5432 -e DB_DATABASE=erp_smoke \
+            -e DB_USERNAME=erp -e DB_PASSWORD=secret -e DB_SSLMODE=disable \
+            erp-viacao:ci
+
+      - name: Aguarda Nginx e PHP-FPM
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://localhost:8080/api/v1/health; then exit 0; fi
+            sleep 2
+          done
+          echo "A aplicação não respondeu em 60 segundos." >&2
+          exit 1
+
+      - name: Migrations
+        run: docker exec erp php artisan migrate --force
+
+      - name: Health check responde 200 com o banco no ar
+        run: |
+          curl -fsS http://localhost:8080/api/v1/health | tee health.json
+          grep -q '"database":"up"' health.json
+
+      # Exercita o caminho completo: Nginx -> PHP-FPM -> Laravel -> PostgreSQL (limite de tentativas no cache e auditoria no banco).
+      - name: API recusa login inválido com 422
+        run: |
+          status=$(curl -s -o login.json -w '%{http_code}' -X POST http://localhost:8080/api/v1/auth/login \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            -d '{"email":"ninguem@erp.test","password":"errada"}')
+          cat login.json
+          test "$status" = "422"
+
+      - name: SPA e assets compilados são servidos
+        run: |
+          curl -fsS http://localhost:8080/ -o index.html
+          asset=$(grep -o '/build/assets/[^"]*\.js' index.html | head -n 1)
+          test -n "$asset"
+          curl -fsS -o /dev/null "http://localhost:8080$asset"
+
+      - name: Health check responde 503 sem o banco
+        run: |
+          docker stop "${{ job.services.postgres.id }}"
+          status=$(curl -s -o down.json -w '%{http_code}' http://localhost:8080/api/v1/health)
+          cat down.json
+          test "$status" = "503"
+
+      - name: Logs do contêiner
+        if: always()
+        run: docker logs erp || true
