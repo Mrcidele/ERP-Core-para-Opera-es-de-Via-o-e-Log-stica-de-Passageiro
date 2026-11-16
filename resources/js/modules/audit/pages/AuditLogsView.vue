@@ -7,7 +7,7 @@ import SlideOver from '@/core/ui/SlideOver.vue';
 import TableSkeleton from '@/core/ui/TableSkeleton.vue';
 import { formatDateTime } from '@/core/utils/format';
 import { useAuditLogStore } from '../stores/auditLogStore';
-import { auditActionLabel, auditEntityLabel, isSensitiveAction, type AuditLog, type AuditValues } from '../types/auditLog';
+import { auditEntityLabel, isSensitiveAction, type AuditLog, type AuditValues } from '../types/auditLog';
 
 const store = useAuditLogStore();
 
@@ -37,7 +37,7 @@ const changedKeys = computed(() => {
     </header>
 
     <section class="card mt-6 overflow-hidden">
-        <ListToolbar :search="store.search" search-label="Buscar por usuário ou IP" @update:search="store.applyFilters({ search: $event })" />
+        <ListToolbar :search="store.search" search-label="Buscar por ação, usuário ou IP" @update:search="store.applyFilters({ search: $event })" />
 
         <TableSkeleton v-if="store.status === 'idle' || store.status === 'loading'" data-test="loading" :columns="6" label="Carregando registros de auditoria" />
 
@@ -89,8 +89,9 @@ const changedKeys = computed(() => {
                                     :class="isSensitiveAction(log.action) ? 'bg-brake-50 text-brake-700 ring-brake-600/20' : 'bg-ink-100 text-ink-700 ring-ink-500/15'"
                                     data-test="action"
                                 >
-                                    {{ auditActionLabel(log.action) }}
+                                    {{ log.action_label }}
                                 </span>
+                                <span class="num mt-1 block text-xs text-ink-400" data-test="action-code">{{ log.action }}</span>
                             </td>
                             <td class="whitespace-nowrap">
                                 {{ auditEntityLabel(log.auditable_type) }}
@@ -111,7 +112,7 @@ const changedKeys = computed(() => {
     <SlideOver
         :open="selected !== null"
         size="lg"
-        :title="selected ? auditActionLabel(selected.action) : ''"
+        :title="selected ? selected.action_label : ''"
         :subtitle="selected ? `${formatDateTime(selected.created_at)}, por ${selected.user?.name ?? 'ninguém autenticado'}` : ''"
         @close="selected = null"
     >

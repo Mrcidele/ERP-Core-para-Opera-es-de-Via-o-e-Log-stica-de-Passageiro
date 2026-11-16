@@ -18,6 +18,7 @@ const logs: AuditLog[] = [
     {
         id: 'log-3',
         action: 'trip.completed',
+        action_label: 'Viagem concluída',
         auditable_type: 'trip',
         auditable_id: '0193a5b0-7c1e-7000-8000-000000000003',
         old_values: { status: 'in_progress' },
@@ -29,6 +30,7 @@ const logs: AuditLog[] = [
     {
         id: 'log-2',
         action: 'vehicle.deleted',
+        action_label: 'Veículo excluído',
         auditable_type: 'vehicle',
         auditable_id: '0193a5b0-7c1e-7000-8000-000000000002',
         old_values: { plate: 'ABC1D23', status: 'active' },
@@ -40,6 +42,7 @@ const logs: AuditLog[] = [
     {
         id: 'log-1',
         action: 'auth.login_failed',
+        action_label: 'Login recusado',
         auditable_type: 'user',
         auditable_id: null,
         old_values: null,
@@ -80,7 +83,8 @@ describe('AuditLogsView', () => {
         expect(rows(wrapper)).toHaveLength(3);
         expect(first).toContain(formatDateTime('2026-11-13T12:00:00+00:00'));
         expect(first).toContain('Diego Despachante');
-        expect(first).toContain('Viagem concluída');
+        expect(rows(wrapper)[0]!.get('[data-test="action"]').text()).toBe('Viagem concluída');
+        expect(rows(wrapper)[0]!.get('[data-test="action-code"]').text()).toBe('trip.completed');
         expect(first).toContain('Viagem 0193a5b0');
         expect(first).toContain('10.0.0.7');
         expect(http.get).toHaveBeenCalledWith('/audit-logs', pageParams());
@@ -131,6 +135,15 @@ describe('AuditLogsView', () => {
     it('searches on the server and pages the trail', async () => {
         const wrapper = await mountView();
 
+        // O termo em português vai como está: quem o traduz para os códigos de ação é a API.
+        http.get.mockResolvedValue(page([logs[1]!]));
+        await wrapper.get('[data-test="search"]').setValue('excluído');
+        await wrapper.get('[data-test="search"]').trigger('keydown.enter');
+        await flushPromises();
+
+        expect(http.get).toHaveBeenLastCalledWith('/audit-logs', pageParams({ search: 'excluído' }));
+        expect(rows(wrapper).map((row) => row.get('[data-test="action"]').text())).toEqual(['Veículo excluído']);
+
         http.get.mockResolvedValue(page([logs[2]!], { total: 40, last_page: 3 }));
         await wrapper.get('[data-test="search"]').setValue('203.0.113');
         await wrapper.get('[data-test="search"]').trigger('keydown.enter');
@@ -169,5 +182,13 @@ describe('AuditLogsView', () => {
         const failed = await mountView(new Error('network'));
 
         expect(failed.find('[data-test="list-error"]').exists()).toBe(true);
+    });
+
+    it('shows the label the API sent, even for an action the screen has never seen', async () => {
+        const wrapper = await mountView([{ ...logs[0]!, action: 'trip.scheduled', action_label: 'Viagem agendada' }]);
+
+        expect(rows(wrapper)[0]!.get('[data-test="action"]').text()).toBe('Viagem agendada');
+        expect(rows(wrapper)[0]!.get('[data-test="action-code"]').text()).toBe('trip.scheduled');
+        expect(wrapper.get('[data-test="search"]').attributes('placeholder')).toBe('Buscar por ação, usuário ou IP');
     });
 });

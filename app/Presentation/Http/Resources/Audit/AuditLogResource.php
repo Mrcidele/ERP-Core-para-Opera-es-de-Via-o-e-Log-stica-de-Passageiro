@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Presentation\Http\Resources\Audit;
 
 use App\Domain\Audit\DTOs\AuditLogSummaryDTO;
+use App\Domain\Shared\Enums\AuditAction;
 use DateTimeZone;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,6 +24,7 @@ final class AuditLogResource extends JsonResource
      * @return array{
      *     id: string,
      *     action: string,
+     *     action_label: string,
      *     auditable_type: string,
      *     auditable_id: string|null,
      *     old_values: array<string, scalar|null>|null,
@@ -39,6 +41,7 @@ final class AuditLogResource extends JsonResource
         return [
             'id' => $log->id,
             'action' => $log->action,
+            'action_label' => AuditAction::labelFor($log->action),
             'auditable_type' => $log->auditableType,
             'auditable_id' => $log->auditableId,
             'old_values' => $log->oldValues,

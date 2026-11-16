@@ -156,6 +156,7 @@ it('lists the audit records, most recent first, with the user name', function ()
         ->assertJsonPath('data.0', [
             'id' => lastAudit()->id,
             'action' => 'vehicle.deleted',
+            'action_label' => 'Veículo excluído',
             'auditable_type' => 'vehicle',
             'auditable_id' => $second->id,
             'old_values' => ['plate' => 'BBB2B22', 'status' => $second->status->value, 'chassis' => $second->chassis],
@@ -202,4 +203,35 @@ it('keeps the record when the user who acted is deleted', function (): void {
     $this->getJson('/api/v1/audit-logs')
         ->assertOk()
         ->assertJsonPath('data.0.user.name', $this->admin->name);
+});
+
+it('finds records by the action name in Portuguese, by its code, by user and by IP', function (): void {
+    $vehicle = VehicleModel::factory()->create();
+    $this->deleteJson("/api/v1/fleet/vehicles/{$vehicle->id}")->assertNoContent();
+    $line = $this->postJson('/api/v1/operations/lines', [
+        'origin' => 'Curitiba', 'destination' => 'Londrina', 'distance_km' => 380, 'estimated_duration_minutes' => 360,
+    ])->json('data.id');
+    $this->deleteJson("/api/v1/operations/lines/{$line}")->assertNoContent();
+
+    $actions = fn (string $search): array => $this->getJson('/api/v1/audit-logs?search='.urlencode($search))->assertOk()->json('data.*.action');
+
+    expect($actions('Veículo excluído'))->toBe(['vehicle.deleted'])
+        ->and($actions('veiculo excluido'))->toBe(['vehicle.deleted'])
+        ->and($actions('exclu'))->toEqualCanonicalizing(['vehicle.deleted', 'line.deleted'])
+        ->and($actions('Linha'))->toEqualCanonicalizing(['line.created', 'line.deleted'])
+        ->and($actions('line.created'))->toBe(['line.created'])
+        ->and($actions($this->admin->name))->toHaveCount(3)
+        ->and($actions('127.0.0'))->toHaveCount(3)
+        ->and($actions('Viagem cancelada'))->toBe([]);
+
+    $this->getJson('/api/v1/audit-logs?search=criada')->assertOk()->assertJsonPath('data.0.action_label', 'Linha criada');
+});
+
+it('shows the code itself as the label of an action the system no longer knows', function (): void {
+    AuditLogModel::query()->create([
+        'action' => 'legacy.action', 'auditable_type' => 'vehicle', 'auditable_id' => null,
+        'old_values' => null, 'new_values' => null, 'ip_address' => '127.0.0.1', 'created_at' => now(),
+    ]);
+
+    $this->getJson('/api/v1/audit-logs')->assertOk()->assertJsonPath('data.0.action_label', 'legacy.action');
 });

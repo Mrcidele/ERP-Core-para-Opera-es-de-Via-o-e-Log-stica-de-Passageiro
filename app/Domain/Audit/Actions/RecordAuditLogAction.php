@@ -8,6 +8,7 @@ use App\Domain\Audit\Contracts\RequestContext;
 use App\Domain\Audit\Entities\AuditLog;
 use App\Domain\Audit\Repositories\AuditLogRepository;
 use App\Domain\Shared\Contracts\Clock;
+use App\Domain\Shared\Enums\AuditAction;
 
 final readonly class RecordAuditLogAction
 {
@@ -21,12 +22,12 @@ final readonly class RecordAuditLogAction
      * @param  array<string, scalar|null>|null  $oldValues
      * @param  array<string, scalar|null>|null  $newValues
      */
-    public function execute(string $action, string $auditableType, ?string $auditableId, ?array $oldValues, ?array $newValues): AuditLog
+    public function execute(AuditAction $action, string $auditableType, ?string $auditableId, ?array $oldValues, ?array $newValues): AuditLog
     {
         $log = new AuditLog(
             id: $this->logs->nextIdentity(),
             userId: $this->context->userId(),
-            action: $action,
+            action: $action->value,
             auditableType: $auditableType,
             auditableId: $auditableId,
             oldValues: $oldValues,

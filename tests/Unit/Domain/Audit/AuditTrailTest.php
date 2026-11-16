@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Audit\Actions\ListAuditLogsAction;
 use App\Domain\Audit\Actions\RecordAuditLogAction;
 use App\Domain\Audit\Listeners\RecordAuditTrail;
+use App\Domain\Shared\Enums\AuditAction;
 use App\Domain\Shared\Events\LoginFailed;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
@@ -23,7 +24,7 @@ beforeEach(function (): void {
 });
 
 it('records who did what, from where and when', function (): void {
-    $log = $this->record->execute('vehicle.deleted', 'vehicle', 'bus-1', ['plate' => 'ABC1D23'], null);
+    $log = $this->record->execute(AuditAction::VehicleDeleted, 'vehicle', 'bus-1', ['plate' => 'ABC1D23'], null);
 
     expect($log->userId)->toBe('user-1')
         ->and($log->ipAddress)->toBe('203.0.113.7')
@@ -39,7 +40,7 @@ it('records who did what, from where and when', function (): void {
 it('records an action without an authenticated user', function (): void {
     $record = new RecordAuditLogAction($this->logs, new FakeRequestContext(userId: null), new FixedClock('2026-11-14 12:00:00'));
 
-    expect($record->execute('auth.login_failed', 'user', null, null, ['email' => 'x@erp.test'])->userId)->toBeNull();
+    expect($record->execute(AuditAction::LoginFailed, 'user', null, null, ['email' => 'x@erp.test'])->userId)->toBeNull();
 });
 
 it('turns each critical event into an audit record', function (string $method, object $event, array $expected): void {
@@ -72,15 +73,17 @@ it('turns each critical event into an audit record', function (string $method, o
 ]);
 
 it('lists the most recent records first, one page at a time', function (): void {
-    foreach (['a', 'b', 'c'] as $action) {
+    foreach ([AuditAction::LineCreated, AuditAction::LineUpdated, AuditAction::LineDeleted] as $action) {
         $this->record->execute($action, 'vehicle', null, null, null);
     }
 
     $list = new ListAuditLogsAction($this->logs);
 
-    expect(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(perPage: 2))->items))->toBe(['c', 'b'])
-        ->and(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(page: 2, perPage: 2))->items))->toBe(['a'])
+    expect(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(perPage: 2))->items))->toBe(['line.deleted', 'line.updated'])
+        ->and(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(page: 2, perPage: 2))->items))->toBe(['line.created'])
         ->and($list->execute(new PageQuery(perPage: 0))->items)->toHaveCount(1)
         ->and($list->execute(new PageQuery(perPage: 5000))->perPage)->toBe(PageQuery::MAX_PER_PAGE)
-        ->and($list->execute()->total)->toBe(3);
+        ->and($list->execute()->total)->toBe(3)
+        // A busca aceita o nome da ação em português.
+        ->and(array_map(fn ($summary): string => $summary->log->action, $list->execute(new PageQuery(search: 'excluída'))->items))->toBe(['line.deleted']);
 });

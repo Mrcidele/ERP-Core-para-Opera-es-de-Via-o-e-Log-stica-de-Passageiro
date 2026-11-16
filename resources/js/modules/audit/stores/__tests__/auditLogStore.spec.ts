@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, pageParams } from '@/tests/paging';
-import { auditActionLabel, auditEntityLabel, isSensitiveAction } from '../../types/auditLog';
+import { auditEntityLabel, isSensitiveAction } from '../../types/auditLog';
 import { useAuditLogStore } from '../auditLogStore';
 
 const http = vi.hoisted(() => ({ get: vi.fn() }));
@@ -41,23 +41,8 @@ describe('auditLogStore', () => {
 });
 
 describe('audit labels', () => {
-    it.each([
-        ['vehicle.deleted', 'Veículo excluído'],
-        ['line.created', 'Linha criada'],
-        ['line.updated', 'Linha alterada'],
-        ['line.deleted', 'Linha excluída'],
-        ['trip.completed', 'Viagem concluída'],
-        ['trip.canceled', 'Viagem cancelada'],
-        ['maintenance_order.opened', 'Ordem de serviço aberta'],
-        ['maintenance_order.completed', 'Ordem de serviço concluída'],
-        ['auth.login_failed', 'Login recusado'],
-        ['something.new', 'something.new'],
-    ])('labels the action %s as "%s"', (action, label) => {
-        expect(auditActionLabel(action)).toBe(label);
-    });
-
     it('labels the entities and falls back to the code', () => {
-        expect(['vehicle', 'trip', 'maintenance_order', 'user', 'other'].map(auditEntityLabel)).toEqual(['Veículo', 'Viagem', 'Ordem de serviço', 'Usuário', 'other']);
+        expect(['vehicle', 'line', 'trip', 'maintenance_order', 'user', 'other'].map(auditEntityLabel)).toEqual(['Veículo', 'Linha', 'Viagem', 'Ordem de serviço', 'Usuário', 'other']);
     });
 
     it('treats deletions and refused logins as sensitive', () => {

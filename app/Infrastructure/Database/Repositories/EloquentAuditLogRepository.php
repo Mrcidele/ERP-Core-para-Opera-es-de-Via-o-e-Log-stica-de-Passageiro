@@ -7,6 +7,7 @@ namespace App\Infrastructure\Database\Repositories;
 use App\Domain\Audit\DTOs\AuditLogSummaryDTO;
 use App\Domain\Audit\Entities\AuditLog;
 use App\Domain\Audit\Repositories\AuditLogRepository;
+use App\Domain\Shared\Enums\AuditAction;
 use App\Domain\Shared\Pagination\Page;
 use App\Domain\Shared\Pagination\PageQuery;
 use App\Infrastructure\Database\Concerns\PaginatesQueries;
@@ -45,9 +46,12 @@ final class EloquentAuditLogRepository implements AuditLogRepository
             ->with('user')
             ->when($query->search !== null, function (Builder $logs) use ($query): void {
                 $term = $this->likeTerm((string) $query->search);
+                // O nome da ação em português não está no banco: o termo é traduzido para os códigos que ele descreve.
+                $labeled = AuditAction::codesMatchingLabel((string) $query->search);
 
                 $logs->where(fn (Builder $match) => $match
                     ->where('action', 'ilike', $term)
+                    ->when($labeled !== [], fn (Builder $byLabel) => $byLabel->orWhereIn('action', $labeled))
                     ->orWhere('auditable_type', 'ilike', $term)
                     ->orWhere('ip_address', 'ilike', $term)
                     ->orWhereHas('user', fn (Builder $user) => $user->where('name', 'ilike', $term)));

@@ -4,7 +4,10 @@ export type AuditValues = Record<string, unknown>;
 
 export interface AuditLog {
     id: string;
+    /** Código técnico da ação (ex.: `vehicle.deleted`). */
     action: string;
+    /** Nome da ação em português, definido pela API. */
+    action_label: string;
     auditable_type: string;
     auditable_id: string | null;
     old_values: AuditValues | null;
@@ -16,18 +19,6 @@ export interface AuditLog {
     user: { id: string; name: string } | null;
 }
 
-const ACTION_LABELS: Record<string, string> = {
-    'vehicle.deleted': 'Veículo excluído',
-    'line.created': 'Linha criada',
-    'line.updated': 'Linha alterada',
-    'line.deleted': 'Linha excluída',
-    'trip.completed': 'Viagem concluída',
-    'trip.canceled': 'Viagem cancelada',
-    'maintenance_order.opened': 'Ordem de serviço aberta',
-    'maintenance_order.completed': 'Ordem de serviço concluída',
-    'auth.login_failed': 'Login recusado',
-};
-
 const ENTITY_LABELS: Record<string, string> = {
     vehicle: 'Veículo',
     line: 'Linha',
@@ -35,9 +26,6 @@ const ENTITY_LABELS: Record<string, string> = {
     maintenance_order: 'Ordem de serviço',
     user: 'Usuário',
 };
-
-/** Ação em português; uma ação nova que a tela ainda não conhece aparece com o código da API. */
-export const auditActionLabel = (action: string): string => ACTION_LABELS[action] ?? action;
 
 export const auditEntityLabel = (type: string): string => ENTITY_LABELS[type] ?? type;
 
