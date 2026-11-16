@@ -148,10 +148,10 @@ it('refuses at the database a negative next preventive maintenance mileage', fun
 });
 
 it('lists only the vehicles with the preventive maintenance overdue', function (): void {
-    VehicleModel::factory()->create(['plate' => 'DUE1A11', 'current_mileage' => 100_000, 'next_preventive_maintenance_km' => 100_000]);
+    VehicleModel::factory()->create(['plate' => 'DUE1A11', 'current_mileage' => 100_000, 'next_preventive_maintenance_km' => 100_000, 'status' => 'active']);
     VehicleModel::factory()->create(['plate' => 'DUE2B22', 'current_mileage' => 120_500, 'next_preventive_maintenance_km' => 110_000, 'status' => 'maintenance']);
-    VehicleModel::factory()->create(['plate' => 'OKK3C33', 'current_mileage' => 99_999, 'next_preventive_maintenance_km' => 100_000]);
-    VehicleModel::factory()->create(['plate' => 'OKK4D44', 'current_mileage' => 500_000, 'next_preventive_maintenance_km' => null]);
+    VehicleModel::factory()->create(['plate' => 'OKK3C33', 'current_mileage' => 99_999, 'next_preventive_maintenance_km' => 100_000, 'status' => 'maintenance']);
+    VehicleModel::factory()->create(['plate' => 'OKK4D44', 'current_mileage' => 500_000, 'next_preventive_maintenance_km' => null, 'status' => 'active']);
 
     $plates = fn (string $query): array => $this->getJson("/api/v1/fleet/vehicles?{$query}")->assertOk()->json('data.*.plate');
 
