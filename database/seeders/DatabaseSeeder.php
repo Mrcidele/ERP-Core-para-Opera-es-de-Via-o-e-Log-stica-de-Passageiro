@@ -88,6 +88,8 @@ class DatabaseSeeder extends Seeder
                         'recorded_by_user_id' => $recorder->id,
                         'odometer_km' => max(0, $odometer),
                         'liters_milliliters' => $liters,
+                        // Diesel entre R$ 5,70 e R$ 6,30 o litro.
+                        'total_cost_cents' => (int) round($liters / 1000 * fake()->numberBetween(570, 630)),
                         'fueled_at' => now()->subDays($daysAgo)->setTime(fake()->numberBetween(5, 21), fake()->randomElement([0, 15, 30, 45])),
                     ]);
 
