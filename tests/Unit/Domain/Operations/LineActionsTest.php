@@ -15,6 +15,7 @@ use App\Domain\Operations\Exceptions\LineRecordNotFoundException;
 use App\Domain\Shared\Events\LineCreated;
 use App\Domain\Shared\Events\LineDeleted;
 use App\Domain\Shared\Events\LineUpdated;
+use Tests\Fakes\ImmediateTransactionRunner;
 use Tests\Fakes\InMemoryLineRepository;
 use Tests\Fakes\RecordingEventDispatcher;
 
@@ -32,6 +33,7 @@ function lineData(array $stops = [['Ponta Grossa', 115, 105], ['Castro', 160, 15
 beforeEach(function (): void {
     $this->lines = new InMemoryLineRepository;
     $this->events = new RecordingEventDispatcher;
+    $this->transaction = new ImmediateTransactionRunner;
     $this->create = new CreateLineAction($this->lines, $this->events);
 });
 
@@ -84,7 +86,7 @@ it('updates a line replacing its stops and records before and after', function (
 it('deletes a line without active trips', function (): void {
     $line = $this->create->execute(lineData());
 
-    (new DeleteLineAction($this->lines, $this->events))->execute($line->id);
+    (new DeleteLineAction($this->lines, $this->events, $this->transaction))->execute($line->id);
 
     expect($this->lines->findActive($line->id))->toBeNull()
         ->and($this->events->events[1])->toEqual(new LineDeleted($line->id, $line->snapshot()));
@@ -94,12 +96,21 @@ it('refuses to delete a line with scheduled or running trips', function (): void
     $line = $this->create->execute(lineData());
     $this->lines->linesWithActiveTrips[] = $line->id;
 
-    expect(fn () => (new DeleteLineAction($this->lines, $this->events))->execute($line->id))->toThrow(LineHasActiveTripsException::class)
+    expect(fn () => (new DeleteLineAction($this->lines, $this->events, $this->transaction))->execute($line->id))->toThrow(LineHasActiveTripsException::class)
         ->and($this->lines->findActive($line->id))->not->toBeNull()
         ->and($this->events->events)->toHaveCount(1);
 });
 
 it('fails with not found when the line does not exist', function (): void {
     expect(fn () => (new UpdateLineAction($this->lines, $this->events))->execute('missing', lineData()))->toThrow(LineRecordNotFoundException::class)
-        ->and(fn () => (new DeleteLineAction($this->lines, $this->events))->execute('missing'))->toThrow(LineRecordNotFoundException::class);
+        ->and(fn () => (new DeleteLineAction($this->lines, $this->events, $this->transaction))->execute('missing'))->toThrow(LineRecordNotFoundException::class);
+});
+
+it('locks the line inside a transaction before checking its trips and deleting it', function (): void {
+    $line = $this->create->execute(lineData());
+
+    (new DeleteLineAction($this->lines, $this->events, $this->transaction))->execute($line->id);
+
+    expect($this->lines->locked)->toBe([$line->id])
+        ->and($this->transaction->transactions)->toBe(1);
 });

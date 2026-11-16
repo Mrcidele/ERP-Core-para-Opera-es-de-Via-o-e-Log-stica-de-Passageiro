@@ -7,7 +7,6 @@ namespace App\Infrastructure\Database\Repositories;
 use App\Domain\Operations\Entities\Line;
 use App\Domain\Operations\Entities\LineStop;
 use App\Domain\Operations\Enums\TripStatus;
-use App\Domain\Operations\Exceptions\LineHasActiveTripsException;
 use App\Domain\Operations\Repositories\LineRepository;
 use App\Infrastructure\Database\Models\LineModel;
 use App\Infrastructure\Database\Models\LineStopModel;
@@ -36,12 +35,6 @@ final class EloquentLineRepository implements LineRepository
                 ->map(fn (LineModel $model): Line => $this->toEntity($model))
                 ->all(),
         );
-    }
-
-    public function exists(string $id): bool
-    {
-        // Um id fora do formato UUID quebraria a consulta no PostgreSQL.
-        return Str::isUuid($id) && LineModel::query()->whereKey($id)->exists();
     }
 
     public function findById(string $id): ?Line
@@ -97,23 +90,21 @@ final class EloquentLineRepository implements LineRepository
         });
     }
 
+    public function lockActive(string $id): ?Line
+    {
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
+        // Quem espera pela trava reavalia a linha quando ela é liberada: se foi excluída nesse meio-tempo, não a encontra mais.
+        $model = LineModel::query()->with('stops')->whereKey($id)->lockForUpdate()->first();
+
+        return $model === null ? null : $this->toEntity($model);
+    }
+
     public function delete(string $id): void
     {
-        DB::transaction(function () use ($id): void {
-            // Um agendamento simultâneo nesta linha segura a linha pela FK até confirmar; com a trava,
-            // a exclusão espera por ele e a conferência abaixo já enxerga a viagem nova.
-            $line = LineModel::query()->whereKey($id)->lockForUpdate()->first();
-
-            if ($line === null) {
-                return;
-            }
-
-            if ($this->hasActiveTrips($id)) {
-                throw new LineHasActiveTripsException;
-            }
-
-            $line->delete();
-        });
+        LineModel::query()->whereKey($id)->delete();
     }
 
     private function toEntity(LineModel $model): Line

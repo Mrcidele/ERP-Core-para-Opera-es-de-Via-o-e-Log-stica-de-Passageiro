@@ -19,6 +19,7 @@ use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
 use Tests\Fakes\FakeCrewGateway;
 use Tests\Fakes\FakeFleetGateway;
 use Tests\Fakes\FixedClock;
+use Tests\Fakes\ImmediateTransactionRunner;
 use Tests\Fakes\InMemoryLineRepository;
 use Tests\Fakes\InMemoryTripRepository;
 
@@ -51,6 +52,7 @@ beforeEach(function (): void {
         new FakeFleetGateway(['bus-1', 'bus-2']),
         $this->crew = new FakeCrewGateway(['driver-1', 'driver-2']),
         new FixedClock('2026-11-13 10:00:00'),
+        $this->transaction = new ImmediateTransactionRunner,
     );
 });
 
@@ -211,4 +213,23 @@ it('accepts a driver whose license expires on the arrival day', function (): voi
     $this->action->execute(tripData('2026-11-20 22:00', '2026-11-21 04:30'));
 
     expect($this->trips->trips)->toHaveCount(1);
+});
+
+it('locks the line inside a transaction before validating and saving the trip', function (): void {
+    $this->action->execute(tripData());
+
+    expect($this->lines->locked)->toBe(['line-1'])
+        ->and($this->transaction->transactions)->toBe(1);
+});
+
+it('rejects a line that was deleted', function (): void {
+    $this->lines->delete('line-1');
+
+    expect(fn () => $this->action->execute(tripData()))->toThrow(LineNotFoundException::class)
+        ->and($this->trips->trips)->toBe([]);
+});
+
+it('does not open a transaction for a trip refused on its dates', function (): void {
+    expect(fn () => $this->action->execute(tripData(departure: '2026-11-13 09:00')))->toThrow(TripInThePastException::class)
+        ->and($this->transaction->transactions)->toBe(0);
 });

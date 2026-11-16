@@ -9,6 +9,7 @@ use App\Domain\Fleet\Listeners\AddTripDistanceToVehicleMileage;
 use App\Domain\Shared\Contracts\Clock;
 use App\Domain\Shared\Contracts\DatabaseProbe;
 use App\Domain\Shared\Contracts\EventDispatcher;
+use App\Domain\Shared\Contracts\TransactionRunner;
 use App\Domain\Shared\Events\LineCreated;
 use App\Domain\Shared\Events\LineDeleted;
 use App\Domain\Shared\Events\LineUpdated;
@@ -19,6 +20,7 @@ use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\VehicleDeleted;
 use App\Infrastructure\Database\ConnectionDatabaseProbe;
+use App\Infrastructure\Database\DatabaseTransactionRunner;
 use App\Infrastructure\Events\LaravelEventDispatcher;
 use App\Infrastructure\Support\SystemClock;
 use App\Infrastructure\Support\TrustedProxies;
@@ -32,6 +34,7 @@ final class AppServiceProvider extends ServiceProvider
         Clock::class => SystemClock::class,
         DatabaseProbe::class => ConnectionDatabaseProbe::class,
         EventDispatcher::class => LaravelEventDispatcher::class,
+        TransactionRunner::class => DatabaseTransactionRunner::class,
     ];
 
     public function boot(): void

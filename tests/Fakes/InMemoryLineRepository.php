@@ -15,6 +15,9 @@ final class InMemoryLineRepository implements LineRepository
     /** @var list<string> */
     public array $deleted = [];
 
+    /** @var list<string> linhas travadas, na ordem */
+    public array $locked = [];
+
     /** @var list<string> */
     public array $linesWithActiveTrips = [];
 
@@ -47,6 +50,13 @@ final class InMemoryLineRepository implements LineRepository
         return in_array($id, $this->deleted, true) ? null : ($this->lines[$id] ?? null);
     }
 
+    public function lockActive(string $id): ?Line
+    {
+        $this->locked[] = $id;
+
+        return $this->findActive($id);
+    }
+
     public function hasActiveTrips(string $id): bool
     {
         return in_array($id, $this->linesWithActiveTrips, true);
@@ -60,10 +70,5 @@ final class InMemoryLineRepository implements LineRepository
     public function delete(string $id): void
     {
         $this->deleted[] = $id;
-    }
-
-    public function exists(string $id): bool
-    {
-        return $this->findActive($id) !== null;
     }
 }

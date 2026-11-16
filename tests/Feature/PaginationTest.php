@@ -93,19 +93,19 @@ it('filters employees by status and by name or CPF', function (): void {
 });
 
 it('filters trips by status and by line, plate or driver', function (): void {
-    $londrina = LineModel::factory()->create(['origin' => 'Curitiba', 'destination' => 'Londrina']);
-    $bus = VehicleModel::factory()->create(['plate' => 'BUS1A11']);
-    $ana = EmployeeModel::factory()->create(['name' => 'Ana Lima']);
+    $londrina = LineModel::factory()->create(['origin' => 'Curitiba', 'destination' => 'Xanxerê']);
+    $bus = VehicleModel::factory()->create(['plate' => 'QQQ1A11']);
+    $ana = EmployeeModel::factory()->create(['name' => 'Zuleica Quintão']);
 
     pagedTrip('2026-12-01 08:00:00', 'scheduled', line: $londrina);
     pagedTrip('2026-12-02 08:00:00', 'completed', vehicle: $bus);
     pagedTrip('2026-12-03 08:00:00', 'canceled', driver: $ana);
 
-    $this->getJson('/api/v1/operations/trips?status=completed')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.vehicle.plate', 'BUS1A11');
-    $this->getJson('/api/v1/operations/trips?search=londri')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'scheduled');
-    $this->getJson('/api/v1/operations/trips?search=bus1')->assertOk()->assertJsonCount(1, 'data');
-    $this->getJson('/api/v1/operations/trips?search=ana')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'canceled');
-    $this->getJson('/api/v1/operations/trips?search=ana&status=scheduled')->assertOk()->assertJsonCount(0, 'data');
+    $this->getJson('/api/v1/operations/trips?status=completed')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.vehicle.plate', 'QQQ1A11');
+    $this->getJson('/api/v1/operations/trips?search=xanxer')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'scheduled');
+    $this->getJson('/api/v1/operations/trips?search=qqq1')->assertOk()->assertJsonCount(1, 'data');
+    $this->getJson('/api/v1/operations/trips?search=zuleica')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'canceled');
+    $this->getJson('/api/v1/operations/trips?search=zuleica&status=scheduled')->assertOk()->assertJsonCount(0, 'data');
 });
 
 it('filters maintenance orders by status and by plate, mechanic or description', function (): void {
