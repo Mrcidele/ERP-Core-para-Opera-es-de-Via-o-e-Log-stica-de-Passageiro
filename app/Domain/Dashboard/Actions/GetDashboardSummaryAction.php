@@ -41,6 +41,8 @@ final readonly class GetDashboardSummaryAction
             maintenance: $scope->maintenance
                 ? $this->reader->maintenance($now->modify('-'.self::MAINTENANCE_PERIOD_DAYS.' days'))
                 : null,
+            // Mês corrente, a partir do dia 1º à meia-noite (UTC).
+            fuel: $scope->fleet ? $this->reader->fuel($today->modify('first day of this month')) : null,
         );
     }
 }

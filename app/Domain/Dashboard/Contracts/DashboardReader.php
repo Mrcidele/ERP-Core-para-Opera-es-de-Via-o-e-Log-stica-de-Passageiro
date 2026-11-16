@@ -6,6 +6,7 @@ namespace App\Domain\Dashboard\Contracts;
 
 use App\Domain\Dashboard\DTOs\CrewAlertsDTO;
 use App\Domain\Dashboard\DTOs\FleetSummaryDTO;
+use App\Domain\Dashboard\DTOs\FuelSummaryDTO;
 use App\Domain\Dashboard\DTOs\MaintenanceSummaryDTO;
 use App\Domain\Dashboard\DTOs\OperationsSummaryDTO;
 use DateTimeImmutable;
@@ -20,6 +21,9 @@ interface DashboardReader
 
     /** Motoristas ativos cuja CNH vence até $until (inclui as já vencidas), contando os dias a partir de $today. */
     public function crewAlerts(DateTimeImmutable $today, DateTimeImmutable $until): CrewAlertsDTO;
+
+    /** Combustível abastecido desde $since: custo, volume e número de abastecimentos. */
+    public function fuel(DateTimeImmutable $since): FuelSummaryDTO;
 
     /** Ordens concluídas desde $since e ordens pendentes agora. */
     public function maintenance(DateTimeImmutable $since): MaintenanceSummaryDTO;

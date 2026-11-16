@@ -8,19 +8,24 @@ use App\Domain\Audit\Repositories\AuditLogRepository;
 use App\Domain\Crew\Repositories\EmployeeRepository;
 use App\Domain\Dashboard\Contracts\DashboardReader;
 use App\Domain\Fleet\Repositories\VehicleRepository;
+use App\Domain\Fuel\Contracts\FleetGateway as FuelFleetGateway;
+use App\Domain\Fuel\Repositories\FuelLogRepository;
 use App\Domain\Identity\Repositories\UserRepository;
 use App\Domain\Maintenance\Contracts\CrewGateway as MaintenanceCrewGateway;
 use App\Domain\Maintenance\Contracts\FleetGateway as MaintenanceFleetGateway;
 use App\Domain\Maintenance\Repositories\MaintenanceOrderRepository;
 use App\Domain\Operations\Contracts\CrewGateway as OperationsCrewGateway;
 use App\Domain\Operations\Contracts\FleetGateway as OperationsFleetGateway;
+use App\Domain\Operations\Contracts\ScheduleTimelineReader;
 use App\Domain\Operations\Repositories\LineRepository;
 use App\Domain\Operations\Repositories\TripRepository;
 use App\Infrastructure\Database\Gateways\EloquentCrewGateway;
 use App\Infrastructure\Database\Gateways\EloquentDashboardReader;
 use App\Infrastructure\Database\Gateways\EloquentFleetGateway;
+use App\Infrastructure\Database\Gateways\EloquentScheduleTimelineReader;
 use App\Infrastructure\Database\Repositories\EloquentAuditLogRepository;
 use App\Infrastructure\Database\Repositories\EloquentEmployeeRepository;
+use App\Infrastructure\Database\Repositories\EloquentFuelLogRepository;
 use App\Infrastructure\Database\Repositories\EloquentLineRepository;
 use App\Infrastructure\Database\Repositories\EloquentMaintenanceOrderRepository;
 use App\Infrastructure\Database\Repositories\EloquentTripRepository;
@@ -44,5 +49,8 @@ final class RepositoryServiceProvider extends ServiceProvider
         OperationsCrewGateway::class => EloquentCrewGateway::class,
         MaintenanceFleetGateway::class => EloquentFleetGateway::class,
         MaintenanceCrewGateway::class => EloquentCrewGateway::class,
+        FuelLogRepository::class => EloquentFuelLogRepository::class,
+        ScheduleTimelineReader::class => EloquentScheduleTimelineReader::class,
+        FuelFleetGateway::class => EloquentFleetGateway::class,
     ];
 }

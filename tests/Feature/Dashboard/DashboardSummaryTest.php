@@ -51,6 +51,7 @@ it('returns an empty but complete summary when there is no data', function (): v
             'operations' => ['in_progress_now' => 0, 'scheduled_next_24h' => 0, 'next_trips' => []],
             'crew' => ['expiring_licenses' => []],
             'maintenance' => ['completed_last_30_days' => ['count' => 0, 'total_cost_cents' => 0], 'open' => 0, 'in_progress' => 0],
+            'fuel' => ['month_start' => '2026-11-01T00:00:00+00:00', 'month_cost_cents' => 0, 'month_liters_milliliters' => 0, 'month_logs' => 0],
         ]]);
 });
 

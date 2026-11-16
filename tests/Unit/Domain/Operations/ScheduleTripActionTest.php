@@ -16,12 +16,14 @@ use App\Domain\Operations\Exceptions\LineNotFoundException;
 use App\Domain\Operations\Exceptions\TripInThePastException;
 use App\Domain\Operations\Exceptions\VehicleNotAvailableException;
 use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
+use App\Domain\Shared\Events\TripScheduled;
 use Tests\Fakes\FakeCrewGateway;
 use Tests\Fakes\FakeFleetGateway;
 use Tests\Fakes\FixedClock;
 use Tests\Fakes\ImmediateTransactionRunner;
 use Tests\Fakes\InMemoryLineRepository;
 use Tests\Fakes\InMemoryTripRepository;
+use Tests\Fakes\RecordingEventDispatcher;
 
 function tripData(
     string $departure = '2026-11-20 08:00',
@@ -53,6 +55,7 @@ beforeEach(function (): void {
         $this->crew = new FakeCrewGateway(['driver-1', 'driver-2']),
         new FixedClock('2026-11-13 10:00:00'),
         $this->transaction = new ImmediateTransactionRunner,
+        $this->events = new RecordingEventDispatcher,
     );
 });
 
@@ -232,4 +235,17 @@ it('rejects a line that was deleted', function (): void {
 it('does not open a transaction for a trip refused on its dates', function (): void {
     expect(fn () => $this->action->execute(tripData(departure: '2026-11-13 09:00')))->toThrow(TripInThePastException::class)
         ->and($this->transaction->transactions)->toBe(0);
+});
+
+it('publishes the scheduling for the audit trail, with the data of the trip created', function (): void {
+    $trip = $this->action->execute(tripData());
+
+    expect($this->events->events)->toEqual([
+        new TripScheduled($trip->id, 'line-1', $trip->vehicleId, $trip->driverId, $trip->departureTime, $trip->arrivalTime),
+    ]);
+});
+
+it('publishes nothing when the trip is refused', function (): void {
+    expect(fn () => $this->action->execute(tripData(line: 'missing')))->toThrow(LineNotFoundException::class)
+        ->and($this->events->events)->toBe([]);
 });

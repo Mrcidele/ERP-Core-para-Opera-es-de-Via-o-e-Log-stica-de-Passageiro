@@ -10,10 +10,12 @@ it('names every audited action in Portuguese', function (): void {
         ['line.created', 'Linha criada'],
         ['line.updated', 'Linha alterada'],
         ['line.deleted', 'Linha excluída'],
+        ['trip.scheduled', 'Viagem agendada'],
         ['trip.completed', 'Viagem concluída'],
         ['trip.canceled', 'Viagem cancelada'],
         ['maintenance_order.opened', 'Ordem de serviço aberta'],
         ['maintenance_order.completed', 'Ordem de serviço concluída'],
+        ['fuel_log.recorded', 'Abastecimento registrado'],
         ['auth.login_failed', 'Login recusado'],
     ]);
 });

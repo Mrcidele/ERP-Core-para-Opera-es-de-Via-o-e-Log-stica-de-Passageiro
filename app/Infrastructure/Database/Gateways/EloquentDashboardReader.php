@@ -10,6 +10,7 @@ use App\Domain\Dashboard\Contracts\DashboardReader;
 use App\Domain\Dashboard\DTOs\CrewAlertsDTO;
 use App\Domain\Dashboard\DTOs\ExpiringLicenseDTO;
 use App\Domain\Dashboard\DTOs\FleetSummaryDTO;
+use App\Domain\Dashboard\DTOs\FuelSummaryDTO;
 use App\Domain\Dashboard\DTOs\MaintenanceSummaryDTO;
 use App\Domain\Dashboard\DTOs\OperationsSummaryDTO;
 use App\Domain\Dashboard\DTOs\UpcomingTripDTO;
@@ -18,6 +19,7 @@ use App\Domain\Fleet\Enums\VehicleStatus;
 use App\Domain\Maintenance\Enums\MaintenanceStatus;
 use App\Domain\Operations\Enums\TripStatus;
 use App\Infrastructure\Database\Models\EmployeeModel;
+use App\Infrastructure\Database\Models\FuelLogModel;
 use App\Infrastructure\Database\Models\MaintenanceOrderModel;
 use App\Infrastructure\Database\Models\TripModel;
 use App\Infrastructure\Database\Models\VehicleModel;
@@ -106,6 +108,18 @@ final class EloquentDashboardReader implements DashboardReader
             ->all();
 
         return new CrewAlertsDTO(array_values($drivers));
+    }
+
+    public function fuel(DateTimeImmutable $since): FuelSummaryDTO
+    {
+        $logs = FuelLogModel::query()->where('fueled_at', '>=', $this->utc($since));
+
+        return new FuelSummaryDTO(
+            since: $since,
+            costCents: (int) (clone $logs)->sum('total_cost_cents'),
+            litersMilliliters: (int) (clone $logs)->sum('liters_milliliters'),
+            logCount: (clone $logs)->count(),
+        );
     }
 
     public function maintenance(DateTimeImmutable $since): MaintenanceSummaryDTO

@@ -76,6 +76,12 @@ final class DashboardSummaryResource extends JsonResource
                 'open' => $summary->maintenance->openCount,
                 'in_progress' => $summary->maintenance->inProgressCount,
             ],
+            'fuel' => $summary->fuel === null ? null : [
+                'month_start' => $this->iso($summary->fuel->since),
+                'month_cost_cents' => $summary->fuel->costCents,
+                'month_liters_milliliters' => $summary->fuel->litersMilliliters,
+                'month_logs' => $summary->fuel->logCount,
+            ],
         ];
     }
 

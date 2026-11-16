@@ -166,7 +166,7 @@ it('blocks scheduling trips for a vehicle with a pending order and frees it when
     $lines = new InMemoryLineRepository;
     $lines->add(new Line('line-1', 'Curitiba', 'Ourinhos', 400, 390));
     $trips = new InMemoryTripRepository;
-    $schedule = new ScheduleTripAction($trips, $lines, $this->fleet, $this->crew, new FixedClock('2026-11-13 10:00:00'), new ImmediateTransactionRunner);
+    $schedule = new ScheduleTripAction($trips, $lines, $this->fleet, $this->crew, new FixedClock('2026-11-13 10:00:00'), new ImmediateTransactionRunner, new RecordingEventDispatcher);
     $utc = new DateTimeZone('UTC');
     $trip = new ScheduleTripDTO('line-1', 'bus-1', 'driver-1', new DateTimeImmutable('2026-11-20 08:00', $utc), new DateTimeImmutable('2026-11-20 14:30', $utc));
 

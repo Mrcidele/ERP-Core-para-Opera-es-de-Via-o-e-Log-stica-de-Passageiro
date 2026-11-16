@@ -7,6 +7,7 @@ namespace Tests\Fakes;
 use App\Domain\Dashboard\Contracts\DashboardReader;
 use App\Domain\Dashboard\DTOs\CrewAlertsDTO;
 use App\Domain\Dashboard\DTOs\FleetSummaryDTO;
+use App\Domain\Dashboard\DTOs\FuelSummaryDTO;
 use App\Domain\Dashboard\DTOs\MaintenanceSummaryDTO;
 use App\Domain\Dashboard\DTOs\OperationsSummaryDTO;
 use DateTimeImmutable;
@@ -36,6 +37,13 @@ final class InMemoryDashboardReader implements DashboardReader
         $this->calls['crew'] = [$today->format('Y-m-d H:i'), $until->format('Y-m-d H:i')];
 
         return new CrewAlertsDTO([]);
+    }
+
+    public function fuel(DateTimeImmutable $since): FuelSummaryDTO
+    {
+        $this->calls['fuel'] = [$since->format('Y-m-d H:i')];
+
+        return new FuelSummaryDTO($since, 987_654, 1_600_000, 5);
     }
 
     public function maintenance(DateTimeImmutable $since): MaintenanceSummaryDTO

@@ -7,6 +7,7 @@ use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Crew\EmployeeController;
 use App\Presentation\Http\Controllers\Dashboard\DashboardController;
 use App\Presentation\Http\Controllers\Fleet\VehicleController;
+use App\Presentation\Http\Controllers\Fuel\FuelLogController;
 use App\Presentation\Http\Controllers\HealthController;
 use App\Presentation\Http\Controllers\Maintenance\MaintenanceOrderController;
 use App\Presentation\Http\Controllers\Operations\LineController;
@@ -45,12 +46,18 @@ Route::prefix('v1')->group(function (): void {
             Route::post('lines', [LineController::class, 'store'])->can('operations.manage')->name('operations.lines.store');
             Route::put('lines/{line}', [LineController::class, 'update'])->can('operations.manage')->name('operations.lines.update');
             Route::delete('lines/{line}', [LineController::class, 'destroy'])->can('operations.manage')->name('operations.lines.destroy');
+            Route::get('schedule-timeline', [TripController::class, 'timeline'])->can('operations.view')->name('operations.schedule-timeline');
             Route::get('trips/export', [TripController::class, 'export'])->can('operations.view')->name('operations.trips.export');
             Route::get('trips', [TripController::class, 'index'])->can('operations.view')->name('operations.trips.index');
             Route::post('trips', [TripController::class, 'store'])->can('operations.manage')->name('operations.trips.store');
             Route::post('trips/{trip}/start', [TripController::class, 'start'])->can('operations.manage')->name('operations.trips.start');
             Route::post('trips/{trip}/complete', [TripController::class, 'complete'])->can('operations.manage')->name('operations.trips.complete');
             Route::post('trips/{trip}/cancel', [TripController::class, 'cancel'])->can('operations.manage')->name('operations.trips.cancel');
+        });
+
+        Route::prefix('fuel')->group(function (): void {
+            Route::get('logs', [FuelLogController::class, 'index'])->can('fleet.view')->name('fuel.logs.index');
+            Route::post('logs', [FuelLogController::class, 'store'])->can('fleet.manage')->name('fuel.logs.store');
         });
 
         Route::prefix('maintenance')->group(function (): void {

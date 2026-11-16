@@ -7,12 +7,15 @@ namespace App\Presentation\Http\Controllers\Operations;
 use App\Domain\Operations\Actions\CancelTripAction;
 use App\Domain\Operations\Actions\CompleteTripAction;
 use App\Domain\Operations\Actions\ExportTripsAction;
+use App\Domain\Operations\Actions\GetScheduleTimelineAction;
 use App\Domain\Operations\Actions\ListTripsAction;
 use App\Domain\Operations\Actions\ScheduleTripAction;
 use App\Domain\Operations\Actions\StartTripAction;
 use App\Presentation\Http\Controllers\Controller;
 use App\Presentation\Http\Requests\Operations\ListTripsRequest;
+use App\Presentation\Http\Requests\Operations\ScheduleTimelineRequest;
 use App\Presentation\Http\Requests\Operations\ScheduleTripRequest;
+use App\Presentation\Http\Resources\Operations\ScheduleTimelineResource;
 use App\Presentation\Http\Resources\Operations\TripResource;
 use App\Presentation\Http\Resources\Operations\TripSummaryResource;
 use App\Presentation\Http\Support\CsvStream;
@@ -26,6 +29,11 @@ final class TripController extends Controller
     public function index(ListTripsRequest $request, ListTripsAction $action): AnonymousResourceCollection
     {
         return $this->paginated(TripSummaryResource::class, $action->execute($request->toPageQuery()));
+    }
+
+    public function timeline(ScheduleTimelineRequest $request, GetScheduleTimelineAction $action): ScheduleTimelineResource
+    {
+        return new ScheduleTimelineResource($action->execute($request->day()));
     }
 
     public function export(ListTripsRequest $request, ExportTripsAction $action): StreamedResponse

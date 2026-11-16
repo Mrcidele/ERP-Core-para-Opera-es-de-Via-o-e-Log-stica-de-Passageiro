@@ -15,5 +15,7 @@ final readonly class DashboardSummaryDTO
         public ?OperationsSummaryDTO $operations,
         public ?CrewAlertsDTO $crew,
         public ?MaintenanceSummaryDTO $maintenance,
+        /** Gasto de combustível do mês; acompanha a permissão de consultar a frota. */
+        public ?FuelSummaryDTO $fuel,
     ) {}
 }

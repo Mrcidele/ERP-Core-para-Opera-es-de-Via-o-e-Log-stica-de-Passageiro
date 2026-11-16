@@ -8,6 +8,7 @@ use App\Domain\Crew\Enums\EmployeeRole;
 use App\Domain\Fleet\Enums\VehicleStatus;
 use App\Domain\Identity\Enums\UserRole;
 use App\Infrastructure\Database\Models\EmployeeModel;
+use App\Infrastructure\Database\Models\FuelLogModel;
 use App\Infrastructure\Database\Models\LineModel;
 use App\Infrastructure\Database\Models\LineStopModel;
 use App\Infrastructure\Database\Models\MaintenanceOrderModel;
@@ -67,6 +68,32 @@ class DatabaseSeeder extends Seeder
                     'cumulative_km' => $km,
                     'estimated_minutes' => $elapsed,
                 ]);
+            }
+        }
+
+        // Abastecimentos das últimas semanas de dez veículos: do mais antigo para o mais recente, o hodômetro
+        // termina na quilometragem atual. O último veículo roda pouco por litro, para o alerta de consumo aparecer.
+        $recorder = UserModel::query()->orderBy('created_at')->first();
+
+        if ($recorder !== null) {
+            foreach ($vehicles->take(10)->values() as $index => $vehicle) {
+                $kmPerLiter = $index === 9 ? 1.7 : fake()->randomFloat(2, 2.6, 3.4);
+                $odometer = $vehicle->current_mileage;
+
+                foreach ([2, 6, 11, 17, 24] as $daysAgo) {
+                    $liters = fake()->numberBetween(180_000, 380_000);
+
+                    FuelLogModel::factory()->create([
+                        'vehicle_id' => $vehicle->id,
+                        'recorded_by_user_id' => $recorder->id,
+                        'odometer_km' => max(0, $odometer),
+                        'liters_milliliters' => $liters,
+                        'fueled_at' => now()->subDays($daysAgo)->setTime(fake()->numberBetween(5, 21), fake()->randomElement([0, 15, 30, 45])),
+                    ]);
+
+                    // O abastecimento anterior aconteceu "litros × rendimento" quilômetros antes.
+                    $odometer -= (int) round($liters / 1000 * $kmPerLiter);
+                }
             }
         }
 

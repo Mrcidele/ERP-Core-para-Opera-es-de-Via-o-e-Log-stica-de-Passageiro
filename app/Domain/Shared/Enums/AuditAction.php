@@ -11,10 +11,12 @@ enum AuditAction: string
     case LineCreated = 'line.created';
     case LineUpdated = 'line.updated';
     case LineDeleted = 'line.deleted';
+    case TripScheduled = 'trip.scheduled';
     case TripCompleted = 'trip.completed';
     case TripCanceled = 'trip.canceled';
     case MaintenanceOrderOpened = 'maintenance_order.opened';
     case MaintenanceOrderCompleted = 'maintenance_order.completed';
+    case FuelLogRecorded = 'fuel_log.recorded';
     case LoginFailed = 'auth.login_failed';
 
     public function label(): string
@@ -24,10 +26,12 @@ enum AuditAction: string
             self::LineCreated => 'Linha criada',
             self::LineUpdated => 'Linha alterada',
             self::LineDeleted => 'Linha excluída',
+            self::TripScheduled => 'Viagem agendada',
             self::TripCompleted => 'Viagem concluída',
             self::TripCanceled => 'Viagem cancelada',
             self::MaintenanceOrderOpened => 'Ordem de serviço aberta',
             self::MaintenanceOrderCompleted => 'Ordem de serviço concluída',
+            self::FuelLogRecorded => 'Abastecimento registrado',
             self::LoginFailed => 'Login recusado',
         };
     }

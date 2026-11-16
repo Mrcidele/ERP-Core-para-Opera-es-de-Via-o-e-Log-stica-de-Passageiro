@@ -7,6 +7,7 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Infrastructure\Database\Models\AuditLogModel;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use App\Infrastructure\Database\Models\LineModel;
+use App\Infrastructure\Database\Models\TripModel;
 use App\Infrastructure\Database\Models\UserModel;
 use App\Infrastructure\Database\Models\VehicleModel;
 
@@ -65,8 +66,8 @@ it('audits the completion of a trip', function (): void {
     $trip = scheduledTripId();
     $this->postJson("/api/v1/operations/trips/{$trip}/start")->assertOk();
 
-    // Agendar e iniciar não são operações auditadas.
-    $this->assertDatabaseCount('audit_logs', 0);
+    // Iniciar não é auditado: até aqui só existe o registro do agendamento.
+    $this->assertDatabaseCount('audit_logs', 1);
 
     $this->postJson("/api/v1/operations/trips/{$trip}/complete")->assertOk();
 
@@ -234,4 +235,39 @@ it('shows the code itself as the label of an action the system no longer knows',
     ]);
 
     $this->getJson('/api/v1/audit-logs')->assertOk()->assertJsonPath('data.0.action_label', 'legacy.action');
+});
+
+it('audits the scheduling of a trip with the data of the trip created', function (): void {
+    $trip = scheduledTripId();
+
+    $log = AuditLogModel::query()->sole();
+    $stored = TripModel::query()->findOrFail($trip);
+
+    expect([$log->action, $log->auditable_type, $log->auditable_id, $log->old_values, $log->user_id])
+        ->toBe(['trip.scheduled', 'trip', $trip, null, $this->admin->id])
+        // O JSONB não preserva a ordem das chaves.
+        ->and($log->new_values)->toEqual([
+            'status' => 'scheduled',
+            'line_id' => $stored->line_id,
+            'vehicle_id' => $stored->vehicle_id,
+            'driver_id' => $stored->driver_id,
+            'departure_time' => '2026-11-20T11:00:00+00:00',
+            'arrival_time' => '2026-11-20T17:30:00+00:00',
+        ]);
+
+    $this->getJson('/api/v1/audit-logs?search=agendada')->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.action_label', 'Viagem agendada');
+});
+
+it('does not audit a trip that was refused', function (): void {
+    $this->postJson('/api/v1/operations/trips', [
+        'line_id' => LineModel::factory()->create()->id,
+        'vehicle_id' => VehicleModel::factory()->create(['status' => 'inactive'])->id,
+        'driver_id' => EmployeeModel::factory()->create()->id,
+        'departure_time' => '2026-11-20T08:00:00-03:00',
+        'arrival_time' => '2026-11-20T14:30:00-03:00',
+    ])->assertUnprocessable();
+
+    $this->assertDatabaseCount('audit_logs', 0);
 });

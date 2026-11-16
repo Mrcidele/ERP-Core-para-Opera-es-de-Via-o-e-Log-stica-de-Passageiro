@@ -29,7 +29,10 @@ it('builds every block with the right time windows', function (): void {
             'crew' => ['2026-11-13 00:00', '2026-12-13 00:00'],
             // Ordens concluídas nos últimos 30 dias.
             'maintenance' => ['2026-10-14 10:00'],
-        ]);
+            // Combustível do mês corrente, a partir do dia 1º.
+            'fuel' => ['2026-11-01 00:00'],
+        ])
+        ->and($summary->fuel?->costCents)->toBe(987_654);
 });
 
 it('leaves out, without even querying, the blocks the user cannot see', function (DashboardScopeDTO $scope, array $queried): void {
@@ -39,11 +42,13 @@ it('leaves out, without even querying, the blocks the user cannot see', function
         ->and($summary->fleet !== null)->toBe($scope->fleet)
         ->and($summary->operations !== null)->toBe($scope->operations)
         ->and($summary->crew !== null)->toBe($scope->crew)
-        ->and($summary->maintenance !== null)->toBe($scope->maintenance);
+        ->and($summary->maintenance !== null)->toBe($scope->maintenance)
+        // O combustível acompanha a permissão de consultar a frota.
+        ->and($summary->fuel !== null)->toBe($scope->fleet);
 })->with([
     'nothing' => [new DashboardScopeDTO(false, false, false, false), []],
-    'workshop supervisor' => [new DashboardScopeDTO(true, false, false, true), ['fleet', 'maintenance']],
-    'dispatcher' => [new DashboardScopeDTO(true, true, true, false), ['fleet', 'operations', 'crew']],
+    'workshop supervisor' => [new DashboardScopeDTO(true, false, false, true), ['fleet', 'maintenance', 'fuel']],
+    'dispatcher' => [new DashboardScopeDTO(true, true, true, false), ['fleet', 'operations', 'crew', 'fuel']],
 ]);
 
 it('computes the fleet total and availability rate', function (int $active, int $maintenance, int $inactive, int $total, float $rate): void {

@@ -20,7 +20,9 @@ use App\Domain\Operations\Exceptions\VehicleScheduleConflictException;
 use App\Domain\Operations\Repositories\LineRepository;
 use App\Domain\Operations\Repositories\TripRepository;
 use App\Domain\Shared\Contracts\Clock;
+use App\Domain\Shared\Contracts\EventDispatcher;
 use App\Domain\Shared\Contracts\TransactionRunner;
+use App\Domain\Shared\Events\TripScheduled;
 
 final readonly class ScheduleTripAction
 {
@@ -31,6 +33,7 @@ final readonly class ScheduleTripAction
         private CrewGateway $crew,
         private Clock $clock,
         private TransactionRunner $transaction,
+        private EventDispatcher $events,
     ) {}
 
     public function execute(ScheduleTripDTO $data): Trip
@@ -77,6 +80,7 @@ final readonly class ScheduleTripAction
             $trip = Trip::schedule($this->trips->nextIdentity(), $data);
 
             $this->trips->save($trip);
+            $this->events->dispatch(new TripScheduled($trip->id, $trip->lineId, $trip->vehicleId, $trip->driverId, $trip->departureTime, $trip->arrivalTime));
 
             return $trip;
         });
