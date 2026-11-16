@@ -48,6 +48,7 @@ const full: DashboardSummary = {
         ],
     },
     maintenance: { completed_last_30_days: { count: 2, total_cost_cents: 145_100 }, open: 2, in_progress: 1 },
+    fuel: { month_start: '2026-11-01T00:00:00+00:00', month_cost_cents: 2_150_590, month_liters_milliliters: 3_505_500, month_logs: 12 },
 };
 
 async function mountView(summary: DashboardSummary | Error): Promise<VueWrapper> {
@@ -96,6 +97,8 @@ describe('DashboardView', () => {
         expect(kpi(wrapper, 'maintenance-cost')).toContain('R$ 1.451,00');
         expect(kpi(wrapper, 'maintenance-cost')).toContain('2 ordens concluídas');
         expect(wrapper.get('[data-test="kpi-maintenance-cost"] [data-test="stat-alert"]').text()).toBe('3 pendentes');
+        expect(kpi(wrapper, 'fuel-cost')).toContain('R$ 21.505,90');
+        expect(kpi(wrapper, 'fuel-cost')).toContain('3.505,5 L em 12 abastecimentos');
         expect(wrapper.get('[data-test="generated-at"]').text()).toContain(formatDateTime('2026-11-13T10:00:00+00:00'));
     });
 
@@ -171,6 +174,7 @@ describe('DashboardView', () => {
 
         expect(wrapper.find('[data-test="kpi-availability"]').exists()).toBe(true);
         expect(wrapper.find('[data-test="kpi-maintenance-cost"]').exists()).toBe(true);
+        expect(wrapper.find('[data-test="kpi-fuel-cost"]').exists()).toBe(true);
         expect(wrapper.find('[data-test="kpi-in-progress"]').exists()).toBe(false);
         expect(wrapper.find('[data-test="kpi-next-24h"]').exists()).toBe(false);
         expect(wrapper.find('[data-test="next-trips"]').exists()).toBe(false);

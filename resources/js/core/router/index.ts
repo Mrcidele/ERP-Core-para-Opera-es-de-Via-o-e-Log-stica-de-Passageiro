@@ -31,6 +31,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: 'Frota', permission: 'fleet.view' },
     },
     {
+        path: '/abastecimento',
+        name: 'fuel',
+        component: () => import('@/modules/fuel/pages/FuelView.vue'),
+        meta: { title: 'Abastecimento', permission: 'fleet.view' },
+    },
+    {
         path: '/operacoes',
         name: 'operations',
         component: () => import('@/modules/operations/pages/OperationsView.vue'),

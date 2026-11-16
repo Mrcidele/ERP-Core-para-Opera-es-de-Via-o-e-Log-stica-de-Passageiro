@@ -24,6 +24,7 @@ const ENTITY_LABELS: Record<string, string> = {
     line: 'Linha',
     trip: 'Viagem',
     maintenance_order: 'Ordem de serviço',
+    fuel_log: 'Abastecimento',
     user: 'Usuário',
 };
 

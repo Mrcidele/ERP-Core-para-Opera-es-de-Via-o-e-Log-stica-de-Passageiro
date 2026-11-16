@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { REAIS, reaisToCents } from '@/core/utils/money';
 import { MAINTENANCE_TYPES } from '../types/maintenance';
 
 // Mesmas regras de OpenMaintenanceOrderRequest e CloseMaintenanceOrderRequest do backend.
@@ -17,17 +18,10 @@ export const openMaintenanceOrderSchema = z.object({
 export type OpenMaintenanceOrderPayload = z.output<typeof openMaintenanceOrderSchema>;
 export type OpenMaintenanceOrderField = keyof OpenMaintenanceOrderPayload;
 
-/** Valor em reais como se digita no Brasil: "450", "450,9", "1.234,56". */
-const REAIS = /^(\d{1,3}(\.\d{3})+|\d+)(,\d{1,2})?$/;
-
 const MAX_COST_CENTS = 2_000_000_000;
 
-/** Converte "1.234,56" em 123456 centavos, sem passar por ponto flutuante. */
-export function reaisToCents(value: string): number {
-    const [integer = '0', decimals = ''] = value.trim().replaceAll('.', '').split(',');
-
-    return Number(integer) * 100 + Number(decimals.padEnd(2, '0'));
-}
+// Usada pelos testes e por quem já importava daqui.
+export { reaisToCents };
 
 export const completeMaintenanceOrderSchema = z
     .object({

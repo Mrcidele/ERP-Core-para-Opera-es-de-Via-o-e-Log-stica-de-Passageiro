@@ -5,7 +5,7 @@ import AppIcon from '@/core/ui/AppIcon.vue';
 import EmptyState from '@/core/ui/EmptyState.vue';
 import MercosulPlate from '@/core/ui/MercosulPlate.vue';
 import StatCard from '@/core/ui/StatCard.vue';
-import { countLabel, formatCents, formatDate, formatDateTime, formatKm, formatPercent } from '@/core/utils/format';
+import { countLabel, formatCents, formatDate, formatDateTime, formatKm, formatLiters, formatPercent } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import { useDashboardStore } from '../stores/dashboardStore';
 
@@ -18,6 +18,17 @@ const fleet = computed(() => store.summary?.fleet ?? null);
 const operations = computed(() => store.summary?.operations ?? null);
 const crew = computed(() => store.summary?.crew ?? null);
 const maintenance = computed(() => store.summary?.maintenance ?? null);
+const fuel = computed(() => store.summary?.fuel ?? null);
+
+/**
+ * Os indicadores variam com as permissões. Até quatro, ficam em uma linha; com os cinco, três em cima
+ * e os dois de valores em reais embaixo, mais largos, para a linha de baixo não ficar com um cartão só.
+ */
+const kpiLayout = computed(() => {
+    const count = (fleet.value ? 1 : 0) + (operations.value ? 2 : 0) + (maintenance.value ? 1 : 0) + (fuel.value ? 1 : 0);
+
+    return count === 5 ? 'xl:grid-cols-6 xl:[&>*:nth-child(-n+3)]:col-span-2 xl:[&>*:nth-child(n+4)]:col-span-3' : 'xl:grid-cols-4';
+});
 
 const firstName = computed(() => auth.user?.name.split(' ')[0] ?? '');
 
@@ -78,7 +89,7 @@ function licenseLabel(days: number): string {
 
     <template v-else-if="store.summary">
         <!-- Indicadores: só aparecem os dos módulos que o usuário pode consultar. -->
-        <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+        <section class="mt-6 grid gap-4 sm:grid-cols-2" :class="kpiLayout" aria-label="Indicadores">
             <StatCard
                 v-if="fleet"
                 data-test="kpi-availability"
@@ -112,6 +123,14 @@ function licenseLabel(days: number): string {
                 :subtitle="countLabel(maintenance.completed_last_30_days.count, 'ordem concluída', 'ordens concluídas')"
                 icon="coins"
                 v-bind="pendingOrders > 0 ? { alert: countLabel(pendingOrders, 'pendente', 'pendentes') } : {}"
+            />
+            <StatCard
+                v-if="fuel"
+                data-test="kpi-fuel-cost"
+                label="Combustível no mês"
+                :value="formatCents(fuel.month_cost_cents)"
+                :subtitle="`${formatLiters(fuel.month_liters_milliliters)} em ${countLabel(fuel.month_logs, 'abastecimento', 'abastecimentos')}`"
+                icon="fuel"
             />
         </section>
 

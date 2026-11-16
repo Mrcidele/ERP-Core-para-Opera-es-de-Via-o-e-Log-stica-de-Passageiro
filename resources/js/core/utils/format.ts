@@ -38,3 +38,12 @@ export function formatDate(isoDate: string): string {
 /** Percentual com uma casa decimal: 66.7 → "66,7%". */
 export const formatPercent = (value: number): string =>
     `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)}%`;
+
+const liters = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 });
+const efficiency = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** 350500 → "350,5 L" (o volume trafega em mililitros). */
+export const formatLiters = (milliliters: number): string => `${liters.format(milliliters / 1000)} L`;
+
+/** 2.85 → "2,85 km/L". */
+export const formatKmPerLiter = (value: number): string => `${efficiency.format(value)} km/L`;

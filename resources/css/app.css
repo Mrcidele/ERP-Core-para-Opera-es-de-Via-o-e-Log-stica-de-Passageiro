@@ -141,6 +141,19 @@
         @apply mb-1 block text-xs font-medium text-ink-500 sm:sr-only;
     }
 
+    /* ---------- Grade de escala ---------- */
+    /* Descanso obrigatório do motorista: hachura clara, para não competir com as viagens. */
+    .timeline-rest {
+        @apply border border-dashed border-ink-300;
+        background-image: repeating-linear-gradient(135deg, theme('colors.ink.100') 0 6px, transparent 6px 12px);
+    }
+
+    /* Veículo na oficina: hachura vermelha. */
+    .timeline-maintenance {
+        @apply border border-brake-600/30;
+        background-image: repeating-linear-gradient(135deg, theme('colors.brake.50') 0 6px, theme('colors.brake.100') 6px 12px);
+    }
+
     /* ---------- Paginação no rodapé das tabelas ---------- */
     .page-step {
         @apply inline-flex h-8 items-center rounded-md border border-ink-200 bg-white px-3 text-sm font-medium text-ink-700 transition-colors hover:border-ink-300 hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40;

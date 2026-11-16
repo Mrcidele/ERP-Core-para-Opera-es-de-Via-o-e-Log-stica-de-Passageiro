@@ -23,6 +23,10 @@ const PATHS = {
     'arrow-up': 'M12 19V5m0 0-5 5m5-5 5 5',
     'arrow-down': 'M12 5v14m0 0 5-5m-5 5-5-5',
     signpost: 'M12 3v18M12 6h6l2 2-2 2h-6M12 12H6l-2 2 2 2h6',
+    fuel: 'M5 20V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v14M4 20h11M7.5 8h4M14 11h1.5a1.5 1.5 0 0 1 1.5 1.5V16a1.5 1.5 0 0 0 3 0V9.5L17 6.5',
+    calendar: 'M7 3v3m10-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z',
+    'chevron-left': 'M14.5 6 8.5 12l6 6',
+    'chevron-right': 'M9.5 6l6 6-6 6',
     info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-10v5m0-8h.01',
 } as const;
 

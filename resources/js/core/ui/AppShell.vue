@@ -22,6 +22,7 @@ const groups: { label: string; sections: Section[] }[] = [
         sections: [
             { name: 'dashboard', label: 'Painel', icon: 'panel' },
             { name: 'fleet', label: 'Frota', icon: 'bus', permission: 'fleet.view' },
+            { name: 'fuel', label: 'Abastecimento', icon: 'fuel', permission: 'fleet.view' },
             { name: 'operations', label: 'Operações', icon: 'route', permission: 'operations.view' },
             { name: 'lines', label: 'Linhas e rotas', icon: 'signpost', permission: 'operations.view' },
             { name: 'crew', label: 'Tripulação', icon: 'crew', permission: 'crew.view' },

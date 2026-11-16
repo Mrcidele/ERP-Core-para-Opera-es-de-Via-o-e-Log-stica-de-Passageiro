@@ -55,6 +55,15 @@ export interface DashboardMaintenance {
     in_progress: number;
 }
 
+/** Combustível abastecido desde o início do mês corrente. */
+export interface DashboardFuel {
+    /** ISO 8601 em UTC. */
+    month_start: string;
+    month_cost_cents: number;
+    month_liters_milliliters: number;
+    month_logs: number;
+}
+
 export interface DashboardSummary {
     /** ISO 8601 em UTC. */
     generated_at: string;
@@ -62,4 +71,6 @@ export interface DashboardSummary {
     operations: DashboardOperations | null;
     crew: DashboardCrew | null;
     maintenance: DashboardMaintenance | null;
+    /** Acompanha a permissão de consultar a frota. */
+    fuel: DashboardFuel | null;
 }
