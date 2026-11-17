@@ -25,11 +25,11 @@ use App\Domain\Shared\Events\UserCreated;
 use App\Domain\Shared\Events\VehicleDeleted;
 use App\Infrastructure\Database\ConnectionDatabaseProbe;
 use App\Infrastructure\Database\DatabaseTransactionRunner;
+use App\Infrastructure\Database\StatementTimeoutPostgresConnector;
 use App\Infrastructure\Events\LaravelEventDispatcher;
 use App\Infrastructure\Support\InsecureConfigurationGuard;
 use App\Infrastructure\Support\SystemClock;
 use App\Infrastructure\Support\TrustedProxies;
-use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -43,6 +43,12 @@ final class AppServiceProvider extends ServiceProvider
         EventDispatcher::class => LaravelEventDispatcher::class,
         TransactionRunner::class => DatabaseTransactionRunner::class,
     ];
+
+    public function register(): void
+    {
+        // Conector do PostgreSQL que aplica o statement_timeout ao abrir a conexão.
+        $this->app->bind('db.connector.pgsql', StatementTimeoutPostgresConnector::class);
+    }
 
     public function boot(): void
     {
@@ -60,16 +66,6 @@ final class AppServiceProvider extends ServiceProvider
         if ($this->app->isProduction()) {
             URL::forceScheme('https');
         }
-
-        // Teto de tempo por consulta no PostgreSQL: uma consulta pesada é cancelada antes de
-        // esgotar a cota de compute do banco. O valor é validado antes de entrar no SQL.
-        Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event): void {
-            $timeout = $event->connection->getConfig('statement_timeout');
-
-            if ($event->connection->getDriverName() === 'pgsql' && is_string($timeout) && preg_match('/^\d{1,6}(ms|s|min)?$/', $timeout) === 1) {
-                $event->connection->statement("SET statement_timeout TO '{$timeout}'");
-            }
-        });
 
         // Reações entre módulos a eventos de domínio.
         Event::listen(TripCompleted::class, AddTripDistanceToVehicleMileage::class);

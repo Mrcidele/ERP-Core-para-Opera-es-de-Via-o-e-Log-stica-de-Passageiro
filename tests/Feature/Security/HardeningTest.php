@@ -250,6 +250,19 @@ it('ignores a statement timeout that is not a plain duration', function (): void
         ->and(DB::getSchemaBuilder()->hasTable('users'))->toBeTrue();
 });
 
+it('does not open the connection just to set the timeout, so an unreachable database stays a query error', function (): void {
+    config(['database.connections.pgsql_down' => [...config('database.connections.pgsql'), 'port' => 1, 'statement_timeout' => '15s']]);
+
+    try {
+        // Criar o objeto de conexão (o cache e o limitador fazem isso no boot) não pode conectar.
+        $connection = DB::connection('pgsql_down');
+
+        expect(fn () => $connection->select('SELECT 1'))->toThrow(QueryException::class);
+    } finally {
+        DB::purge('pgsql_down');
+    }
+});
+
 /** Abre uma conexão nova com o `statement_timeout` informado e devolve o valor que o PostgreSQL aplicou. */
 function statementTimeoutWith(string $timeout): string
 {
