@@ -35,9 +35,10 @@ COPY docker/production/php.ini /usr/local/etc/php/conf.d/zz-app.ini
 # O nome começa com zzz para ser lido depois do zz-docker.conf da imagem base, que também define `listen`.
 COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zzz-app.conf
 COPY docker/production/nginx.conf /etc/nginx/nginx.conf
+COPY docker/production/security-headers.conf /etc/nginx/security-headers.conf
 COPY docker/production/supervisord.conf /etc/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/entrypoint
-RUN chmod +x /usr/local/bin/entrypoint
+RUN chmod 0755 /usr/local/bin/entrypoint
 
 WORKDIR /var/www/html
 
@@ -45,19 +46,30 @@ COPY --from=vendor /app/vendor ./vendor
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
+# O código fica com o root e só leitura para o www-data; o www-data escreve apenas em storage/ e
+# bootstrap/cache/. O Composer sai da imagem depois de gerar o autoload.
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
+    && rm /usr/bin/composer \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
-    && chown -R www-data:www-data storage bootstrap/cache
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R u=rwX,g=rX,o= storage bootstrap/cache
 
 # Padrões de produção; tudo pode ser sobrescrito pelas variáveis do ambiente de execução.
+# A API autentica por token: sessão não é usada, então fica em memória (nada é gravado no banco
+# a cada página aberta).
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
     DB_CONNECTION=pgsql \
     DB_SSLMODE=require \
+    DB_STATEMENT_TIMEOUT=15s \
     CACHE_STORE=database \
-    SESSION_DRIVER=database \
+    SESSION_DRIVER=array \
+    SESSION_SECURE_COOKIE=true \
     QUEUE_CONNECTION=sync
+
+# Nginx (porta 8080), PHP-FPM e Supervisor rodam como www-data, sem root.
+USER www-data
 
 EXPOSE 8080
 

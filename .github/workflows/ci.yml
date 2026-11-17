@@ -164,6 +164,48 @@ jobs:
           test -n "$asset"
           curl -fsS -o /dev/null "http://localhost:8080$asset"
 
+      - name: Cabeçalhos de segurança na página, nos assets e nos erros
+        run: |
+          check() {
+            headers=$(curl -s -D - -o /dev/null "$1")
+            echo "$headers"
+            for h in 'strict-transport-security: max-age=31536000; includeSubDomains' 'x-frame-options: DENY' \
+                     'x-content-type-options: nosniff' 'referrer-policy: strict-origin-when-cross-origin' 'permissions-policy: camera=()'; do
+              echo "$headers" | tr -d '\r' | grep -iq "^$h" || { echo "Faltou: $h em $1" >&2; exit 1; }
+            done
+            # Um valor só por cabeçalho (o Nginx descarta os da aplicação) e sem versão de servidor/PHP.
+            test "$(echo "$headers" | grep -ic '^x-frame-options:')" = "1"
+            ! echo "$headers" | grep -iq '^x-powered-by:'
+            ! echo "$headers" | grep -iq '^server: nginx/'
+          }
+          check http://localhost:8080/
+          check "http://localhost:8080$(grep -o '/build/assets/[^"]*\.js' index.html | head -n 1)"
+          check http://localhost:8080/.env
+          curl -s -D - -o /dev/null http://localhost:8080/ | grep -iq "^content-security-policy: default-src 'self'"
+
+      - name: Arquivos sensíveis e métodos não usados são bloqueados
+        run: |
+          for path in /.env /.git/config /.htaccess /composer.json /composer.lock /package.json /artisan \
+                      /database/database.sqlite /storage/logs/laravel.log /vendor/autoload.php /index.php.bak /.env.example; do
+            status=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080$path")
+            echo "$path -> $status"
+            test "$status" = "404"
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X TRACE http://localhost:8080/)" = "405"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X TRACK http://localhost:8080/)" = "405"
+
+      - name: Nenhum processo roda como root
+        run: |
+          docker exec erp ps -o user,comm
+          test -z "$(docker exec erp ps -o user | tail -n +2 | grep -v '^www-data' || true)"
+
+      - name: Configuração insegura impede a subida
+        run: |
+          key="base64:$(openssl rand -base64 32)"
+          ! docker run --rm -e APP_KEY="$key" -e APP_DEBUG=true erp-viacao:ci true
+          ! docker run --rm -e APP_KEY="curta" erp-viacao:ci true
+          ! docker run --rm erp-viacao:ci true
+
       - name: Health check responde 503 sem o banco
         run: |
           docker stop "${{ job.services.postgres.id }}"

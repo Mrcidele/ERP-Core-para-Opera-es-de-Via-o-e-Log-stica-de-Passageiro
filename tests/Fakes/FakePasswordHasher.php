@@ -7,7 +7,7 @@ namespace Tests\Fakes;
 use App\Domain\Identity\Contracts\PasswordHasher;
 use SensitiveParameter;
 
-/** "Hash" legível para os testes: a senha `abc` vira `hashed:abc`. */
+/** "Hash" legível para os testes: a senha `abc` vira `hashed:abc`; `legacy:abc` é um hash antigo, aceito e a refazer. */
 final class FakePasswordHasher implements PasswordHasher
 {
     /** @var list<string> hashes contra os quais alguma senha foi comparada */
@@ -17,11 +17,16 @@ final class FakePasswordHasher implements PasswordHasher
     {
         $this->comparedAgainst[] = $hash;
 
-        return $hash === 'hashed:'.$plainPassword;
+        return $hash === 'hashed:'.$plainPassword || $hash === 'legacy:'.$plainPassword;
     }
 
     public function hash(#[SensitiveParameter] string $plainPassword): string
     {
         return 'hashed:'.$plainPassword;
+    }
+
+    public function needsRehash(string $hash): bool
+    {
+        return str_starts_with($hash, 'legacy:');
     }
 }

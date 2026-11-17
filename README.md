@@ -39,7 +39,7 @@ A aplicação usa somente PostgreSQL 16 com TLS (`DB_SSLMODE=require`). O fluxo 
    APP_REPORT_TIMEZONE=America/Sao_Paulo
    PORT=8080
    RUN_MIGRATIONS=true
-   TRUSTED_PROXIES=*
+   TRUSTED_PROXIES=render
    DB_CONNECTION=pgsql
    DB_HOST=<host com -pooler>
    DB_PORT=5432
@@ -51,20 +51,25 @@ A aplicação usa somente PostgreSQL 16 com TLS (`DB_SSLMODE=require`). O fluxo 
    # SCRAMBLE_ENABLED=true   # opcional: publica /docs/api
    ```
 
-   `PORT=8080` faz o Render encaminhar o tráfego para a porta em que o Nginx da imagem escuta (o padrão do Render é outra). `RUN_MIGRATIONS=true` aplica migrations novas a cada deploy; com uma única instância, é seguro.
+   `PORT=8080` faz o Render encaminhar o tráfego para a porta em que o Nginx da imagem escuta (o padrão do Render é outra). `RUN_MIGRATIONS=true` aplica migrations novas a cada deploy; com uma única instância, é seguro. `TRUSTED_PROXIES=render` confia na rede interna do Render e nas faixas da Cloudflare, que fica na frente de todo serviço do Render: o proxy do Render não descarta o `X-Forwarded-For` enviado pelo cliente, e com `*` o IP visto seria o da Cloudflare, não o do usuário.
+
+   Segredos (`APP_KEY`, `DB_PASSWORD`, `DB_URL`) entram só na aba *Environment* do serviço, nunca como argumento de build: a imagem não recebe `ARG` e o `.dockerignore` deixa `.env`, chaves e bancos locais fora dela.
 
 4. **Primeiro acesso.** O plano gratuito desliga o serviço após 15 minutos sem tráfego; a primeira requisição depois disso leva cerca de um minuto. Confira `https://<serviço>.onrender.com/api/v1/health` (`200` com `"database":"up"`; `503` indica banco inacessível, detalhe no log) e entre com o usuário criado no passo 2.
 
-O contêiner tem 512 MB: o PHP-FPM usa `pm = ondemand` com no máximo 5 processos, que sobem sob demanda e saem após 10 s ociosos.
+O contêiner tem 512 MB: o PHP-FPM usa `pm = ondemand` com no máximo 5 processos de até 80 MB, que sobem sob demanda e saem após 10 s ociosos; cada consulta ao banco é cancelada após 15 s (`DB_STATEMENT_TIMEOUT`). Pelo pooler do Neon (modo transação), o `SET` feito ao abrir a conexão não é garantido em todas as conexões do servidor, então fixe o mesmo teto na role pelo SQL Editor do Neon: `ALTER ROLE neondb_owner SET statement_timeout = '15s';`.
 
 ### Criar usuários
 
 ```bash
 php artisan erp:create-user                       # interativo; erp:create-admin é o mesmo comando
 php artisan erp:create-user --name="Ana Souza" --email=ana@viacao.com.br --role=dispatcher
+
+# automação, sem terminal: a senha chega pela entrada padrão, nunca como argumento
+printf '%s\n' "$SENHA" | php artisan erp:create-user --name="Ana Souza" --email=ana@viacao.com.br --password-stdin --no-interaction
 ```
 
-Sem `--password`, a senha é pedida duas vezes sem eco; prefira assim, porque a opção fica no histórico do shell. A senha precisa de 12 a 72 caracteres, com maiúsculas, minúsculas e números. `--role` (padrão `admin`) aceita `admin`, `dispatcher`, `fleet_manager` e `mechanic_supervisor`. E-mail já cadastrado é recusado, e cada criação entra na auditoria como "Usuário criado" (sem a senha).
+A senha nunca é aceita como argumento, porque ficaria no histórico do shell e visível em `ps`: no terminal ela é pedida duas vezes sem eco; em automação, use `--password-stdin`. A senha precisa de 12 a 128 caracteres, com maiúsculas, minúsculas e números, e é gravada com Argon2id (contas antigas em bcrypt continuam entrando e passam para Argon2id no próximo login). `--role` (padrão `admin`) aceita `admin`, `dispatcher`, `fleet_manager` e `mechanic_supervisor`. E-mail já cadastrado é recusado, e cada criação entra na auditoria como "Usuário criado" (sem a senha).
 
 ### Supabase
 
@@ -88,7 +93,9 @@ docker build -f docker/production/Dockerfile -t erp-viacao .
 docker run -d -p 8080:8080 --env-file .env.production -e RUN_MIGRATIONS=true erp-viacao
 ```
 
-Variáveis mínimas do `.env.production`: `APP_KEY` (gere com `php artisan key:generate --show`), `APP_URL`, os `DB_*` do pooler (seção de deploy) e, atrás de balanceador, `TRUSTED_PROXIES` (IPs do proxy, ou `*` se só ele alcança o contêiner) para que o limite de tentativas e a auditoria vejam o IP real do usuário. A imagem já define `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `DB_SSLMODE=require` e cache e sessão no banco (`CACHE_STORE=database`). A imagem não traz a extensão do Redis; cache e sessão ficam no PostgreSQL.
+Variáveis mínimas do `.env.production`: `APP_KEY` (gere com `php artisan key:generate --show`), `APP_URL`, os `DB_*` do pooler (seção de deploy) e, atrás de balanceador, `TRUSTED_PROXIES` (`render`, IPs/faixas do proxy, ou `*` quando há um único proxy na frente) para que o limite de tentativas e a auditoria vejam o IP real do usuário. A imagem já define `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `DB_SSLMODE=require`, `DB_STATEMENT_TIMEOUT=15s` e cache no banco (`CACHE_STORE=database`); a API autentica por token, então a sessão fica em memória (`SESSION_DRIVER=array`). A imagem não traz a extensão do Redis.
+
+O contêiner recusa subir em produção com `APP_DEBUG=true` ou sem uma `APP_KEY` de 32 bytes, e Nginx, PHP-FPM e Supervisor rodam como `www-data`, sem root. O Nginx envia HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e `Permissions-Policy` em toda resposta (inclusive assets e erros), a aplicação acrescenta a CSP, e arquivos ocultos ou de projeto (`.env`, `.git`, `composer.json`, `*.sqlite`, `vendor/`, `storage/`) e os métodos `TRACE`/`TRACK` são recusados.
 
 Na subida, o contêiner executa `config:cache`, `route:cache` e `view:cache`; com `RUN_MIGRATIONS=true` também aplica as migrations (com várias réplicas, deixe isso para uma etapa do deploy). O balanceador deve monitorar `GET /api/v1/health` na porta `8080`: `200` quando a aplicação e o banco respondem, `503` quando o banco não responde.
 

@@ -12,20 +12,22 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Symfony\Component\Console\Input\StreamableInputInterface;
 
 /**
  * Cria uma conta de acesso pelo terminal. É o caminho para o primeiro administrador em produção,
  * onde o seeder não cria usuários e a tela não tem cadastro de usuários.
  *
  * Sem as opções, pergunta nome, e-mail e senha (a senha sem eco, digitada duas vezes).
- * `--password` funciona, mas a senha fica no histórico do shell: prefira o modo interativo.
+ * A senha nunca vem por argumento, que ficaria no histórico do shell e visível em `ps`:
+ * fora do modo interativo, `--password-stdin` lê a primeira linha da entrada padrão.
  */
 final class CreateUserCommand extends Command
 {
     protected $signature = 'erp:create-user
         {--name= : Nome de quem vai usar a conta}
         {--email= : E-mail de login}
-        {--password= : Senha (fica no histórico do shell; sem esta opção, ela é pedida sem eco)}
+        {--password-stdin : Lê a senha da primeira linha da entrada padrão (automação)}
         {--role=admin : Papel: admin, dispatcher, fleet_manager ou mechanic_supervisor}';
 
     protected $description = 'Cria uma conta de acesso ao ERP (padrão: administrador)';
@@ -48,10 +50,10 @@ final class CreateUserCommand extends Command
             ['name' => $name, 'email' => $email, 'role' => $role, 'password' => $password],
             [
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'email:rfc', 'max:255'],
+                // Caracteres de controle (CR/LF) ficam de fora antes da validação de formato.
+                'email' => ['required', 'string', 'max:254', 'not_regex:/[\x00-\x1F\x7F]/', 'email:rfc'],
                 'role' => ['required', Rule::enum(UserRole::class)],
-                // 72 bytes é o limite do bcrypt: o que passar disso seria ignorado sem aviso.
-                'password' => ['required', 'string', 'max:72', Password::min(12)->letters()->mixedCase()->numbers()],
+                'password' => ['required', 'string', 'max:128', Password::min(12)->letters()->mixedCase()->numbers()],
             ],
             ['role' => 'Papel inválido. Use um destes: '.implode(', ', array_column(UserRole::cases(), 'value')).'.'],
             ['name' => 'nome', 'email' => 'e-mail', 'role' => 'papel', 'password' => 'senha'],
@@ -102,14 +104,12 @@ final class CreateUserCommand extends Command
 
     private function passwordFromInput(): ?string
     {
-        $password = $this->option('password');
-
-        if (is_string($password) && $password !== '') {
-            return $password;
+        if ($this->option('password-stdin') === true) {
+            return $this->passwordFromStdin();
         }
 
         if (! $this->input->isInteractive()) {
-            $this->error('Informe --password (modo não interativo).');
+            $this->error('Informe a senha pelo prompt interativo ou por --password-stdin (modo não interativo).');
 
             return null;
         }
@@ -119,6 +119,21 @@ final class CreateUserCommand extends Command
 
         if (! hash_equals($password, $confirmation)) {
             $this->error('As senhas não conferem.');
+
+            return null;
+        }
+
+        return $password;
+    }
+
+    private function passwordFromStdin(): ?string
+    {
+        $stream = $this->input instanceof StreamableInputInterface ? $this->input->getStream() : null;
+        $line = fgets(is_resource($stream) ? $stream : STDIN);
+        $password = is_string($line) ? rtrim($line, "\r\n") : '';
+
+        if ($password === '') {
+            $this->error('Nenhuma senha recebida pela entrada padrão.');
 
             return null;
         }

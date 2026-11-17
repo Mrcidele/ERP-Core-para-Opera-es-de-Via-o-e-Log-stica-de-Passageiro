@@ -59,6 +59,12 @@ final class EloquentUserRepository implements UserRepository
         return $model === null ? null : $this->toEntity($model);
     }
 
+    public function changePasswordHash(string $userId, string $passwordHash): void
+    {
+        // Grava o hash como está: o cast `hashed` do model só confere que ele é do algoritmo atual.
+        UserModel::query()->whereKey($userId)->update(['password' => $passwordHash]);
+    }
+
     private function toEntity(UserModel $model): User
     {
         return new User(

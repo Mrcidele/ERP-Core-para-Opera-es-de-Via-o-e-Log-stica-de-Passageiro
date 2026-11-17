@@ -35,7 +35,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Sem a rota /storage/{path}: a aplicação não serve arquivos do disco privado.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

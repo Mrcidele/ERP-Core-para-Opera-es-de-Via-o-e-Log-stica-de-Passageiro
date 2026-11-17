@@ -31,4 +31,10 @@ final class InMemoryUserRepository implements UserRepository
     {
         return array_find($this->users, fn (User $user): bool => strtolower($user->email) === strtolower($email));
     }
+
+    public function changePasswordHash(string $userId, string $passwordHash): void
+    {
+        $user = $this->users[$userId];
+        $this->users[$userId] = new User($user->id, $user->name, $user->email, $user->role, $passwordHash);
+    }
 }

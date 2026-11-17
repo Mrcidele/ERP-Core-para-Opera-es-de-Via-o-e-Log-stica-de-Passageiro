@@ -98,6 +98,7 @@ resources/js/
 | Identity | Login, logout e sessão (`/api/v1/auth/login`, `/logout`, `/me`) com tokens Sanctum; usuários com UUID e papel | Implementado |
 | Identity | RBAC: 4 papéis, 9 permissões, um Gate por permissão, 401/403 padronizados | Implementado |
 | Identity | Criação de usuário pelo comando `erp:create-user` (alias `erp:create-admin`), com auditoria | Implementado |
+| Segurança | Senhas Argon2id (bcrypt antigo migra no login), limite de login por conta e por IP, `audit_logs` somente inserção (trigger), CSP e cabeçalhos HTTP, contêiner sem root e com fail-fast de configuração | Implementado |
 | Segurança | Limite de 5 logins/min por e-mail + IP e 120 req/min por usuário; cabeçalhos de segurança | Implementado |
 | Audit | `audit_logs` (JSONB) gravado por eventos; consulta em `GET /api/v1/audit-logs` (`audit.view`) | Implementado |
 | Frontend | Tela de login, sessão persistida, guarda de rotas, menus e ações por permissão | Implementado |

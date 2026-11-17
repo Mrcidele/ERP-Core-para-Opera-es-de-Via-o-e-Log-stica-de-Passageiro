@@ -77,7 +77,8 @@ return [
 
     /*
     | Proxies (balanceador, CDN) de quem a aplicação aceita os cabeçalhos X-Forwarded-*:
-    | IPs ou faixas CIDR separados por vírgula, ou "*" quando a aplicação só é alcançável pelo proxy.
+    | "render" (rede do Render + Cloudflare), IPs ou faixas CIDR separados por vírgula, ou "*"
+    | para confiar só no vizinho imediato. Detalhes em App\Infrastructure\Support\TrustedProxies.
     */
 
     'trusted_proxies' => env('TRUSTED_PROXIES'),
@@ -113,6 +114,17 @@ return [
     'cipher' => 'AES-256-CBC',
 
     'key' => env('APP_KEY'),
+
+    /*
+    | Variáveis mascaradas nas páginas de erro detalhadas (Whoops, só em desenvolvimento).
+    | Em produção APP_DEBUG=false é obrigatório e nenhuma variável aparece.
+    */
+
+    'debug_hide' => [
+        '_ENV' => ['APP_KEY', 'APP_PREVIOUS_KEYS', 'DB_URL', 'DB_PASSWORD', 'DB_USERNAME', 'DB_HOST', 'REDIS_PASSWORD', 'MAIL_PASSWORD', 'AWS_SECRET_ACCESS_KEY'],
+        '_SERVER' => ['APP_KEY', 'APP_PREVIOUS_KEYS', 'DB_URL', 'DB_PASSWORD', 'DB_USERNAME', 'DB_HOST', 'REDIS_PASSWORD', 'MAIL_PASSWORD', 'AWS_SECRET_ACCESS_KEY'],
+        '_POST' => ['password', 'password_confirmation', 'current_password'],
+    ],
 
     'previous_keys' => [
         ...array_filter(

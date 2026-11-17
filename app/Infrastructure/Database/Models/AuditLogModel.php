@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 /**
  * @property string $id
@@ -41,6 +42,13 @@ final class AuditLogModel extends Model
         'ip_address',
         'created_at',
     ];
+
+    /** Somente inserção: o banco também recusa UPDATE/DELETE (trigger `audit_logs_append_only`). */
+    protected static function booted(): void
+    {
+        self::updating(fn (): never => throw new LogicException('Registros de auditoria não podem ser alterados.'));
+        self::deleting(fn (): never => throw new LogicException('Registros de auditoria não podem ser excluídos.'));
+    }
 
     /**
      * @return BelongsTo<UserModel, $this>

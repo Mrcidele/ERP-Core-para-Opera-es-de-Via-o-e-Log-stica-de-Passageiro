@@ -60,7 +60,7 @@ it('rejects an unknown e-mail with the same message and still compares a passwor
 
     // Compara com um hash de descarte, para a resposta levar o mesmo tempo de uma conta real.
     expect($this->hasher->comparedAgainst)->toHaveCount(1)
-        ->and($this->hasher->comparedAgainst[0])->toStartWith('$2y$')
+        ->and($this->hasher->comparedAgainst[0])->toStartWith('$argon2id$')
         ->and($this->tokens->active)->toBeEmpty()
         ->and($this->events->events)->toEqual([new LoginFailed('ninguem@erp.test', null)]);
 });
@@ -82,4 +82,22 @@ it('returns the authenticated user', function (): void {
 it('fails for a user that no longer exists', function (): void {
     expect(fn () => (new GetAuthenticatedUserAction($this->users))->execute('missing'))
         ->toThrow(UserNotFoundException::class);
+});
+
+it('rehashes an outdated password hash after a successful login', function (): void {
+    $this->users->add(new User('user-2', 'Conta Antiga', 'antiga@erp.test', UserRole::Admin, 'legacy:Senha@Antiga1'));
+
+    $this->login->execute(new LoginDTO('antiga@erp.test', 'Senha@Antiga1'));
+
+    expect($this->users->findById('user-2')?->passwordHash)->toBe('hashed:Senha@Antiga1');
+});
+
+it('keeps an up-to-date hash untouched and never rehashes on a failed login', function (): void {
+    $this->users->add(new User('user-2', 'Conta Antiga', 'antiga@erp.test', UserRole::Admin, 'legacy:Senha@Antiga1'));
+
+    $this->login->execute(new LoginDTO('despachante@erp.test', 'Password@123'));
+    expect(fn () => $this->login->execute(new LoginDTO('antiga@erp.test', 'errada')))->toThrow(InvalidCredentialsException::class);
+
+    expect($this->users->findById('user-1')?->passwordHash)->toBe('hashed:Password@123')
+        ->and($this->users->findById('user-2')?->passwordHash)->toBe('legacy:Senha@Antiga1');
 });

@@ -87,8 +87,11 @@ return [
             'search_path' => 'public',
             // Colunas timestamptz são lidas e gravadas sempre em UTC.
             'timezone' => 'UTC',
-            // Bancos serverless (Supabase, Neon) exigem TLS: defina DB_SSLMODE=require.
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Bancos serverless (Supabase, Neon) exigem TLS: em produção o padrão é require
+            // (a imagem Docker também o define); `sslmode` na DB_URL tem precedência.
+            'sslmode' => env('DB_SSLMODE', env('APP_ENV') === 'production' ? 'require' : 'prefer'),
+            // Tempo máximo de cada consulta (ex.: 15s); vazio desliga. Aplicado ao abrir a conexão.
+            'statement_timeout' => env('DB_STATEMENT_TIMEOUT'),
             // Conexões por pooler em modo transação (PgBouncer/Supavisor) não aceitam
             // prepared statements no servidor: ative DB_EMULATE_PREPARES nesses casos.
             'options' => extension_loaded('pdo_pgsql') ? array_filter([

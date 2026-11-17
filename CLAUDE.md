@@ -29,7 +29,7 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Exportação CSV sai em streaming por `CsvStream::download(...)`, com o repositório entregando os registros por `lazy()`; datas no fuso `APP_REPORT_TIMEZONE`.
 - A documentação OpenAPI é gerada pelo Scramble a partir das rotas, FormRequests e Resources (`/docs/api`, `/docs/api.json`): mantenha `rules()` e os `@return array{...}` dos Resources fiéis ao que a API aceita e devolve. Aberta em `local`/`testing`; nos demais ambientes, só com `SCRAMBLE_ENABLED=true` (middleware `ApiDocsAccess`).
 - Permissões e papéis são os enums `Permission` e `UserRole` de `Domain/Identity`; a matriz de acesso vive só em `UserRole::permissions()`. Permissão nova entra no enum, na matriz e no teste `AuthorizationTest`.
-- Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Toda ação auditada é um caso do enum `Domain/Shared/Enums/AuditAction`, com o nome em português em `label()`; a API devolve `action_label` e a busca da auditoria aceita esse nome. Senhas e tokens nunca entram em log nem em auditoria.
+- Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Toda ação auditada é um caso do enum `Domain/Shared/Enums/AuditAction`, com o nome em português em `label()`; a API devolve `action_label` e a busca da auditoria aceita esse nome. Senhas e tokens nunca entram em log nem em auditoria. `audit_logs` é somente inserção: um trigger no banco recusa UPDATE, DELETE e TRUNCATE.
 
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
 

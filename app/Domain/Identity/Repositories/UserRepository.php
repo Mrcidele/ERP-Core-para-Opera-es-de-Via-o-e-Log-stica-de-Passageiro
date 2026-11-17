@@ -20,4 +20,6 @@ interface UserRepository
 
     /** A busca não diferencia maiúsculas de minúsculas. */
     public function findByEmail(string $email): ?User;
+
+    public function changePasswordHash(string $userId, string $passwordHash): void;
 }

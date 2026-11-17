@@ -16,10 +16,11 @@ use App\Domain\Shared\Events\LoginFailed;
 final readonly class LoginAction
 {
     /**
-     * Hash de uma senha aleatória descartada. Quando o e-mail não tem conta, a senha é comparada
-     * com ele para a resposta levar o mesmo tempo e não revelar quais e-mails existem.
+     * Hash Argon2id (mesmos custos de config/hashing.php) de uma senha aleatória descartada. Quando o
+     * e-mail não tem conta, a senha é comparada com ele para a resposta levar o mesmo tempo e não
+     * revelar quais e-mails existem.
      */
-    private const UNKNOWN_USER_HASH = '$2y$12$pl.ou64sTjEteb6BMqNneeMTeVJ400ZL8QBrUm5jp6e3IPH6kV2Sa';
+    private const UNKNOWN_USER_HASH = '$argon2id$v=19$m=19456,t=2,p=1$NEhHdnRaNmEveUJ4eHdUSQ$1BVmivL9sP0p3Jj9LDjL4UCN4x4ImmI+m4lhXwfQqHw';
 
     public function __construct(
         private UserRepository $users,
@@ -38,6 +39,11 @@ final readonly class LoginAction
             $this->events->dispatch(new LoginFailed($data->email, $user?->id));
 
             throw new InvalidCredentialsException;
+        }
+
+        // Conta antiga (bcrypt) ou custos alterados: a senha acabou de ser conferida, então o hash é refeito agora.
+        if ($this->hasher->needsRehash($user->passwordHash)) {
+            $this->users->changePasswordHash($user->id, $this->hasher->hash($data->password));
         }
 
         return new AuthSessionDTO($user, $this->tokens->issueFor($user->id));

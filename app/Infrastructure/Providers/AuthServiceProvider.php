@@ -35,11 +35,16 @@ final class AuthServiceProvider extends ServiceProvider
             Gate::define($permission->value, fn (UserModel $user): bool => $user->role->can($permission));
         }
 
-        // Login: 5 tentativas por minuto para cada par e-mail + IP.
-        RateLimiter::for('login', function (Request $request): Limit {
+        // Login: 5 tentativas por minuto para cada par e-mail + IP, e 20 por minuto para o IP em
+        // qualquer e-mail (impede testar muitas contas a partir do mesmo endereço).
+        RateLimiter::for('login', function (Request $request): array {
             $email = Str::lower($request->string('email')->trim()->toString());
+            $ip = (string) $request->ip();
 
-            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+            return [
+                Limit::perMinute(5)->by('account:'.$email.'|'.$ip),
+                Limit::perMinute(20)->by('ip:'.$ip),
+            ];
         });
 
         // API: 120 requisições por minuto por usuário (ou por IP, sem autenticação).

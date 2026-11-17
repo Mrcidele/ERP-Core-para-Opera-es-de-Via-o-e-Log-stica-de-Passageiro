@@ -4,14 +4,41 @@ declare(strict_types=1);
 
 use App\Infrastructure\Database\Models\AuditLogModel;
 use App\Infrastructure\Database\Models\UserModel;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 const STRONG_PASSWORD = 'Viacao-Segura-2026';
 
-it('creates an administrator from the options and lets them log in', function (): void {
-    $this->artisan('erp:create-admin', ['--name' => 'Caio Marcidele', '--email' => 'Caio@Viacao.com', '--password' => STRONG_PASSWORD])
-        ->expectsOutput('Usuário criado: Caio Marcidele <caio@viacao.com>, papel Administração.')
-        ->assertSuccessful();
+/**
+ * Roda o comando sem interação, com a senha chegando pela entrada padrão (`--password-stdin`).
+ *
+ * @param  array<string, string|bool>  $options
+ * @return array{int, string} código de saída e o que o comando escreveu
+ */
+function createUserWithStdin(array $options, string $stdin = STRONG_PASSWORD.PHP_EOL, string $command = 'erp:create-user'): array
+{
+    $stream = fopen('php://memory', 'r+');
+    assert(is_resource($stream));
+    fwrite($stream, $stdin);
+    rewind($stream);
+
+    $input = new ArrayInput(['command' => $command, '--password-stdin' => true, ...$options]);
+    $input->setStream($stream);
+    $input->setInteractive(false);
+    $output = new BufferedOutput;
+
+    $code = app(Kernel::class)->handle($input, $output);
+
+    return [$code, $output->fetch()];
+}
+
+it('creates an administrator with the password from stdin and lets them log in', function (): void {
+    [$code, $output] = createUserWithStdin(['--name' => 'Caio Marcidele', '--email' => 'Caio@Viacao.com'], command: 'erp:create-admin');
+
+    expect($code)->toBe(0)
+        ->and($output)->toContain('Usuário criado: Caio Marcidele <caio@viacao.com>, papel Administração.');
 
     $user = UserModel::query()->where('email', 'caio@viacao.com')->sole();
 
@@ -26,9 +53,10 @@ it('creates an administrator from the options and lets them log in', function ()
 });
 
 it('creates a user with another role under its full name', function (): void {
-    $this->artisan('erp:create-user', ['--name' => 'Diego Despacho', '--email' => 'diego@viacao.com', '--password' => STRONG_PASSWORD, '--role' => 'dispatcher'])
-        ->expectsOutput('Usuário criado: Diego Despacho <diego@viacao.com>, papel Despacho.')
-        ->assertSuccessful();
+    [$code, $output] = createUserWithStdin(['--name' => 'Diego Despacho', '--email' => 'diego@viacao.com', '--role' => 'dispatcher']);
+
+    expect($code)->toBe(0)
+        ->and($output)->toContain('Usuário criado: Diego Despacho <diego@viacao.com>, papel Despacho.');
 
     expect(UserModel::query()->where('email', 'diego@viacao.com')->sole()->role->value)->toBe('dispatcher');
 });
@@ -62,44 +90,53 @@ it('fails instead of asking when run without interaction and something is missin
 
     $this->assertDatabaseCount('users', 0);
 })->with([
-    'sem nome' => [['--email' => 'caio@viacao.com', '--password' => STRONG_PASSWORD], 'Informe --name (modo não interativo).'],
-    'sem e-mail' => [['--name' => 'Caio', '--password' => STRONG_PASSWORD], 'Informe --email (modo não interativo).'],
-    'sem senha' => [['--name' => 'Caio', '--email' => 'caio@viacao.com'], 'Informe --password (modo não interativo).'],
+    'sem nome' => [['--email' => 'caio@viacao.com', '--password-stdin' => true], 'Informe --name (modo não interativo).'],
+    'sem e-mail' => [['--name' => 'Caio', '--password-stdin' => true], 'Informe --email (modo não interativo).'],
+    'sem senha' => [['--name' => 'Caio', '--email' => 'caio@viacao.com'], 'Informe a senha pelo prompt interativo ou por --password-stdin (modo não interativo).'],
 ]);
 
-it('rejects invalid input', function (array $overrides, string $message): void {
-    $this->artisan('erp:create-user', [
-        '--name' => 'Caio',
-        '--email' => 'caio@viacao.com',
-        '--password' => STRONG_PASSWORD,
-        '--no-interaction' => true,
-        ...$overrides,
-    ])
-        ->expectsOutputToContain($message)
-        ->assertFailed();
+it('does not accept the password as a command-line argument', function (): void {
+    // Argumento fica no histórico do shell e aparece em `ps`: a opção nem existe.
+    expect(fn () => $this->artisan('erp:create-admin', ['--name' => 'Caio', '--email' => 'caio@viacao.com', '--password' => STRONG_PASSWORD]))
+        ->toThrow(InvalidArgumentException::class);
 
     $this->assertDatabaseCount('users', 0);
+});
+
+it('fails when stdin brings no password', function (): void {
+    [$code, $output] = createUserWithStdin(['--name' => 'Caio', '--email' => 'caio@viacao.com'], stdin: '');
+
+    expect($code)->toBe(1)->and($output)->toContain('Nenhuma senha recebida pela entrada padrão.');
+    $this->assertDatabaseCount('users', 0);
+});
+
+it('rejects invalid input', function (array $overrides, string $password, string $message): void {
+    [$code, $output] = createUserWithStdin(['--name' => 'Caio', '--email' => 'caio@viacao.com', ...$overrides], $password.PHP_EOL);
+
+    expect($code)->toBe(1)->and($output)->toContain($message);
+    $this->assertDatabaseCount('users', 0);
 })->with([
-    'papel inexistente' => [['--role' => 'superuser'], 'Papel inválido. Use um destes: admin, dispatcher, fleet_manager, mechanic_supervisor.'],
-    'e-mail inválido' => [['--email' => 'caio'], 'e-mail'],
-    'senha curta' => [['--password' => 'Curta-1'], 'senha'],
-    'senha sem números' => [['--password' => 'Senha-Sem-Numero'], 'senha'],
-    'senha sem maiúsculas' => [['--password' => 'senha-fraca-2026'], 'senha'],
-    'senha acima de 72' => [['--password' => 'Aa1'.str_repeat('x', 70)], 'senha'],
+    'papel inexistente' => [['--role' => 'superuser'], STRONG_PASSWORD, 'Papel inválido. Use um destes: admin, dispatcher, fleet_manager, mechanic_supervisor.'],
+    'e-mail inválido' => [['--email' => 'caio'], STRONG_PASSWORD, 'e-mail'],
+    'e-mail com quebra de linha' => [['--email' => "caio@viacao.com\r\nBcc: x@y.com"], STRONG_PASSWORD, 'e-mail'],
+    'senha curta' => [[], 'Curta-1', 'senha'],
+    'senha sem números' => [[], 'Senha-Sem-Numero', 'senha'],
+    'senha sem maiúsculas' => [[], 'senha-fraca-2026', 'senha'],
+    'senha acima de 128' => [[], 'Aa1'.str_repeat('x', 126), 'senha'],
 ]);
 
 it('refuses an e-mail that is already in use, in any case', function (): void {
     UserModel::factory()->create(['email' => 'caio@viacao.com']);
 
-    $this->artisan('erp:create-admin', ['--name' => 'Caio', '--email' => 'CAIO@viacao.com', '--password' => STRONG_PASSWORD])
-        ->expectsOutput('Já existe um usuário com este e-mail.')
-        ->assertFailed();
+    [$code, $output] = createUserWithStdin(['--name' => 'Caio', '--email' => 'CAIO@viacao.com']);
+
+    expect($code)->toBe(1)->and($output)->toContain('Já existe um usuário com este e-mail.');
 
     $this->assertDatabaseCount('users', 1);
 });
 
 it('audits the creation without the password or its hash', function (): void {
-    $this->artisan('erp:create-admin', ['--name' => 'Caio Marcidele', '--email' => 'caio@viacao.com', '--password' => STRONG_PASSWORD])->assertSuccessful();
+    expect(createUserWithStdin(['--name' => 'Caio Marcidele', '--email' => 'caio@viacao.com'])[0])->toBe(0);
 
     $user = UserModel::query()->where('email', 'caio@viacao.com')->sole();
     $log = AuditLogModel::query()->sole();

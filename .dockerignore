@@ -17,3 +17,23 @@ docs
 docker-compose.yml
 .phpunit.cache
 .phpunit.result.cache
+# Segredos e dados locais nunca entram na imagem.
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.ssh
+.aws
+.npmrc
+auth.json
+.idea
+.vscode
+.DS_Store
+storage/*.key
+coverage
