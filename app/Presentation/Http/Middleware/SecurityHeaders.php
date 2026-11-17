@@ -31,12 +31,13 @@ final class SecurityHeaders
 
     /**
      * Política do SPA: scripts e estilos só do próprio domínio (build do Vite, sem eval nem inline),
-     * fontes do Bunny Fonts e chamadas de API só para a mesma origem.
+     * fontes do Bunny Fonts (a folha vem de fonts.bunny.net e os arquivos de fonte, de
+     * cdn.jsdelivr.net) e chamadas de API só para a mesma origem.
      */
     public const CONTENT_SECURITY_POLICY = "default-src 'self'; "
         ."script-src 'self'; "
         ."style-src 'self' https://fonts.bunny.net; "
-        ."font-src 'self' https://fonts.bunny.net; "
+        ."font-src 'self' https://fonts.bunny.net https://cdn.jsdelivr.net; "
         ."img-src 'self' data:; "
         ."connect-src 'self'; "
         ."object-src 'none'; "
