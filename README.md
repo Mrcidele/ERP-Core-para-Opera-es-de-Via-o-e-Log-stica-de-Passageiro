@@ -56,7 +56,7 @@ docker build -f docker/production/Dockerfile -t erp-viacao .
 docker run -d -p 8080:8080 --env-file .env.production -e RUN_MIGRATIONS=true erp-viacao
 ```
 
-Variáveis mínimas do `.env.production`: `APP_KEY` (gere com `php artisan key:generate --show`), `APP_URL`, os `DB_*` da seção anterior e, atrás de balanceador, `TRUSTED_PROXIES` (IPs do proxy, ou `*` se só ele alcança o contêiner) para que o limite de tentativas e a auditoria vejam o IP real do usuário. A imagem já define `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `DB_SSLMODE=require` e cache e sessão no banco (`CACHE_STORE=database`); para usar Redis, informe `CACHE_STORE=redis` e `REDIS_HOST`.
+Variáveis mínimas do `.env.production`: `APP_KEY` (gere com `php artisan key:generate --show`), `APP_URL`, os `DB_*` da seção anterior e, atrás de balanceador, `TRUSTED_PROXIES` (IPs do proxy, ou `*` se só ele alcança o contêiner) para que o limite de tentativas e a auditoria vejam o IP real do usuário. A imagem já define `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `DB_SSLMODE=require` e cache e sessão no banco (`CACHE_STORE=database`). A imagem não traz a extensão do Redis; cache e sessão ficam no PostgreSQL.
 
 Na subida, o contêiner executa `config:cache`, `route:cache` e `view:cache`; com `RUN_MIGRATIONS=true` também aplica as migrations (com várias réplicas, deixe isso para uma etapa do deploy). O balanceador deve monitorar `GET /api/v1/health` na porta `8080`: `200` quando a aplicação e o banco respondem, `503` quando o banco não responde.
 
