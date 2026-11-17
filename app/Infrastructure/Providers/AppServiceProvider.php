@@ -21,6 +21,7 @@ use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\TripScheduled;
+use App\Domain\Shared\Events\UserCreated;
 use App\Domain\Shared\Events\VehicleDeleted;
 use App\Infrastructure\Database\ConnectionDatabaseProbe;
 use App\Infrastructure\Database\DatabaseTransactionRunner;
@@ -56,6 +57,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(TripScheduled::class, [RecordAuditTrail::class, 'tripScheduled']);
         Event::listen(FuelLogRecorded::class, [RecordAuditTrail::class, 'fuelLogRecorded']);
         Event::listen(FuelLogDeleted::class, [RecordAuditTrail::class, 'fuelLogDeleted']);
+        Event::listen(UserCreated::class, [RecordAuditTrail::class, 'userCreated']);
         Event::listen(TripCompleted::class, [RecordAuditTrail::class, 'tripCompleted']);
         Event::listen(TripCanceled::class, [RecordAuditTrail::class, 'tripCanceled']);
         Event::listen(MaintenanceOrderOpened::class, [RecordAuditTrail::class, 'maintenanceOrderOpened']);

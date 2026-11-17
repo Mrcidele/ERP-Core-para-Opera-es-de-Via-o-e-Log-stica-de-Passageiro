@@ -17,6 +17,7 @@ use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\TripScheduled;
+use App\Domain\Shared\Events\UserCreated;
 use App\Domain\Shared\Events\VehicleDeleted;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -118,6 +119,17 @@ final readonly class RecordAuditTrail
             'status' => 'completed',
             'vehicle_id' => $event->vehicleId,
             'cost_cents' => $event->costCents,
+        ]);
+    }
+
+    public function userCreated(UserCreated $event): void
+    {
+        // A senha nunca entra na trilha: nem em texto, nem o hash.
+        $this->record->execute(AuditAction::UserCreated, 'user', $event->userId, null, [
+            'name' => $event->name,
+            'email' => $event->email,
+            'role' => $event->role,
+            'channel' => $event->channel,
         ]);
     }
 

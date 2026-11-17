@@ -12,6 +12,11 @@ final class InMemoryUserRepository implements UserRepository
     /** @var array<string, User> */
     public array $users = [];
 
+    public function nextIdentity(): string
+    {
+        return 'user-'.(count($this->users) + 1);
+    }
+
     public function add(User $user): void
     {
         $this->users[$user->id] = $user;

@@ -11,6 +11,17 @@ enum UserRole: string
     case FleetManager = 'fleet_manager';
     case MechanicSupervisor = 'mechanic_supervisor';
 
+    /** Nome do papel em português, como aparece na tela. */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Admin => 'Administração',
+            self::Dispatcher => 'Despacho',
+            self::FleetManager => 'Gestão de frota',
+            self::MechanicSupervisor => 'Supervisão de oficina',
+        };
+    }
+
     /**
      * Matriz de acesso: o que cada papel pode fazer.
      *

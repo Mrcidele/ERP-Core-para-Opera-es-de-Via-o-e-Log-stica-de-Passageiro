@@ -55,6 +55,7 @@ app/
 │   │   └── Repositories/    # implementações
 │   └── Providers/
 └── Presentation/
+    ├── Console/Commands/    # comandos artisan (erp:create-user)
     └── Http/
         ├── Controllers/
         ├── Requests/
@@ -96,6 +97,7 @@ resources/js/
 | Maintenance | Transição para "em andamento", histórico por veículo, estoque de peças | Pendente |
 | Identity | Login, logout e sessão (`/api/v1/auth/login`, `/logout`, `/me`) com tokens Sanctum; usuários com UUID e papel | Implementado |
 | Identity | RBAC: 4 papéis, 9 permissões, um Gate por permissão, 401/403 padronizados | Implementado |
+| Identity | Criação de usuário pelo comando `erp:create-user` (alias `erp:create-admin`), com auditoria | Implementado |
 | Segurança | Limite de 5 logins/min por e-mail + IP e 120 req/min por usuário; cabeçalhos de segurança | Implementado |
 | Audit | `audit_logs` (JSONB) gravado por eventos; consulta em `GET /api/v1/audit-logs` (`audit.view`) | Implementado |
 | Frontend | Tela de login, sessão persistida, guarda de rotas, menus e ações por permissão | Implementado |
@@ -119,4 +121,4 @@ resources/js/
 | Operations | Grade de escala (`GET /api/v1/operations/schedule-timeline?date=`): 48 horas por veículo e por motorista, com ordens de serviço pendentes e o descanso de 11 horas; na tela, alternância Lista / Grade e agendamento a partir de um horário livre | Implementado |
 | Maintenance / Operations | Previsão de término opcional na ordem de serviço (`estimated_completion_at`); na grade de escala o bloco de oficina termina nela | Implementado |
 | Infra | Documentação OpenAPI automática (Scramble) em `/docs/api` | Implementado |
-| Identity | Cadastro e gestão de usuários, troca e recuperação de senha | Pendente |
+| Identity | Cadastro e gestão de usuários pela API/tela, troca e recuperação de senha | Pendente |

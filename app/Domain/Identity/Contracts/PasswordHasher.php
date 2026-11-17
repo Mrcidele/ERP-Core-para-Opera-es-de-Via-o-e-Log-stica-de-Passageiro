@@ -9,4 +9,6 @@ use SensitiveParameter;
 interface PasswordHasher
 {
     public function verify(#[SensitiveParameter] string $plainPassword, string $hash): bool;
+
+    public function hash(#[SensitiveParameter] string $plainPassword): string;
 }

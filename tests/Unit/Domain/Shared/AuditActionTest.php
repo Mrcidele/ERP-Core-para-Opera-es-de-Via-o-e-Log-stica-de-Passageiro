@@ -17,6 +17,7 @@ it('names every audited action in Portuguese', function (): void {
         ['maintenance_order.completed', 'Ordem de serviço concluída'],
         ['fuel_log.recorded', 'Abastecimento registrado'],
         ['fuel_log.deleted', 'Abastecimento excluído'],
+        ['user.created', 'Usuário criado'],
         ['auth.login_failed', 'Login recusado'],
     ]);
 });

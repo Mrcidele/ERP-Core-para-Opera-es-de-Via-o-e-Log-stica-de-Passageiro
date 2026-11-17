@@ -16,4 +16,9 @@ final readonly class LaravelPasswordHasher implements PasswordHasher
     {
         return $this->hasher->check($plainPassword, $hash);
     }
+
+    public function hash(#[SensitiveParameter] string $plainPassword): string
+    {
+        return $this->hasher->make($plainPassword);
+    }
 }

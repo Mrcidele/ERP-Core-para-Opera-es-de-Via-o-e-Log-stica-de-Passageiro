@@ -19,4 +19,9 @@ final class FakePasswordHasher implements PasswordHasher
 
         return $hash === 'hashed:'.$plainPassword;
     }
+
+    public function hash(#[SensitiveParameter] string $plainPassword): string
+    {
+        return 'hashed:'.$plainPassword;
+    }
 }
