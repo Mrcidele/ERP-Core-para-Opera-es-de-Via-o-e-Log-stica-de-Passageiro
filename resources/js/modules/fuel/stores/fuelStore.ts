@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { extractErrorMessage, extractValidationErrors, http, type ValidationErrors } from '@/core/api/http';
 import { fetchEveryPage, usePagedList, type RequestStatus } from '@/core/api/pagination';
+import type { DashboardFuel } from '@/modules/dashboard/types/dashboard';
 import type { Vehicle } from '@/modules/fleet/types/vehicle';
 import type { FuelLogPayload } from '../schemas/fuelLogSchema';
 import type { FuelLog } from '../types/fuelLog';
@@ -14,9 +15,54 @@ export const useFuelStore = defineStore('fuel/logs', () => {
     const vehicles = ref<Vehicle[]>([]);
     const optionsStatus = ref<RequestStatus>('idle');
 
+    // Resumo do mês (gasto, volume, abastecimentos), o mesmo bloco do painel.
+    const monthSummary = ref<DashboardFuel | null>(null);
+    const summaryStatus = ref<RequestStatus>('idle');
+
+    const removeStatus = ref<RequestStatus>('idle');
+    const removeError = ref<string | null>(null);
+
     const saveStatus = ref<RequestStatus>('idle');
     const validationErrors = ref<ValidationErrors>({});
     const saveError = ref<string | null>(null);
+
+    async function fetchSummary(): Promise<void> {
+        summaryStatus.value = 'loading';
+
+        try {
+            const response = await http.get<{ data: { fuel: DashboardFuel | null } }>('/dashboard/summary');
+
+            monthSummary.value = response.data.data.fuel;
+            summaryStatus.value = 'success';
+        } catch {
+            summaryStatus.value = 'error';
+        }
+    }
+
+    function resetRemoveState(): void {
+        removeStatus.value = 'idle';
+        removeError.value = null;
+    }
+
+    /** Exclui um lançamento errado. O rendimento do abastecimento seguinte é recalculado pelo servidor. */
+    async function remove(id: string): Promise<boolean> {
+        removeStatus.value = 'loading';
+        removeError.value = null;
+
+        try {
+            await http.delete(`/fuel/logs/${id}`);
+
+            removeStatus.value = 'success';
+            await Promise.all([list.fetchPage(), fetchSummary()]);
+
+            return true;
+        } catch (error) {
+            removeError.value = extractErrorMessage(error, 'Não foi possível excluir o abastecimento. Tente novamente.');
+            removeStatus.value = 'error';
+
+            return false;
+        }
+    }
 
     async function loadOptions(): Promise<void> {
         optionsStatus.value = 'loading';
@@ -44,7 +90,7 @@ export const useFuelStore = defineStore('fuel/logs', () => {
 
             saveStatus.value = 'success';
             // O registro novo entra no topo da primeira página; os rendimentos são calculados pelo servidor.
-            await list.fetchPage(1);
+            await Promise.all([list.fetchPage(1), fetchSummary()]);
 
             return response.data.data;
         } catch (error) {
@@ -71,6 +117,13 @@ export const useFuelStore = defineStore('fuel/logs', () => {
         filtering: list.filtering,
         fetchLogs: list.fetchPage,
         applyFilters: list.applyFilters,
+        monthSummary,
+        summaryStatus,
+        fetchSummary,
+        removeStatus,
+        removeError,
+        resetRemoveState,
+        remove,
         vehicles,
         optionsStatus,
         loadOptions,

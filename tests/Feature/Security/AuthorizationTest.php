@@ -47,6 +47,7 @@ function protectedRoutes(): array
         'maintenance.orders.index' => ['GET', '/api/v1/maintenance/orders', Permission::MaintenanceView],
         'fuel.logs.index' => ['GET', '/api/v1/fuel/logs', Permission::FleetView],
         'fuel.logs.store' => ['POST', '/api/v1/fuel/logs', Permission::FleetManage],
+        'fuel.logs.destroy' => ['DELETE', "/api/v1/fuel/logs/{$id}", Permission::FleetManage],
         'maintenance.orders.export' => ['GET', '/api/v1/maintenance/orders/export', Permission::MaintenanceView],
         'maintenance.mechanics.index' => ['GET', '/api/v1/maintenance/mechanics', Permission::MaintenanceView],
         'maintenance.orders.store' => ['POST', '/api/v1/maintenance/orders', Permission::MaintenanceManage],

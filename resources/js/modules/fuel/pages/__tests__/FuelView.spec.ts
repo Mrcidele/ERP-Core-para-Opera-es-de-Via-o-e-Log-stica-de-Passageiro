@@ -8,7 +8,7 @@ import { currentToasts, lastToast } from '@/tests/toast';
 import type { FuelLog } from '../../types/fuelLog';
 import FuelView from '../FuelView.vue';
 
-const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), delete: vi.fn() }));
 
 vi.mock('@/core/api/http', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@/core/api/http')>()),
@@ -41,10 +41,18 @@ const vehicles = [
 ];
 
 let logs: FuelLog[] = [];
+let monthFuel = { month_start: '2026-11-01T00:00:00+00:00', month_cost_cents: 2_150_590, month_liters_milliliters: 3_505_500, month_logs: 12 };
+
+/** O que a API devolve: abastecimentos paginados, veículos paginados e o resumo do painel. */
+function serve(): void {
+    http.get.mockImplementation((url: string) =>
+        Promise.resolve(url === '/dashboard/summary' ? { data: { data: { fuel: monthFuel } } } : page<unknown>(url === '/fuel/logs' ? logs : vehicles)),
+    );
+}
 
 async function mountView(initial: FuelLog[] = [normal, thirsty, first, parked]): Promise<VueWrapper> {
     logs = initial;
-    http.get.mockImplementation((url: string) => Promise.resolve(page<unknown>(url === '/fuel/logs' ? logs : vehicles)));
+    serve();
     const wrapper = mount(FuelView);
     await flushPromises();
 
@@ -71,8 +79,8 @@ describe('FuelView', () => {
         vi.setSystemTime(new Date(2026, 10, 13, 10, 0));
         setActivePinia(createPinia());
         signInAs('fleet_manager');
-        http.get.mockReset();
-        http.post.mockReset();
+        Object.values(http).forEach((mock) => mock.mockReset());
+        monthFuel = { month_start: '2026-11-01T00:00:00+00:00', month_cost_cents: 2_150_590, month_liters_milliliters: 3_505_500, month_logs: 12 };
     });
 
     afterEach(() => vi.useRealTimers());
@@ -240,6 +248,7 @@ describe('FuelView', () => {
 
         expect(rows(wrapper)).toHaveLength(4);
         expect(wrapper.find('[data-test="new-fuel-log"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="remove"]').exists()).toBe(false);
     });
 
     it('shows the empty, no-results and error states', async () => {
@@ -258,5 +267,71 @@ describe('FuelView', () => {
         await flushPromises();
 
         expect(failed.find('[data-test="list-error"]').exists()).toBe(true);
+    });
+
+    it('shows the month summary: spent, volume and number of fuel logs', async () => {
+        const wrapper = await mountView();
+
+        expect(http.get).toHaveBeenCalledWith('/dashboard/summary');
+        expect(flat(wrapper.get('[data-test="summary-cost"]').text())).toContain('Gasto em novembro');
+        expect(flat(wrapper.get('[data-test="summary-cost"]').text())).toContain('R$ 21.505,90');
+        expect(flat(wrapper.get('[data-test="summary-liters"]').text())).toContain('3.505,5 L');
+        expect(flat(wrapper.get('[data-test="summary-logs"]').text())).toContain('Abastecimentos em novembro');
+        expect(wrapper.get('[data-test="summary-logs"] [data-test="stat-value"]').text()).toBe('12');
+    });
+
+    it('deletes a fuel log only after confirmation, then reloads the list and the summary', async () => {
+        http.delete.mockResolvedValue({});
+        const wrapper = await mountView([normal, thirsty]);
+
+        await rows(wrapper)[1]!.get('[data-test="remove"]').trigger('click');
+
+        expect(http.delete).not.toHaveBeenCalled();
+        expect(wrapper.get('[role="alertdialog"]').text()).toContain('Excluir o abastecimento de XYZ9K88?');
+
+        logs = [normal];
+        monthFuel = { ...monthFuel, month_cost_cents: 2_030_790, month_logs: 11 };
+        await wrapper.get('[data-test="confirm-ok"]').trigger('click');
+        await flushPromises();
+
+        expect(http.delete).toHaveBeenCalledWith('/fuel/logs/2');
+        expect(rows(wrapper)).toHaveLength(1);
+        expect(flat(wrapper.get('[data-test="summary-cost"]').text())).toContain('R$ 20.307,90');
+        expect(wrapper.get('[data-test="summary-logs"] [data-test="stat-value"]').text()).toBe('11');
+        expect(lastToast()).toBe(`Abastecimento de XYZ9K88 em ${formatDateTime(thirsty.fueled_at)} excluído.`);
+        expect(wrapper.find('[data-test="confirm-ok"]').exists()).toBe(false);
+    });
+
+    it('keeps the fuel log when the deletion is canceled', async () => {
+        const wrapper = await mountView([normal]);
+
+        await rows(wrapper)[0]!.get('[data-test="remove"]').trigger('click');
+        await wrapper.get('[data-test="confirm-cancel"]').trigger('click');
+
+        expect(http.delete).not.toHaveBeenCalled();
+        expect(rows(wrapper)).toHaveLength(1);
+    });
+
+    it('explains in the dialog when the deletion fails, and does not carry the error to the next one', async () => {
+        http.delete.mockRejectedValue({ isAxiosError: true, response: { status: 404, data: { message: 'Abastecimento 1 não encontrado.' } } });
+        const wrapper = await mountView([normal, thirsty]);
+
+        await rows(wrapper)[0]!.get('[data-test="remove"]').trigger('click');
+        await wrapper.get('[data-test="confirm-ok"]').trigger('click');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="confirm-error"]').text()).toBe('Abastecimento 1 não encontrado.');
+        expect(rows(wrapper)).toHaveLength(2);
+
+        await wrapper.get('[data-test="confirm-cancel"]').trigger('click');
+        await rows(wrapper)[1]!.get('[data-test="remove"]').trigger('click');
+
+        expect(wrapper.find('[data-test="confirm-error"]').exists()).toBe(false);
+    });
+
+    it('names the fuel log on the delete button for screen readers', async () => {
+        const wrapper = await mountView([normal]);
+
+        expect(rows(wrapper)[0]!.get('[data-test="remove"]').attributes('aria-label')).toBe(`Excluir abastecimento de ABC1D23 em ${formatDateTime(normal.fueled_at)}`);
     });
 });

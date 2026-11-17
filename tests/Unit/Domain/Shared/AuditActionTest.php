@@ -16,6 +16,7 @@ it('names every audited action in Portuguese', function (): void {
         ['maintenance_order.opened', 'Ordem de serviço aberta'],
         ['maintenance_order.completed', 'Ordem de serviço concluída'],
         ['fuel_log.recorded', 'Abastecimento registrado'],
+        ['fuel_log.deleted', 'Abastecimento excluído'],
         ['auth.login_failed', 'Login recusado'],
     ]);
 });
@@ -28,9 +29,10 @@ it('labels a stored code and keeps an unknown one as it is', function (): void {
 it('finds the codes whose label contains the term, ignoring case and accents', function (string $term, array $codes): void {
     expect(AuditAction::codesMatchingLabel($term))->toBe($codes);
 })->with([
-    ['excluído', ['vehicle.deleted']],
-    ['EXCLUIDO', ['vehicle.deleted']],
-    ['exclu', ['vehicle.deleted', 'line.deleted']],
+    ['veículo excluído', ['vehicle.deleted']],
+    ['VEICULO EXCLUIDO', ['vehicle.deleted']],
+    ['excluído', ['vehicle.deleted', 'fuel_log.deleted']],
+    ['exclu', ['vehicle.deleted', 'line.deleted', 'fuel_log.deleted']],
     ['  Veículo ', ['vehicle.deleted']],
     ['servico', ['maintenance_order.opened', 'maintenance_order.completed']],
     ['concluída', ['trip.completed', 'maintenance_order.completed']],

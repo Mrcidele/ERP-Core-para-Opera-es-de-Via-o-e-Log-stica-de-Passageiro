@@ -15,6 +15,12 @@ interface FuelLogRepository
 
     public function save(FuelLog $log): void;
 
+    /** Abastecimento não excluído, travado até o fim da transação em curso. */
+    public function lockActive(string $id): ?FuelLog;
+
+    /** Exclusão lógica: o registro sai da listagem, do rendimento e das conferências do próximo abastecimento. */
+    public function delete(string $id): void;
+
     /** O abastecimento mais recente do veículo, pela data em que foi feito. */
     public function latestFor(string $vehicleId): ?FuelLog;
 

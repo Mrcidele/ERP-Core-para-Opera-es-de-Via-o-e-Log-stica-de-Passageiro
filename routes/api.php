@@ -58,6 +58,7 @@ Route::prefix('v1')->group(function (): void {
         Route::prefix('fuel')->group(function (): void {
             Route::get('logs', [FuelLogController::class, 'index'])->can('fleet.view')->name('fuel.logs.index');
             Route::post('logs', [FuelLogController::class, 'store'])->can('fleet.manage')->name('fuel.logs.store');
+            Route::delete('logs/{log}', [FuelLogController::class, 'destroy'])->can('fleet.manage')->name('fuel.logs.destroy');
         });
 
         Route::prefix('maintenance')->group(function (): void {

@@ -17,6 +17,7 @@ enum AuditAction: string
     case MaintenanceOrderOpened = 'maintenance_order.opened';
     case MaintenanceOrderCompleted = 'maintenance_order.completed';
     case FuelLogRecorded = 'fuel_log.recorded';
+    case FuelLogDeleted = 'fuel_log.deleted';
     case LoginFailed = 'auth.login_failed';
 
     public function label(): string
@@ -32,6 +33,7 @@ enum AuditAction: string
             self::MaintenanceOrderOpened => 'Ordem de serviço aberta',
             self::MaintenanceOrderCompleted => 'Ordem de serviço concluída',
             self::FuelLogRecorded => 'Abastecimento registrado',
+            self::FuelLogDeleted => 'Abastecimento excluído',
             self::LoginFailed => 'Login recusado',
         };
     }

@@ -10,6 +10,7 @@ use App\Domain\Shared\Contracts\Clock;
 use App\Domain\Shared\Contracts\DatabaseProbe;
 use App\Domain\Shared\Contracts\EventDispatcher;
 use App\Domain\Shared\Contracts\TransactionRunner;
+use App\Domain\Shared\Events\FuelLogDeleted;
 use App\Domain\Shared\Events\FuelLogRecorded;
 use App\Domain\Shared\Events\LineCreated;
 use App\Domain\Shared\Events\LineDeleted;
@@ -54,6 +55,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(LineDeleted::class, [RecordAuditTrail::class, 'lineDeleted']);
         Event::listen(TripScheduled::class, [RecordAuditTrail::class, 'tripScheduled']);
         Event::listen(FuelLogRecorded::class, [RecordAuditTrail::class, 'fuelLogRecorded']);
+        Event::listen(FuelLogDeleted::class, [RecordAuditTrail::class, 'fuelLogDeleted']);
         Event::listen(TripCompleted::class, [RecordAuditTrail::class, 'tripCompleted']);
         Event::listen(TripCanceled::class, [RecordAuditTrail::class, 'tripCanceled']);
         Event::listen(MaintenanceOrderOpened::class, [RecordAuditTrail::class, 'maintenanceOrderOpened']);

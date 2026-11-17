@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import AppIcon from '@/core/ui/AppIcon.vue';
 import MercosulPlate from '@/core/ui/MercosulPlate.vue';
 import { formatCents, formatDateTime, formatKm, formatKmPerLiter, formatLiters } from '@/core/utils/format';
 import type { FuelLog } from '../types/fuelLog';
 
-defineProps<{ logs: FuelLog[] }>();
+defineProps<{ logs: FuelLog[]; canManage: boolean }>();
+const emit = defineEmits<{ remove: [log: FuelLog] }>();
 
 const pricePerLiter = (log: FuelLog): string => formatCents(Math.round(log.total_cost_cents / (log.liters_milliliters / 1000)));
 </script>
@@ -20,6 +22,7 @@ const pricePerLiter = (log: FuelLog): string => formatCents(Math.round(log.total
                     <th scope="col" class="text-right">Volume</th>
                     <th scope="col" class="text-right">Valor</th>
                     <th scope="col" class="text-right">Rendimento</th>
+                    <th v-if="canManage" scope="col"><span class="sr-only">Ações</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -55,6 +58,17 @@ const pricePerLiter = (log: FuelLog): string => formatCents(Math.round(log.total
                         <span v-else class="text-xs text-ink-400" data-test="no-efficiency">
                             {{ log.distance_km === null ? 'Primeiro registro' : 'Sem rodagem' }}
                         </span>
+                    </td>
+                    <td v-if="canManage" class="w-12">
+                        <button
+                            type="button"
+                            class="icon-btn hover:!bg-brake-50 hover:!text-brake-700"
+                            data-test="remove"
+                            :aria-label="`Excluir abastecimento de ${log.vehicle.plate} em ${formatDateTime(log.fueled_at)}`"
+                            @click="emit('remove', log)"
+                        >
+                            <AppIcon name="trash" />
+                        </button>
                     </td>
                 </tr>
             </tbody>

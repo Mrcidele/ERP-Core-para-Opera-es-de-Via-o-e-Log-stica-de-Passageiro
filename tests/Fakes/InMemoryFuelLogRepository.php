@@ -17,6 +17,12 @@ final class InMemoryFuelLogRepository implements FuelLogRepository
     /** @var list<FuelLog> na ordem em que foram gravados */
     public array $logs = [];
 
+    /** @var list<string> ids travados, na ordem */
+    public array $locked = [];
+
+    /** @var list<string> ids excluídos, na ordem */
+    public array $deleted = [];
+
     public function nextIdentity(): string
     {
         return 'fuel-'.(count($this->logs) + 1);
@@ -25,6 +31,25 @@ final class InMemoryFuelLogRepository implements FuelLogRepository
     public function save(FuelLog $log): void
     {
         $this->logs[] = $log;
+    }
+
+    public function lockActive(string $id): ?FuelLog
+    {
+        $this->locked[] = $id;
+
+        foreach ($this->logs as $log) {
+            if ($log->id === $id) {
+                return $log;
+            }
+        }
+
+        return null;
+    }
+
+    public function delete(string $id): void
+    {
+        $this->logs = array_values(array_filter($this->logs, fn (FuelLog $log): bool => $log->id !== $id));
+        $this->deleted[] = $id;
     }
 
     public function latestFor(string $vehicleId): ?FuelLog

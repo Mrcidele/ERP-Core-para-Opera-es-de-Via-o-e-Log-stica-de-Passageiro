@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Domain\Fuel\Actions\DeleteFuelLogAction;
 use App\Domain\Fuel\Actions\ListFuelLogsAction;
 use App\Domain\Fuel\Actions\RecordFuelLogAction;
 use App\Domain\Fuel\DTOs\RecordFuelLogDTO;
 use App\Domain\Fuel\Entities\FuelLog;
 use App\Domain\Fuel\Exceptions\FuelLogInTheFutureException;
+use App\Domain\Fuel\Exceptions\FuelLogNotFoundException;
 use App\Domain\Fuel\Exceptions\FuelLogOutOfOrderException;
 use App\Domain\Fuel\Exceptions\FuelVehicleNotFoundException;
 use App\Domain\Fuel\Exceptions\OdometerRegressionException;
+use App\Domain\Shared\Events\FuelLogDeleted;
 use App\Domain\Shared\Events\FuelLogRecorded;
 use App\Domain\Shared\Pagination\PageQuery;
 use Tests\Fakes\FakeFleetGateway;
@@ -147,4 +150,38 @@ it('lists the fuel logs, most recent first, one page at a time', function (): vo
 
 it('keeps the efficiency threshold of heavy road vehicles', function (): void {
     expect(FuelLog::LOW_EFFICIENCY_KM_PER_LITER)->toBe(2.2);
+});
+
+it('deletes a fuel log inside a transaction, locking it first, and publishes the deletion', function (): void {
+    $logged = $this->action->execute(fuelData(100_000));
+
+    (new DeleteFuelLogAction($this->logs, $this->events, $this->transaction))->execute($logged->log->id);
+
+    expect($this->logs->logs)->toBe([])
+        ->and($this->logs->locked)->toBe(['fuel-1'])
+        ->and($this->transaction->transactions)->toBe(2)
+        ->and($this->events->events[1])->toEqual(
+            new FuelLogDeleted('fuel-1', 'bus-1', 100_000, 100_000, 60_000, 'Posto Graal', new DateTimeImmutable('2026-11-10 08:00', new DateTimeZone('UTC'))),
+        );
+});
+
+it('frees the odometer and the date for the correct entry once a wrong one is deleted', function (): void {
+    $this->action->execute(fuelData(100_000, at: '2026-11-10 08:00'));
+    $typo = $this->action->execute(fuelData(190_000, at: '2026-11-11 08:00'));
+
+    expect(fn () => $this->action->execute(fuelData(100_600, at: '2026-11-11 09:00')))->toThrow(OdometerRegressionException::class);
+
+    (new DeleteFuelLogAction($this->logs, $this->events, $this->transaction))->execute($typo->log->id);
+
+    expect($this->action->execute(fuelData(100_600, 200_000, '2026-11-11 09:00'))->kmPerLiter())->toBe(3.0);
+});
+
+it('fails with not found for a fuel log that does not exist or was already deleted', function (): void {
+    $delete = new DeleteFuelLogAction($this->logs, $this->events, $this->transaction);
+    $logged = $this->action->execute(fuelData(100_000));
+    $delete->execute($logged->log->id);
+
+    expect(fn () => $delete->execute($logged->log->id))->toThrow(FuelLogNotFoundException::class)
+        ->and(fn () => $delete->execute('missing'))->toThrow(FuelLogNotFoundException::class)
+        ->and($this->events->events)->toHaveCount(2);
 });

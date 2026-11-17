@@ -37,6 +37,22 @@ final class EloquentFuelLogRepository implements FuelLogRepository
         ]);
     }
 
+    public function lockActive(string $id): ?FuelLog
+    {
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
+        $model = FuelLogModel::query()->whereKey($id)->lockForUpdate()->first();
+
+        return $model === null ? null : $this->toEntity($model);
+    }
+
+    public function delete(string $id): void
+    {
+        FuelLogModel::query()->whereKey($id)->delete();
+    }
+
     public function latestFor(string $vehicleId): ?FuelLog
     {
         if (! Str::isUuid($vehicleId)) {

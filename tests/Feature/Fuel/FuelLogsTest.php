@@ -268,3 +268,100 @@ it('refuses at the database a fuel log with invalid numbers', function (array $v
     'volume zero' => [['liters_milliliters' => 0]],
     'custo negativo' => [['total_cost_cents' => -1]],
 ]);
+
+it('deletes a wrong fuel log, recomputing the efficiency chain, and audits the deletion', function (): void {
+    $this->postJson('/api/v1/fuel/logs', fuelPayload())->assertCreated();
+    // Erro de digitação: 106.300 em vez de 100.630. O próximo lançamento correto seria recusado.
+    $typo = $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 106_300, 'liters_milliliters' => 210_000, 'fueled_at' => '2026-11-11T08:00:00-03:00']))
+        ->assertCreated()
+        ->assertJsonPath('data.km_per_liter', 30)
+        ->json('data.id');
+
+    $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_630, 'liters_milliliters' => 210_000, 'fueled_at' => '2026-11-11T09:00:00-03:00']))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('odometer_km');
+
+    $this->deleteJson("/api/v1/fuel/logs/{$typo}")->assertNoContent();
+
+    $this->assertSoftDeleted('fuel_logs', ['id' => $typo]);
+
+    // Sem o registro errado, o lançamento correto entra e o rendimento volta a ser calculado sobre o anterior verdadeiro.
+    $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_630, 'liters_milliliters' => 210_000, 'fueled_at' => '2026-11-11T09:00:00-03:00']))
+        ->assertCreated()
+        ->assertJsonPath('data.distance_km', 630)
+        ->assertJsonPath('data.km_per_liter', 3);
+
+    $this->getJson('/api/v1/fuel/logs')->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.km_per_liter', 3)
+        ->assertJsonPath('data.1.km_per_liter', null);
+
+    $log = AuditLogModel::query()->where('action', 'fuel_log.deleted')->sole();
+
+    expect([$log->auditable_type, $log->auditable_id, $log->new_values, $log->user_id])->toBe(['fuel_log', $typo, null, $this->admin->id])
+        ->and($log->old_values)->toEqual([
+            'vehicle_id' => $this->bus->id,
+            'odometer_km' => 106_300,
+            'liters_milliliters' => 210_000,
+            'total_cost_cents' => 119_800,
+            'station_name' => 'Posto Graal Ourinhos',
+            'fueled_at' => '2026-11-11T11:00:00+00:00',
+        ]);
+
+    $this->getJson('/api/v1/audit-logs?search=abastecimento excluido')->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.action_label', 'Abastecimento excluído');
+});
+
+it('recomputes the efficiency of the next fuel log when one in the middle is deleted', function (): void {
+    $this->postJson('/api/v1/fuel/logs', fuelPayload())->assertCreated();
+    $middle = $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_300, 'liters_milliliters' => 100_000, 'fueled_at' => '2026-11-11T08:00:00-03:00']))->json('data.id');
+    $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_600, 'liters_milliliters' => 100_000, 'fueled_at' => '2026-11-12T08:00:00-03:00']))
+        ->assertJsonPath('data.km_per_liter', 3);
+
+    $this->deleteJson("/api/v1/fuel/logs/{$middle}")->assertNoContent();
+
+    // 600 km desde o primeiro com os 100 L do último: 6 km/L.
+    $this->getJson('/api/v1/fuel/logs')->assertOk()
+        ->assertJsonPath('data.0.distance_km', 600)
+        ->assertJsonPath('data.0.km_per_liter', 6);
+});
+
+it('keeps the vehicle mileage when a fuel log is deleted', function (): void {
+    $id = $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_820]))->json('data.id');
+
+    $this->deleteJson("/api/v1/fuel/logs/{$id}")->assertNoContent();
+
+    expect($this->bus->refresh()->current_mileage)->toBe(100_820);
+});
+
+it('returns 404 for a fuel log that does not exist or was already deleted', function (string $id): void {
+    $deleted = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id]);
+    $deleted->delete();
+
+    $this->deleteJson('/api/v1/fuel/logs/'.($id === 'deleted' ? $deleted->id : $id))->assertNotFound();
+
+    $this->assertDatabaseMissing('audit_logs', ['action' => 'fuel_log.deleted']);
+})->with(['0193a5b0-7c1e-7000-8000-000000000000', 'not-a-uuid', 'deleted']);
+
+it('lets only who manages the fleet delete a fuel log', function (UserRole $role, int $status): void {
+    $log = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id]);
+    actingAsRole($role);
+
+    $this->deleteJson("/api/v1/fuel/logs/{$log->id}")->assertStatus($status);
+})->with([
+    [UserRole::FleetManager, 204],
+    [UserRole::Dispatcher, 403],
+    [UserRole::MechanicSupervisor, 403],
+]);
+
+it('takes a deleted fuel log out of the month spent on the dashboard', function (): void {
+    $kept = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'fueled_at' => '2026-11-05 12:00:00+00', 'total_cost_cents' => 100_000, 'liters_milliliters' => 150_000]);
+    $wrong = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'fueled_at' => '2026-11-06 12:00:00+00', 'total_cost_cents' => 900_000, 'liters_milliliters' => 800_000]);
+
+    $this->deleteJson("/api/v1/fuel/logs/{$wrong->id}")->assertNoContent();
+
+    $this->getJson('/api/v1/dashboard/summary')->assertOk()
+        ->assertJsonPath('data.fuel.month_cost_cents', $kept->total_cost_cents)
+        ->assertJsonPath('data.fuel.month_logs', 1);
+});

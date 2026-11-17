@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, pageParams } from '@/tests/paging';
 import { useFuelStore } from '../fuelStore';
 
-const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), delete: vi.fn() }));
 
 vi.mock('@/core/api/http', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@/core/api/http')>()),
@@ -16,8 +16,7 @@ const log = { id: 'fuel-1', ...payload, distance_km: 640, km_per_liter: 1.83, lo
 describe('fuelStore', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
-        http.get.mockReset();
-        http.post.mockReset();
+        Object.values(http).forEach((mock) => mock.mockReset());
     });
 
     it('loads the first page of fuel logs and searches on the server', async () => {
@@ -73,7 +72,9 @@ describe('fuelStore', () => {
 
         expect(http.post).toHaveBeenCalledWith('/fuel/logs', payload);
         expect(recorded).toEqual(log);
-        expect(http.get).toHaveBeenLastCalledWith('/fuel/logs', pageParams());
+        expect(http.get).toHaveBeenCalledWith('/fuel/logs', pageParams());
+        // O resumo do mês acompanha o registro novo.
+        expect(http.get).toHaveBeenCalledWith('/dashboard/summary');
         expect(store.saveStatus).toBe('success');
     });
 
@@ -99,5 +100,46 @@ describe('fuelStore', () => {
 
         store.resetSaveState();
         expect(store.saveError).toBeNull();
+    });
+
+    it('loads the month summary from the dashboard', async () => {
+        const fuel = { month_start: '2026-11-01T00:00:00+00:00', month_cost_cents: 2_150_590, month_liters_milliliters: 3_505_500, month_logs: 12 };
+        http.get.mockResolvedValue({ data: { data: { fuel } } });
+        const store = useFuelStore();
+
+        await store.fetchSummary();
+
+        expect(http.get).toHaveBeenCalledWith('/dashboard/summary');
+        expect(store.monthSummary).toEqual(fuel);
+        expect(store.summaryStatus).toBe('success');
+    });
+
+    it('deletes a fuel log and reloads the current page and the month summary', async () => {
+        http.get.mockResolvedValue(page([log], { current_page: 2, total: 20, last_page: 2 }));
+        http.delete.mockResolvedValue({});
+        const store = useFuelStore();
+        await store.fetchLogs(2);
+        http.get.mockClear();
+        http.get.mockImplementation((url: string) => Promise.resolve(url === '/dashboard/summary' ? { data: { data: { fuel: null } } } : page([], { current_page: 2, total: 19, last_page: 2 })));
+
+        expect(await store.remove('fuel-1')).toBe(true);
+
+        expect(http.delete).toHaveBeenCalledWith('/fuel/logs/fuel-1');
+        expect(http.get).toHaveBeenCalledWith('/fuel/logs', pageParams({ page: 2 }));
+        expect(http.get).toHaveBeenCalledWith('/dashboard/summary');
+        expect(store.removeStatus).toBe('success');
+    });
+
+    it('keeps the list and explains when the deletion fails', async () => {
+        http.delete.mockRejectedValue({ isAxiosError: true, response: { status: 404, data: { message: 'Abastecimento fuel-1 não encontrado.' } } });
+        const store = useFuelStore();
+
+        expect(await store.remove('fuel-1')).toBe(false);
+        expect(store.removeError).toBe('Abastecimento fuel-1 não encontrado.');
+        expect(http.get).not.toHaveBeenCalled();
+
+        store.resetRemoveState();
+        expect(store.removeError).toBeNull();
+        expect(store.removeStatus).toBe('idle');
     });
 });

@@ -6,6 +6,7 @@ namespace App\Domain\Audit\Listeners;
 
 use App\Domain\Audit\Actions\RecordAuditLogAction;
 use App\Domain\Shared\Enums\AuditAction;
+use App\Domain\Shared\Events\FuelLogDeleted;
 use App\Domain\Shared\Events\FuelLogRecorded;
 use App\Domain\Shared\Events\LineCreated;
 use App\Domain\Shared\Events\LineDeleted;
@@ -73,6 +74,18 @@ final readonly class RecordAuditTrail
             'station_name' => $event->stationName,
             'fueled_at' => $this->iso($event->fueledAt),
         ]);
+    }
+
+    public function fuelLogDeleted(FuelLogDeleted $event): void
+    {
+        $this->record->execute(AuditAction::FuelLogDeleted, 'fuel_log', $event->fuelLogId, [
+            'vehicle_id' => $event->vehicleId,
+            'odometer_km' => $event->odometerKm,
+            'liters_milliliters' => $event->litersMilliliters,
+            'total_cost_cents' => $event->totalCostCents,
+            'station_name' => $event->stationName,
+            'fueled_at' => $this->iso($event->fueledAt),
+        ], null);
     }
 
     public function tripCompleted(TripCompleted $event): void
