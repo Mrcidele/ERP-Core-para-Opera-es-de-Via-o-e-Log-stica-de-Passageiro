@@ -8,13 +8,15 @@ interface OpenOrderFormState {
     mechanic_id: string;
     type: MaintenanceType | '';
     description: string;
+    /** <input type="datetime-local">; vazio quando não há previsão. */
+    estimated_completion_at: string;
 }
 
 type FieldErrors = Partial<Record<OpenMaintenanceOrderField, string>>;
 
 export function useOpenMaintenanceOrderForm(onOpened: (order: MaintenanceOrder) => void) {
     const store = useMaintenanceStore();
-    const form = reactive<OpenOrderFormState>({ vehicle_id: '', mechanic_id: '', type: '', description: '' });
+    const form = reactive<OpenOrderFormState>({ vehicle_id: '', mechanic_id: '', type: '', description: '', estimated_completion_at: '' });
     const clientErrors = ref<FieldErrors>({});
 
     store.resetSaveState();

@@ -10,6 +10,7 @@ use App\Domain\Maintenance\Enums\MaintenanceType;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use App\Infrastructure\Database\Models\MaintenanceOrderModel;
 use App\Infrastructure\Database\Models\VehicleModel;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -42,7 +43,18 @@ final class MaintenanceOrderModelFactory extends Factory
             'cost_cents' => 0,
             'opened_at' => fake()->dateTimeBetween('-10 days', '-1 hour'),
             'completed_at' => null,
+            'estimated_completion_at' => null,
         ];
+    }
+
+    /** Ordem aberta com previsão de término a $hours horas da abertura. */
+    public function estimatedIn(int $hours): self
+    {
+        return $this->state(function (array $attributes) use ($hours): array {
+            $openedAt = CarbonImmutable::parse($attributes['opened_at'] instanceof \DateTimeInterface ? $attributes['opened_at']->format(DATE_ATOM) : (string) $attributes['opened_at']);
+
+            return ['estimated_completion_at' => $openedAt->addHours($hours)];
+        });
     }
 
     public function completed(): self

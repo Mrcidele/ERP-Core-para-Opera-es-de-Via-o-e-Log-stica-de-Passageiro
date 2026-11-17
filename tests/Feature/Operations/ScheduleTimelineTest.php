@@ -141,11 +141,11 @@ it('shows vehicles with a pending maintenance order, with the order, even though
 
     expect(array_column($data['vehicles'], 'plate'))->toBe(['AAA1A11', 'OFI1C11'])
         ->and($data['vehicles'][0]['maintenance_orders'])->toBe([
-            ['id' => $progress->id, 'type' => 'preventive', 'status' => 'in_progress', 'opened_at' => '2026-11-20T09:00:00+00:00'],
+            ['id' => $progress->id, 'type' => 'preventive', 'status' => 'in_progress', 'opened_at' => '2026-11-20T09:00:00+00:00', 'estimated_completion_at' => null],
         ])
         ->and($data['vehicles'][1]['status'])->toBe('maintenance')
         ->and($data['vehicles'][1]['maintenance_orders'])->toBe([
-            ['id' => $open->id, 'type' => 'corrective', 'status' => 'open', 'opened_at' => '2026-11-18T14:00:00+00:00'],
+            ['id' => $open->id, 'type' => 'corrective', 'status' => 'open', 'opened_at' => '2026-11-18T14:00:00+00:00', 'estimated_completion_at' => null],
         ]);
 });
 
@@ -178,3 +178,28 @@ it('is open to who can see the operation and closed to the others', function (Us
     [UserRole::FleetManager, 200],
     [UserRole::MechanicSupervisor, 403],
 ]);
+
+it('returns the estimated completion of each pending order, and null when there is none', function (): void {
+    $soon = VehicleModel::factory()->create(['plate' => 'OFI1C11', 'status' => 'maintenance']);
+    $beyond = VehicleModel::factory()->create(['plate' => 'OFI2C22', 'status' => 'maintenance']);
+    $unknown = VehicleModel::factory()->create(['plate' => 'OFI3C33', 'status' => 'maintenance']);
+    $overdue = VehicleModel::factory()->create(['plate' => 'OFI4C44', 'status' => 'maintenance']);
+
+    MaintenanceOrderModel::factory()->create(['vehicle_id' => $soon->id, 'opened_at' => '2026-11-19 14:00:00+00', 'estimated_completion_at' => '2026-11-20 18:30:00+00']);
+    MaintenanceOrderModel::factory()->create(['vehicle_id' => $beyond->id, 'opened_at' => '2026-11-19 14:00:00+00', 'estimated_completion_at' => '2026-11-25 12:00:00+00']);
+    MaintenanceOrderModel::factory()->create(['vehicle_id' => $unknown->id, 'opened_at' => '2026-11-19 14:00:00+00']);
+    // Previsão vencida antes da janela, mas a ordem continua pendente: o veículo segue na oficina e aparece.
+    MaintenanceOrderModel::factory()->create(['vehicle_id' => $overdue->id, 'opened_at' => '2026-11-17 14:00:00+00', 'estimated_completion_at' => '2026-11-18 12:00:00+00']);
+
+    $estimates = collect(timeline()['vehicles'])
+        ->filter(fn (array $vehicle): bool => $vehicle['maintenance_orders'] !== [])
+        ->mapWithKeys(fn (array $vehicle): array => [$vehicle['plate'] => $vehicle['maintenance_orders'][0]['estimated_completion_at']])
+        ->all();
+
+    expect($estimates)->toBe([
+        'OFI1C11' => '2026-11-20T18:30:00+00:00',
+        'OFI2C22' => '2026-11-25T12:00:00+00:00',
+        'OFI3C33' => null,
+        'OFI4C44' => '2026-11-18T12:00:00+00:00',
+    ]);
+});

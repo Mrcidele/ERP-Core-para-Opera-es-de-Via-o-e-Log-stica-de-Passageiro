@@ -7,6 +7,7 @@ namespace App\Domain\Maintenance\Entities;
 use App\Domain\Maintenance\DTOs\OpenMaintenanceOrderDTO;
 use App\Domain\Maintenance\Enums\MaintenanceStatus;
 use App\Domain\Maintenance\Enums\MaintenanceType;
+use App\Domain\Maintenance\Exceptions\InvalidEstimatedCompletionException;
 use App\Domain\Maintenance\Exceptions\InvalidMaintenanceTransitionException;
 use App\Domain\Maintenance\Exceptions\NegativeMaintenanceCostException;
 use DateTimeImmutable;
@@ -23,10 +24,16 @@ final readonly class MaintenanceOrder
         public int $costCents,
         public DateTimeImmutable $openedAt,
         public ?DateTimeImmutable $completedAt,
+        /** Previsão de o veículo sair da oficina; null quando não informada. */
+        public ?DateTimeImmutable $estimatedCompletionAt = null,
     ) {}
 
     public static function open(string $id, OpenMaintenanceOrderDTO $data, DateTimeImmutable $now): self
     {
+        if ($data->estimatedCompletionAt !== null && $data->estimatedCompletionAt <= $now) {
+            throw new InvalidEstimatedCompletionException;
+        }
+
         return new self(
             id: $id,
             vehicleId: $data->vehicleId,
@@ -37,6 +44,7 @@ final readonly class MaintenanceOrder
             costCents: 0,
             openedAt: $now,
             completedAt: null,
+            estimatedCompletionAt: $data->estimatedCompletionAt,
         );
     }
 
@@ -60,6 +68,7 @@ final readonly class MaintenanceOrder
             $costCents,
             $this->openedAt,
             $now,
+            $this->estimatedCompletionAt,
         );
     }
 
@@ -79,6 +88,7 @@ final readonly class MaintenanceOrder
             $this->costCents,
             $this->openedAt,
             $this->completedAt,
+            $this->estimatedCompletionAt,
         );
     }
 }

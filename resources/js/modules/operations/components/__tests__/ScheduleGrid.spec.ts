@@ -25,7 +25,7 @@ const timeline = (overrides: Partial<ScheduleTimeline> = {}): ScheduleTimeline =
     driver_rest_hours: 11,
     vehicles: [
         { id: 'bus-1', plate: 'ABC1D23', status: 'active', trips: [trip('t1', 8, 14)], maintenance_orders: [] },
-        { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-50) }] },
+        { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-50), estimated_completion_at: null }] },
     ],
     drivers: [
         { id: 'driver-1', name: 'Ana Lima', trips: [trip('t1', 8, 14)] },
@@ -87,6 +87,54 @@ describe('ScheduleGrid', () => {
         expect(style(order)).toContain('left: 0%');
         expect(style(order)).toContain('width: 100%');
         expect(order.text()).toBe('Oficina: corretiva');
+    });
+
+    it('ends the workshop block at the estimated completion', () => {
+        const order = grid(
+            timeline({
+                vehicles: [
+                    { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'preventive', status: 'in_progress', opened_at: at(-5), estimated_completion_at: at(18) }] },
+                ],
+            }),
+        ).get('[data-test="block-maintenance"]');
+
+        // Começa antes da grade e termina às 18h: 45% da faixa.
+        expect(style(order)).toContain('left: 0%');
+        expect(style(order)).toContain('width: 45%');
+        expect(order.text()).toBe('Oficina: preventiva');
+        expect(order.attributes('title')).toContain('com previsão de término em');
+    });
+
+    it('limits the workshop block to the end of the grid when the estimate is beyond it', () => {
+        const order = grid(
+            timeline({
+                vehicles: [
+                    { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(10), estimated_completion_at: at(200) }] },
+                ],
+            }),
+        ).get('[data-test="block-maintenance"]');
+
+        expect(style(order)).toContain('left: 25%');
+        expect(style(order)).toContain('width: 75%');
+    });
+
+    it('keeps the vehicle in the workshop until the end of the grid when the estimate passed and the order is still pending', () => {
+        // Agora são 4h; a previsão era 2h.
+        const order = grid(
+            timeline({
+                vehicles: [
+                    { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-20), estimated_completion_at: at(2) }] },
+                ],
+            }),
+        ).get('[data-test="block-maintenance"]');
+
+        expect(style(order)).toContain('width: 100%');
+        expect(order.text()).toBe('Oficina: corretiva, previsão vencida');
+        expect(order.attributes('title')).toContain('já passou');
+    });
+
+    it('says when a pending order has no estimate', () => {
+        expect(grid().get('[data-test="block-maintenance"]').attributes('title')).toBe('Ordem de serviço corretiva pendente, sem previsão de término.');
     });
 
     it('clips what starts before the grid and drops what is entirely outside', () => {

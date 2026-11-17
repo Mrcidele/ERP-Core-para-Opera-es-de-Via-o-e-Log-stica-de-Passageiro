@@ -81,6 +81,20 @@ const { form, errors, submit, store } = useOpenMaintenanceOrderForm((order) => e
             <p v-if="errors.description" data-test="description-error" class="field-error">{{ errors.description }}</p>
         </div>
 
+        <div>
+            <label class="field-label" for="order-estimate">Previsão de término <span class="font-normal text-ink-400">(opcional)</span></label>
+            <input
+                id="order-estimate"
+                v-model="form.estimated_completion_at"
+                data-test="estimated_completion_at"
+                class="field-input num"
+                type="datetime-local"
+                :aria-invalid="Boolean(errors.estimated_completion_at)"
+            />
+            <p v-if="errors.estimated_completion_at" data-test="estimated_completion_at-error" class="field-error">{{ errors.estimated_completion_at }}</p>
+            <p v-else class="field-hint">No horário deste computador. Na grade de escala, o veículo aparece na oficina até esse horário.</p>
+        </div>
+
         <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">

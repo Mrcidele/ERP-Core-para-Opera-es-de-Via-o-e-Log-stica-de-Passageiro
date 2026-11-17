@@ -23,6 +23,7 @@ const order = (id: string, status: MaintenanceOrderSummary['status'], type: Main
     cost_cents: status === 'completed' ? 45_090 : 0,
     opened_at: '2026-11-13T10:00:00+00:00',
     completed_at: status === 'completed' ? '2026-11-14T16:30:00+00:00' : null,
+    estimated_completion_at: null,
     vehicle: { id: `bus-${id}`, plate: `ABC1D2${id}` },
     mechanic: { id: 'mechanic-1', name: 'Maria Souza' },
 });
@@ -132,10 +133,77 @@ describe('MaintenanceView', () => {
             mechanic_id: 'mechanic-1',
             type: 'preventive',
             description: 'Troca de óleo e filtros',
+            estimated_completion_at: null,
         });
         expect(rows(wrapper)).toHaveLength(1);
         expect(lastToast()).toContain('Ordem de serviço aberta');
         expect(wrapper.find('form').exists()).toBe(false);
+    });
+
+    it('sends the optional estimated completion, typed in local time, in UTC', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(2026, 10, 13, 10, 0));
+        const wrapper = await mountPage([]);
+        http.post.mockResolvedValue({ data: { data: { id: '9', status: 'open', cost_cents: 0 } } });
+
+        await wrapper.get('[data-test="new-order"]').trigger('click');
+        await flushPromises();
+
+        const estimate = wrapper.get('[data-test="estimated_completion_at"]');
+
+        expect(estimate.attributes('type')).toBe('datetime-local');
+        expect((estimate.element as HTMLInputElement).value).toBe('');
+        expect(wrapper.get('label[for="order-estimate"]').text()).toBe('Previsão de término (opcional)');
+
+        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="type-corrective"]').setValue();
+        await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
+        await wrapper.get('[data-test="description"]').setValue('Reparo no ar-condicionado');
+        await estimate.setValue('2026-11-14T18:00');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(http.post).toHaveBeenCalledWith('/maintenance/orders', {
+            vehicle_id: 'bus-9',
+            mechanic_id: 'mechanic-1',
+            type: 'corrective',
+            description: 'Reparo no ar-condicionado',
+            estimated_completion_at: new Date(2026, 10, 14, 18, 0).toISOString(),
+        });
+
+        vi.useRealTimers();
+    });
+
+    it('refuses an estimated completion in the past before calling the API, and shows the API refusal on the field', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(2026, 10, 13, 10, 0));
+        const wrapper = await mountPage([]);
+
+        await wrapper.get('[data-test="new-order"]').trigger('click');
+        await flushPromises();
+        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="type-corrective"]').setValue();
+        await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
+        await wrapper.get('[data-test="description"]').setValue('Reparo no ar-condicionado');
+        await wrapper.get('[data-test="estimated_completion_at"]').setValue('2026-11-13T09:30');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(http.post).not.toHaveBeenCalled();
+        expect(wrapper.get('[data-test="estimated_completion_at-error"]').text()).toBe('A previsão de término deve estar no futuro.');
+
+        // O relógio do computador pode estar adiantado em relação ao servidor: a API tem a palavra final.
+        http.post.mockRejectedValue({
+            isAxiosError: true,
+            response: { status: 422, data: { errors: { estimated_completion_at: ['A previsão de término deve ser posterior à abertura da ordem de serviço.'] } } },
+        });
+        await wrapper.get('[data-test="estimated_completion_at"]').setValue('2026-11-13T10:05');
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="estimated_completion_at-error"]').text()).toBe('A previsão de término deve ser posterior à abertura da ordem de serviço.');
+
+        vi.useRealTimers();
     });
 
     it('validates the opening form before calling the API', async () => {

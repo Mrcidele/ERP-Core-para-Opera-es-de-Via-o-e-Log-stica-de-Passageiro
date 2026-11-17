@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $description
  * @property int $cost_cents
  * @property CarbonImmutable $opened_at
+ * @property CarbonImmutable|null $estimated_completion_at
  * @property CarbonImmutable|null $completed_at
  * @property-read VehicleModel|null $vehicle
  * @property-read EmployeeModel|null $mechanic
@@ -46,6 +47,7 @@ final class MaintenanceOrderModel extends Model
         'description',
         'cost_cents',
         'opened_at',
+        'estimated_completion_at',
         'completed_at',
     ];
 
@@ -82,6 +84,7 @@ final class MaintenanceOrderModel extends Model
             'status' => MaintenanceStatus::class,
             'cost_cents' => 'integer',
             'opened_at' => 'immutable_datetime',
+            'estimated_completion_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
         ];
     }

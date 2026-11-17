@@ -28,6 +28,7 @@ final class MaintenanceOrderSummaryResource extends JsonResource
      *     cost_cents: int,
      *     opened_at: string,
      *     completed_at: string|null,
+     *     estimated_completion_at: string|null,
      *     vehicle: array{id: string, plate: string},
      *     mechanic: array{id: string, name: string},
      * }
@@ -45,6 +46,7 @@ final class MaintenanceOrderSummaryResource extends JsonResource
             'cost_cents' => $order->costCents,
             'opened_at' => $order->openedAt->setTimezone($utc)->format(DATE_ATOM),
             'completed_at' => $order->completedAt?->setTimezone($utc)->format(DATE_ATOM),
+            'estimated_completion_at' => $order->estimatedCompletionAt?->setTimezone($utc)->format(DATE_ATOM),
             'vehicle' => [
                 'id' => $order->vehicleId,
                 'plate' => $this->resource->vehiclePlate,

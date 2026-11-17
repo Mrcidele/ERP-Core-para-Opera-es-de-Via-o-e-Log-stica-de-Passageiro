@@ -20,7 +20,7 @@ final class MaintenanceOrderResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, vehicle_id: string, mechanic_id: string, type: string, status: string, description: string, cost_cents: int, opened_at: string, completed_at: string|null}
+     * @return array{id: string, vehicle_id: string, mechanic_id: string, type: string, status: string, description: string, cost_cents: int, opened_at: string, completed_at: string|null, estimated_completion_at: string|null}
      */
     public function toArray(Request $request): array
     {
@@ -36,6 +36,7 @@ final class MaintenanceOrderResource extends JsonResource
             'cost_cents' => $this->resource->costCents,
             'opened_at' => $this->resource->openedAt->setTimezone($utc)->format(DATE_ATOM),
             'completed_at' => $this->resource->completedAt?->setTimezone($utc)->format(DATE_ATOM),
+            'estimated_completion_at' => $this->resource->estimatedCompletionAt?->setTimezone($utc)->format(DATE_ATOM),
         ];
     }
 }

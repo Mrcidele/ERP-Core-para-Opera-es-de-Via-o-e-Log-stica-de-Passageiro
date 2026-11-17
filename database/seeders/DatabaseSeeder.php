@@ -100,10 +100,12 @@ class DatabaseSeeder extends Seeder
         }
 
         // Todo veículo em manutenção tem uma ordem aberta; alguns ativos têm histórico de ordens concluídas.
-        foreach ($vehicles->where('status', VehicleStatus::Maintenance) as $vehicle) {
+        // Metade com previsão de término nas próximas horas, para a grade de escala mostrar quando o veículo volta.
+        foreach ($vehicles->where('status', VehicleStatus::Maintenance)->values() as $index => $vehicle) {
             MaintenanceOrderModel::factory()->create([
                 'vehicle_id' => $vehicle->id,
                 'mechanic_id' => $mechanics->random()->id,
+                'estimated_completion_at' => $index % 2 === 0 ? now()->addHours(fake()->numberBetween(4, 30))->startOfHour() : null,
             ]);
         }
 

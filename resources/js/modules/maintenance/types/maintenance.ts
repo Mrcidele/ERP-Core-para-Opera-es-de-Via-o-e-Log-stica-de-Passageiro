@@ -16,6 +16,8 @@ interface MaintenanceOrderBase {
     opened_at: string;
     /** ISO 8601 em UTC. */
     completed_at: string | null;
+    /** Previsão de o veículo sair da oficina; ISO 8601 em UTC, null quando não informada. */
+    estimated_completion_at: string | null;
 }
 
 /** Resposta da abertura e do encerramento (MaintenanceOrderResource). */

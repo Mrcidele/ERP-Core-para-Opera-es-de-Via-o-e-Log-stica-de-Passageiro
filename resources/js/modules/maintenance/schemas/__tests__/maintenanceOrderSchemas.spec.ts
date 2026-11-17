@@ -2,11 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { formatCents } from '@/core/utils/format';
 import { completeMaintenanceOrderSchema, openMaintenanceOrderSchema, reaisToCents } from '../maintenanceOrderSchemas';
 
-const valid = { vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective', description: '  Reparo no ar-condicionado ' };
+const valid = { vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective', description: '  Reparo no ar-condicionado ', estimated_completion_at: '' };
 
 describe('openMaintenanceOrderSchema', () => {
     it('accepts a valid order and trims the description', () => {
-        expect(openMaintenanceOrderSchema.parse(valid)).toEqual({ ...valid, description: 'Reparo no ar-condicionado' });
+        expect(openMaintenanceOrderSchema.parse(valid)).toEqual({ ...valid, description: 'Reparo no ar-condicionado', estimated_completion_at: null });
+    });
+
+    it('sends the estimated completion typed in local time as ISO 8601 UTC', () => {
+        expect(openMaintenanceOrderSchema.parse({ ...valid, estimated_completion_at: '2099-11-14T18:00' }).estimated_completion_at).toBe(new Date(2099, 10, 14, 18, 0).toISOString());
+    });
+
+    it.each([
+        ['2000-01-01T08:00', 'A previsão de término deve estar no futuro.'],
+        ['14/11/2099 18:00', 'Informe a data e a hora da previsão.'],
+    ])('rejects the estimated completion %s', (estimate, message) => {
+        const result = openMaintenanceOrderSchema.safeParse({ ...valid, estimated_completion_at: estimate });
+
+        expect(result.error?.issues.map((issue) => [issue.path[0], issue.message])).toEqual([['estimated_completion_at', message]]);
     });
 
     it.each([

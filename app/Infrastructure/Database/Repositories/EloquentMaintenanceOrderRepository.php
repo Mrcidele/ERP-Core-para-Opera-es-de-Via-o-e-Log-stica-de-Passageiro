@@ -100,6 +100,7 @@ final class EloquentMaintenanceOrderRepository implements MaintenanceOrderReposi
                 'cost_cents' => $order->costCents,
                 'opened_at' => $this->toUtc($order->openedAt),
                 'completed_at' => $order->completedAt === null ? null : $this->toUtc($order->completedAt),
+                'estimated_completion_at' => $order->estimatedCompletionAt === null ? null : $this->toUtc($order->estimatedCompletionAt),
             ],
         );
     }
@@ -116,6 +117,7 @@ final class EloquentMaintenanceOrderRepository implements MaintenanceOrderReposi
             costCents: $model->cost_cents,
             openedAt: $model->opened_at->toDateTimeImmutable(),
             completedAt: $model->completed_at?->toDateTimeImmutable(),
+            estimatedCompletionAt: $model->estimated_completion_at?->toDateTimeImmutable(),
         );
     }
 

@@ -11,6 +11,7 @@ use App\Domain\Maintenance\DTOs\CompleteMaintenanceOrderDTO;
 use App\Domain\Maintenance\DTOs\OpenMaintenanceOrderDTO;
 use App\Domain\Maintenance\Enums\MaintenanceStatus;
 use App\Domain\Maintenance\Enums\MaintenanceType;
+use App\Domain\Maintenance\Exceptions\InvalidEstimatedCompletionException;
 use App\Domain\Maintenance\Exceptions\InvalidMaintenanceTransitionException;
 use App\Domain\Maintenance\Exceptions\MaintenanceOrderNotFoundException;
 use App\Domain\Maintenance\Exceptions\MechanicNotAvailableException;
@@ -179,3 +180,20 @@ it('blocks scheduling trips for a vehicle with a pending order and frees it when
 
     expect($trips->trips)->toHaveCount(1);
 });
+
+it('opens an order with an estimated completion and keeps it through completion', function (): void {
+    $estimate = new DateTimeImmutable('2026-11-14 18:00:00', new DateTimeZone('UTC'));
+
+    $order = $this->open->execute(new OpenMaintenanceOrderDTO('bus-1', 'mechanic-1', MaintenanceType::Preventive, 'Revisão dos freios', $estimate));
+
+    expect($order->estimatedCompletionAt)->toEqual($estimate)
+        ->and($this->complete->execute(new CompleteMaintenanceOrderDTO($order->id, 45_000))->estimatedCompletionAt)->toEqual($estimate);
+});
+
+it('rejects an estimated completion that is not after the opening', function (string $estimate): void {
+    $data = new OpenMaintenanceOrderDTO('bus-1', 'mechanic-1', MaintenanceType::Corrective, 'Revisão dos freios', new DateTimeImmutable($estimate, new DateTimeZone('UTC')));
+
+    expect(fn () => $this->open->execute($data))->toThrow(InvalidEstimatedCompletionException::class)
+        ->and($this->orders->orders)->toBe([])
+        ->and($this->fleet->statuses['bus-1'])->toBe('active');
+})->with(['2026-11-13 10:00:00', '2026-11-12 08:00:00']);

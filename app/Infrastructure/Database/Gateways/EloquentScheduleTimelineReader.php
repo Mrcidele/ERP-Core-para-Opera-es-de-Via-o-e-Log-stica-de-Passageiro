@@ -67,6 +67,7 @@ final class EloquentScheduleTimelineReader implements ScheduleTimelineReader
                     type: $order->type->value,
                     status: $order->status->value,
                     openedAt: $order->opened_at,
+                    estimatedCompletionAt: $order->estimated_completion_at,
                 ))->all()),
             ))->all()),
             drivers: array_values($drivers->map(fn (EmployeeModel $driver): TimelineDriverDTO => new TimelineDriverDTO(

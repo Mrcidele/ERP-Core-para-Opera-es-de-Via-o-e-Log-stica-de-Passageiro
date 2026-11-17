@@ -32,6 +32,7 @@ const spanMs = computed(() => Math.max(endMs.value - startMs.value, HOUR));
 
 const time = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const dayLabel = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+const dateTime = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 interface Block {
     key: string;
@@ -85,8 +86,20 @@ const vehicleRows = computed(() =>
         schedulable: props.canSchedule && vehicle.status === 'active',
         blocks: [
             ...vehicle.maintenance_orders.flatMap((order): Block[] => {
-                // Sem previsão de término: o bloco vai até o fim da grade.
-                const position = place(new Date(order.opened_at).getTime(), endMs.value);
+                const type = MAINTENANCE_TYPE_LABELS[order.type].toLowerCase();
+                const estimate = order.estimated_completion_at === null ? null : new Date(order.estimated_completion_at);
+                // Previsão já passada com a ordem ainda pendente: o veículo continua na oficina.
+                const overdue = estimate !== null && estimate.getTime() <= props.now.getTime();
+                // Com previsão (ainda no futuro), o bloco termina nela; sem previsão, ou com ela vencida, vai até o fim da grade.
+                const end = estimate !== null && !overdue ? estimate.getTime() : endMs.value;
+                const position = place(new Date(order.opened_at).getTime(), end);
+
+                const title =
+                    estimate === null
+                        ? `Ordem de serviço ${type} pendente, sem previsão de término.`
+                        : overdue
+                          ? `Ordem de serviço ${type} pendente. A previsão de término (${dateTime.format(estimate)}) já passou.`
+                          : `Ordem de serviço ${type} pendente, com previsão de término em ${dateTime.format(estimate)}.`;
 
                 return position === null
                     ? []
@@ -95,8 +108,8 @@ const vehicleRows = computed(() =>
                               key: `order-${order.id}`,
                               kind: 'maintenance',
                               ...position,
-                              label: `Oficina: ${MAINTENANCE_TYPE_LABELS[order.type].toLowerCase()}`,
-                              title: `Ordem de serviço ${MAINTENANCE_TYPE_LABELS[order.type].toLowerCase()} pendente, sem previsão de término.`,
+                              label: overdue ? `Oficina: ${type}, previsão vencida` : `Oficina: ${type}`,
+                              title,
                               tone: 'timeline-maintenance text-brake-700',
                           },
                       ];

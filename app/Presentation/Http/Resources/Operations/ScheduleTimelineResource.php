@@ -38,12 +38,13 @@ final class ScheduleTimelineResource extends JsonResource
                 'plate' => $vehicle->plate,
                 'status' => $vehicle->status,
                 'trips' => array_map($this->trip(...), $vehicle->trips),
-                // Ordem pendente não tem previsão de término: o bloco vai de `opened_at` até o fim da janela.
+                // O bloco vai de `opened_at` até `estimated_completion_at`; sem previsão, até o fim da janela.
                 'maintenance_orders' => array_map(fn (TimelineMaintenanceDTO $order): array => [
                     'id' => $order->id,
                     'type' => $order->type,
                     'status' => $order->status,
                     'opened_at' => $this->iso($order->openedAt),
+                    'estimated_completion_at' => $order->estimatedCompletionAt === null ? null : $this->iso($order->estimatedCompletionAt),
                 ], $vehicle->maintenanceOrders),
             ], $this->resource->vehicles),
             'drivers' => array_map(fn (TimelineDriverDTO $driver): array => [

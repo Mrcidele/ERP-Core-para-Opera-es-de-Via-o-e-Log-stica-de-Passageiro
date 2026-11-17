@@ -10,7 +10,7 @@ vi.mock('@/core/api/http', async (importOriginal) => ({
     http,
 }));
 
-const order = { id: 'order-1', vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective', status: 'open', description: 'Reparo', cost_cents: 0, opened_at: '2026-11-13T10:00:00+00:00', completed_at: null };
+const order = { id: 'order-1', vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective', status: 'open', description: 'Reparo', cost_cents: 0, opened_at: '2026-11-13T10:00:00+00:00', completed_at: null, estimated_completion_at: null };
 const summary = { ...order, vehicle: { id: 'bus-1', plate: 'ABC1D23' }, mechanic: { id: 'mechanic-1', name: 'Maria Souza' } };
 
 describe('maintenanceStore', () => {
@@ -60,7 +60,7 @@ describe('maintenanceStore', () => {
         http.post.mockResolvedValue({ data: { data: order } });
         http.get.mockResolvedValue(page([summary]));
         const store = useMaintenanceStore();
-        const payload = { vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective' as const, description: 'Reparo' };
+        const payload = { vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective' as const, description: 'Reparo', estimated_completion_at: '2026-11-14T21:00:00.000Z' };
 
         const result = await store.open(payload);
 
@@ -97,7 +97,7 @@ describe('maintenanceStore', () => {
         });
         const store = useMaintenanceStore();
 
-        const result = await store.open({ vehicle_id: 'bus-1', mechanic_id: 'driver-1', type: 'corrective', description: 'Reparo' });
+        const result = await store.open({ vehicle_id: 'bus-1', mechanic_id: 'driver-1', type: 'corrective', description: 'Reparo', estimated_completion_at: null });
 
         expect(result).toBeNull();
         expect(store.saveStatus).toBe('error');

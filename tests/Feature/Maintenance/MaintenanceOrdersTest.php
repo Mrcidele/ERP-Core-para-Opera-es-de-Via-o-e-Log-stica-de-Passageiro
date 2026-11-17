@@ -162,6 +162,7 @@ it('lists orders from the most recent to the oldest with vehicle and mechanic', 
             'cost_cents' => 0,
             'opened_at' => '2026-11-14T09:00:00+00:00',
             'completed_at' => null,
+            'estimated_completion_at' => null,
             'vehicle' => ['id' => $this->vehicle->id, 'plate' => 'ABC1D23'],
             'mechanic' => ['id' => $this->mechanic->id, 'name' => 'Maria Souza'],
         ]);
@@ -190,4 +191,46 @@ it('blocks scheduling trips while the vehicle has a pending order and frees it a
 it('refuses at the database a negative cost', function (): void {
     expect(fn () => DB::transaction(fn () => MaintenanceOrderModel::factory()->create(['cost_cents' => -1])))
         ->toThrow(QueryException::class, 'maintenance_orders_cost_not_negative');
+});
+
+it('opens an order with an estimated completion, stored in UTC', function (): void {
+    $response = $this->postJson('/api/v1/maintenance/orders', orderPayload(['estimated_completion_at' => '2026-11-14T18:00:00-03:00']))
+        ->assertCreated()
+        ->assertJsonPath('data.estimated_completion_at', '2026-11-14T21:00:00+00:00');
+
+    $this->assertDatabaseHas('maintenance_orders', ['id' => $response->json('data.id'), 'estimated_completion_at' => '2026-11-14 21:00:00+00']);
+    $this->getJson('/api/v1/maintenance/orders')->assertOk()->assertJsonPath('data.0.estimated_completion_at', '2026-11-14T21:00:00+00:00');
+});
+
+it('opens an order without an estimate', function (?string $estimate): void {
+    $this->postJson('/api/v1/maintenance/orders', orderPayload(['estimated_completion_at' => $estimate]))
+        ->assertCreated()
+        ->assertJsonPath('data.estimated_completion_at', null);
+})->with([null, '']);
+
+it('keeps the estimate when the order is completed', function (): void {
+    $id = $this->postJson('/api/v1/maintenance/orders', orderPayload(['estimated_completion_at' => '2026-11-14T18:00:00-03:00']))->json('data.id');
+
+    $this->patchJson("/api/v1/maintenance/orders/{$id}", ['status' => 'completed', 'cost_cents' => 45_000])
+        ->assertOk()
+        ->assertJsonPath('data.estimated_completion_at', '2026-11-14T21:00:00+00:00');
+});
+
+it('rejects an estimate that is not after the opening or not in ISO 8601 with time zone', function (string $estimate, string $message): void {
+    $this->postJson('/api/v1/maintenance/orders', orderPayload(['estimated_completion_at' => $estimate]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['estimated_completion_at' => $message]);
+
+    $this->assertDatabaseCount('maintenance_orders', 0);
+    expect(vehicleStatus())->toBe('active');
+})->with([
+    'agora' => ['2026-11-13T07:00:00-03:00', 'A previsão de término deve ser posterior à abertura da ordem de serviço.'],
+    'no passado' => ['2026-11-12T18:00:00-03:00', 'A previsão de término deve ser posterior à abertura da ordem de serviço.'],
+    'sem fuso' => ['2026-11-14 18:00:00', 'Informe a previsão de término em ISO 8601 com fuso horário.'],
+    'só a data' => ['2026-11-14', 'Informe a previsão de término em ISO 8601 com fuso horário.'],
+]);
+
+it('refuses at the database an estimate before the opening', function (): void {
+    expect(fn () => MaintenanceOrderModel::factory()->create(['opened_at' => '2026-11-13 10:00:00+00', 'estimated_completion_at' => '2026-11-13 09:59:59+00']))
+        ->toThrow(QueryException::class);
 });

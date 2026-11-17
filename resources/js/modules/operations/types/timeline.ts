@@ -18,13 +18,15 @@ export interface TimelineTrip {
     driver: { id: string; name: string };
 }
 
-/** Ordem de serviço pendente: sem previsão de término, ocupa o veículo de `opened_at` em diante. */
+/** Ordem de serviço pendente: ocupa o veículo de `opened_at` até `estimated_completion_at` (ou até o fim da janela, sem previsão). */
 export interface TimelineMaintenanceOrder {
     id: string;
     type: MaintenanceType;
     status: MaintenanceStatus;
     /** ISO 8601 em UTC. */
     opened_at: string;
+    /** Previsão de término; ISO 8601 em UTC, null quando a oficina não informou. */
+    estimated_completion_at: string | null;
 }
 
 export interface TimelineVehicle {
