@@ -38,6 +38,15 @@ A aplicação usa somente PostgreSQL 16. Em produção, o banco é um PostgreSQL
 
 Não rode `php artisan db:seed` em produção: o seeder cria frota, funcionários e viagens de demonstração (os usuários de teste com senha conhecida só são criados fora de produção).
 
+## Documentação da API
+
+A documentação OpenAPI é gerada automaticamente pelo [Scramble](https://scramble.dedoc.co) a partir das rotas, dos FormRequests e dos API Resources:
+
+- `/docs/api`: documentação interativa, com "Try it" (autentique em `POST /api/v1/auth/login` e use o token como Bearer).
+- `/docs/api.json`: o documento OpenAPI 3.1, para gerar clientes ou importar no Postman/Insomnia.
+
+Fica aberta em `APP_ENV=local` e `testing`. Em produção e homologação responde 404, a menos que `SCRAMBLE_ENABLED=true`. A documentação não dá acesso a dados: os endpoints continuam exigindo token e permissão. A página carrega o visualizador (Stoplight Elements) de `unpkg.com`, então o navegador precisa alcançar esse CDN.
+
 ## Produção (Docker)
 
 `docker/production/Dockerfile` gera uma imagem única com Nginx e PHP-FPM 8.4 (Alpine) sob o Supervisor, com os assets do Vue já compilados.

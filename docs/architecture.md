@@ -114,6 +114,9 @@ resources/js/
 | Infra | Smoke test da imagem de produção no CI: build, migrations, health 200/503, login e assets | Implementado |
 | Audit | Agendamento de viagem auditado (`trip.scheduled`) | Implementado |
 | Fuel | Abastecimentos (`GET`/`POST /api/v1/fuel/logs`): veículo travado, hodômetro e data nunca anteriores ao último abastecimento do veículo, hodômetro eleva a quilometragem da frota, rendimento em km/L por trecho e alerta abaixo de 2,2 km/L, auditoria `fuel_log.recorded`, gasto do mês no painel; tela Abastecimento | Implementado |
-| Fuel | Edição e exclusão de abastecimentos, relatório de consumo por veículo | Pendente |
+| Fuel | Exclusão lógica de abastecimento (`DELETE /api/v1/fuel/logs/{id}`, auditoria `fuel_log.deleted`): o rendimento do abastecimento seguinte é recalculado e o lançamento correto pode ser feito em seguida; resumo do mês na tela | Implementado |
+| Fuel | Edição de abastecimento, relatório de consumo por veículo | Pendente |
 | Operations | Grade de escala (`GET /api/v1/operations/schedule-timeline?date=`): 48 horas por veículo e por motorista, com ordens de serviço pendentes e o descanso de 11 horas; na tela, alternância Lista / Grade e agendamento a partir de um horário livre | Implementado |
+| Maintenance / Operations | Previsão de término opcional na ordem de serviço (`estimated_completion_at`); na grade de escala o bloco de oficina termina nela | Implementado |
+| Infra | Documentação OpenAPI automática (Scramble) em `/docs/api` | Implementado |
 | Identity | Cadastro e gestão de usuários, troca e recuperação de senha | Pendente |
