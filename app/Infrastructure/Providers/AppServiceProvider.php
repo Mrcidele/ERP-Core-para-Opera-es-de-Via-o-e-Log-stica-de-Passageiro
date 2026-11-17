@@ -46,8 +46,12 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Produção com APP_DEBUG ligado ou sem APP_KEY válida não sobe.
-        InsecureConfigurationGuard::check($this->app->environment(), config('app.debug'), config('app.key'));
+        // Produção com APP_DEBUG ligado ou sem APP_KEY válida não atende requisições. Comandos de
+        // terminal ficam de fora (o build roda `package:discover` sem chave); no contêiner, o
+        // entrypoint faz a mesma checagem antes de subir.
+        if (! $this->app->runningInConsole()) {
+            InsecureConfigurationGuard::check($this->app->environment(), config('app.debug'), config('app.key'));
+        }
 
         $proxies = config('app.trusted_proxies');
         TrustedProxies::apply(is_string($proxies) ? $proxies : null);
