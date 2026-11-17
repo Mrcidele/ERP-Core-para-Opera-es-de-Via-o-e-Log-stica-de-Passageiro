@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 
+// A página do SPA não depende do build do Vite nos testes (o CI roda sem public/build).
+beforeEach(fn () => $this->withoutVite());
+
 afterEach(fn () => TrustedProxies::apply(null));
 
 /*
