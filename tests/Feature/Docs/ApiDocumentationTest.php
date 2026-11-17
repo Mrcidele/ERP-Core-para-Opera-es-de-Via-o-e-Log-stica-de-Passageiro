@@ -78,5 +78,8 @@ it('answers 404 in production unless SCRAMBLE_ENABLED is true', function (string
 })->with(['production', 'staging']);
 
 it('keeps the SPA answering every other path, including ones that start like the docs', function (string $path): void {
+    // No CI o Pest roda antes do build do frontend: a página do SPA não depende do manifesto do Vite aqui.
+    $this->withoutVite();
+
     $this->get($path)->assertOk()->assertSee('<div id="app">', false)->assertDontSee('API Docs');
 })->with(['/', '/frota', '/abastecimento', '/docs', '/docs/apis', '/docs/api/extra']);
