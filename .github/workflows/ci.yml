@@ -151,6 +151,12 @@ jobs:
           cat login.json
           test "$status" = "422"
 
+      # Em produção a documentação só existe com SCRAMBLE_ENABLED=true; sem ela, /docs/api não pode vazar nem cair no SPA.
+      - name: Documentação da API desligada por padrão
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/docs/api)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/docs/api.json)" = "404"
+
       - name: SPA e assets compilados são servidos
         run: |
           curl -fsS http://localhost:8080/ -o index.html
