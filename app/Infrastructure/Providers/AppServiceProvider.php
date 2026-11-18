@@ -16,6 +16,7 @@ use App\Domain\Shared\Events\LineCreated;
 use App\Domain\Shared\Events\LineDeleted;
 use App\Domain\Shared\Events\LineUpdated;
 use App\Domain\Shared\Events\LoginFailed;
+use App\Domain\Shared\Events\LoginSucceeded;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
@@ -83,6 +84,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(TripCanceled::class, [RecordAuditTrail::class, 'tripCanceled']);
         Event::listen(MaintenanceOrderOpened::class, [RecordAuditTrail::class, 'maintenanceOrderOpened']);
         Event::listen(MaintenanceOrderCompleted::class, [RecordAuditTrail::class, 'maintenanceOrderCompleted']);
+        Event::listen(LoginSucceeded::class, [RecordAuditTrail::class, 'loginSucceeded']);
         Event::listen(LoginFailed::class, [RecordAuditTrail::class, 'loginFailed']);
     }
 }

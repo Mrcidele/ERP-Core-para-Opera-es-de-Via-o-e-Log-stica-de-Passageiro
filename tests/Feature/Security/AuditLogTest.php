@@ -133,13 +133,31 @@ it('audits failed logins without a user and never stores the password', function
         ->and(lastAudit()->new_values)->toBe(['email' => 'ninguem@erp.test']);
 });
 
-it('does not audit a successful login or a refused operation', function (): void {
-    UserModel::factory()->create(['email' => 'despachante@erp.test']);
-
-    $this->postJson('/api/v1/auth/login', ['email' => 'despachante@erp.test', 'password' => 'Password@123'])->assertOk();
+it('does not audit a refused operation', function (): void {
     $this->deleteJson('/api/v1/fleet/vehicles/0193a5b0-7c1e-7000-8000-000000000000')->assertNotFound();
 
     $this->assertDatabaseCount('audit_logs', 0);
+});
+
+it('audits a successful login with the account as author and the client IP', function (): void {
+    $user = UserModel::factory()->create(['email' => 'despachante@erp.test']);
+
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
+        ->postJson('/api/v1/auth/login', ['email' => 'Despachante@ERP.test', 'password' => 'Password@123'])
+        ->assertOk();
+
+    $log = lastAudit();
+    expect($log->action)->toBe('auth.login')
+        ->and($log->user_id)->toBe($user->id)
+        ->and($log->auditable_id)->toBe($user->id)
+        ->and($log->ip_address)->toBe('203.0.113.9')
+        ->and($log->new_values)->toBe(['email' => 'despachante@erp.test'])
+        ->and(json_encode($log->getAttributes()))->not->toContain('Password@123');
+
+    $this->getJson('/api/v1/audit-logs?search=login realizado')
+        ->assertOk()
+        ->assertJsonPath('data.0.action_label', 'Login realizado')
+        ->assertJsonPath('data.0.user.name', $user->name);
 });
 
 it('lists the audit records, most recent first, with the user name', function (): void {

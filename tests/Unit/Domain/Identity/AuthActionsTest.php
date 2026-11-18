@@ -11,6 +11,7 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Exceptions\InvalidCredentialsException;
 use App\Domain\Identity\Exceptions\UserNotFoundException;
 use App\Domain\Shared\Events\LoginFailed;
+use App\Domain\Shared\Events\LoginSucceeded;
 use Tests\Fakes\FakePasswordHasher;
 use Tests\Fakes\FakeTokenService;
 use Tests\Fakes\InMemoryUserRepository;
@@ -31,7 +32,7 @@ it('logs in with valid credentials and issues a token', function (): void {
     expect($session->user->id)->toBe('user-1')
         ->and($session->user->role)->toBe(UserRole::Dispatcher)
         ->and($this->tokens->active)->toBe([$session->token => 'user-1'])
-        ->and($this->events->events)->toBeEmpty();
+        ->and($this->events->events)->toEqual([new LoginSucceeded('user-1', 'despachante@erp.test')]);
 });
 
 it('finds the account regardless of the e-mail letter case', function (): void {

@@ -18,6 +18,7 @@ it('names every audited action in Portuguese', function (): void {
         ['fuel_log.recorded', 'Abastecimento registrado'],
         ['fuel_log.deleted', 'Abastecimento excluído'],
         ['user.created', 'Usuário criado'],
+        ['auth.login', 'Login realizado'],
         ['auth.login_failed', 'Login recusado'],
     ]);
 });
@@ -37,7 +38,8 @@ it('finds the codes whose label contains the term, ignoring case and accents', f
     ['  Veículo ', ['vehicle.deleted']],
     ['servico', ['maintenance_order.opened', 'maintenance_order.completed']],
     ['concluída', ['trip.completed', 'maintenance_order.completed']],
-    ['login', ['auth.login_failed']],
+    ['login', ['auth.login', 'auth.login_failed']],
+    ['realizado', ['auth.login']],
     ['vehicle.deleted', []],
     ['nada parecido', []],
     ['', []],

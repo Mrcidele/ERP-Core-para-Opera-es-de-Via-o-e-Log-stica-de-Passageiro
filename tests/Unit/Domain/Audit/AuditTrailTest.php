@@ -7,6 +7,7 @@ use App\Domain\Audit\Actions\RecordAuditLogAction;
 use App\Domain\Audit\Listeners\RecordAuditTrail;
 use App\Domain\Shared\Enums\AuditAction;
 use App\Domain\Shared\Events\LoginFailed;
+use App\Domain\Shared\Events\LoginSucceeded;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
@@ -41,6 +42,15 @@ it('records an action without an authenticated user', function (): void {
     $record = new RecordAuditLogAction($this->logs, new FakeRequestContext(userId: null), new FixedClock('2026-11-14 12:00:00'));
 
     expect($record->execute(AuditAction::LoginFailed, 'user', null, null, ['email' => 'x@erp.test'])->userId)->toBeNull();
+});
+
+it('records a successful login with the account as author, even before the request is authenticated', function (): void {
+    $record = new RecordAuditLogAction($this->logs, new FakeRequestContext(userId: null), new FixedClock('2026-11-14 12:00:00'));
+    (new RecordAuditTrail($record))->loginSucceeded(new LoginSucceeded('user-9', 'x@erp.test'));
+
+    $log = $this->logs->logs[0];
+
+    expect([$log->action, $log->userId, $log->auditableId, $log->newValues])->toBe(['auth.login', 'user-9', 'user-9', ['email' => 'x@erp.test']]);
 });
 
 it('turns each critical event into an audit record', function (string $method, object $event, array $expected): void {

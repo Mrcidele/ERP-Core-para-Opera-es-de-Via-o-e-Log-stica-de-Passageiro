@@ -2,7 +2,7 @@
 
 Estas regras valem para todo código gerado neste repositório. Detalhes de módulos e modelagem: `docs/architecture.md`.
 
-## Backend (Laravel 11, PHP 8.4)
+## Backend (Laravel 12, PHP 8.4)
 
 - `declare(strict_types=1);` em todos os arquivos PHP.
 - Clean Architecture em três camadas, dependências sempre apontando para o domínio:

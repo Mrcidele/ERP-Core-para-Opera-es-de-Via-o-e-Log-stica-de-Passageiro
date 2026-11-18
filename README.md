@@ -1,6 +1,6 @@
 # ERP Core para Operações de Viação e Logística de Passageiros
 
-Laravel 11 (PHP 8.4) + Vue 3/TypeScript, organizado em domínios com Clean Architecture. Regras em [`CLAUDE.md`](CLAUDE.md), desenho em [`docs/architecture.md`](docs/architecture.md).
+Laravel 12 (PHP 8.4) + Vue 3/TypeScript, organizado em domínios com Clean Architecture. Regras em [`CLAUDE.md`](CLAUDE.md), desenho em [`docs/architecture.md`](docs/architecture.md).
 
 ## Deploy (Neon + Render)
 
@@ -70,6 +70,18 @@ printf '%s\n' "$SENHA" | php artisan erp:create-user --name="Ana Souza" --email=
 ```
 
 A senha nunca é aceita como argumento, porque ficaria no histórico do shell e visível em `ps`: no terminal ela é pedida duas vezes sem eco; em automação, use `--password-stdin`. A senha precisa de 12 a 128 caracteres, com maiúsculas, minúsculas e números, e é gravada com Argon2id (contas antigas em bcrypt continuam entrando e passam para Argon2id no próximo login). `--role` (padrão `admin`) aceita `admin`, `dispatcher`, `fleet_manager` e `mechanic_supervisor`. E-mail já cadastrado é recusado, e cada criação entra na auditoria como "Usuário criado" (sem a senha).
+
+### Role restrita da aplicação (opcional)
+
+Por padrão a aplicação conecta como `neondb_owner`, dona das tabelas. Para que ela só leia e grave dados, sem poder criar, alterar, esvaziar ou apagar tabelas nem mexer na auditoria, crie a role `erp_app` com [`docs/sql/erp_app_role.sql`](docs/sql/erp_app_role.sql) no SQL Editor do Neon (troque a senha antes de rodar). Depois, no Render:
+
+```dotenv
+DB_USERNAME=erp_app
+DB_PASSWORD=<senha da erp_app>
+RUN_MIGRATIONS=false
+```
+
+Com a `erp_app` a aplicação não consegue rodar migrations: antes de publicar uma versão com migration nova, rode `php artisan migrate --force` do seu terminal como `neondb_owner`, pela conexão direta (passo 2). Tabelas criadas assim já ficam acessíveis à `erp_app`.
 
 ### Supabase
 

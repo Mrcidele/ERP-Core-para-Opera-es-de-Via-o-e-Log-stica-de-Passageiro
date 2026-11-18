@@ -21,12 +21,13 @@ final readonly class RecordAuditLogAction
     /**
      * @param  array<string, scalar|null>|null  $oldValues
      * @param  array<string, scalar|null>|null  $newValues
+     * @param  string|null  $actorId  Autor quando a requisição ainda não está autenticada (ex.: o próprio login).
      */
-    public function execute(AuditAction $action, string $auditableType, ?string $auditableId, ?array $oldValues, ?array $newValues): AuditLog
+    public function execute(AuditAction $action, string $auditableType, ?string $auditableId, ?array $oldValues, ?array $newValues, ?string $actorId = null): AuditLog
     {
         $log = new AuditLog(
             id: $this->logs->nextIdentity(),
-            userId: $this->context->userId(),
+            userId: $actorId ?? $this->context->userId(),
             action: $action->value,
             auditableType: $auditableType,
             auditableId: $auditableId,

@@ -12,6 +12,7 @@ use App\Domain\Shared\Events\LineCreated;
 use App\Domain\Shared\Events\LineDeleted;
 use App\Domain\Shared\Events\LineUpdated;
 use App\Domain\Shared\Events\LoginFailed;
+use App\Domain\Shared\Events\LoginSucceeded;
 use App\Domain\Shared\Events\MaintenanceOrderCompleted;
 use App\Domain\Shared\Events\MaintenanceOrderOpened;
 use App\Domain\Shared\Events\TripCanceled;
@@ -131,6 +132,12 @@ final readonly class RecordAuditTrail
             'role' => $event->role,
             'channel' => $event->channel,
         ]);
+    }
+
+    public function loginSucceeded(LoginSucceeded $event): void
+    {
+        // A requisição de login ainda não é autenticada: o autor é a conta que acabou de entrar.
+        $this->record->execute(AuditAction::LoginSucceeded, 'user', $event->userId, null, ['email' => $event->email], actorId: $event->userId);
     }
 
     public function loginFailed(LoginFailed $event): void

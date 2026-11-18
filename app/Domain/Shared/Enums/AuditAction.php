@@ -19,6 +19,7 @@ enum AuditAction: string
     case FuelLogRecorded = 'fuel_log.recorded';
     case FuelLogDeleted = 'fuel_log.deleted';
     case UserCreated = 'user.created';
+    case LoginSucceeded = 'auth.login';
     case LoginFailed = 'auth.login_failed';
 
     public function label(): string
@@ -36,6 +37,7 @@ enum AuditAction: string
             self::FuelLogRecorded => 'Abastecimento registrado',
             self::FuelLogDeleted => 'Abastecimento excluído',
             self::UserCreated => 'Usuário criado',
+            self::LoginSucceeded => 'Login realizado',
             self::LoginFailed => 'Login recusado',
         };
     }

@@ -12,6 +12,7 @@ use App\Domain\Identity\Exceptions\InvalidCredentialsException;
 use App\Domain\Identity\Repositories\UserRepository;
 use App\Domain\Shared\Contracts\EventDispatcher;
 use App\Domain\Shared\Events\LoginFailed;
+use App\Domain\Shared\Events\LoginSucceeded;
 
 final readonly class LoginAction
 {
@@ -46,6 +47,9 @@ final readonly class LoginAction
             $this->users->changePasswordHash($user->id, $this->hasher->hash($data->password));
         }
 
-        return new AuthSessionDTO($user, $this->tokens->issueFor($user->id));
+        $session = new AuthSessionDTO($user, $this->tokens->issueFor($user->id));
+        $this->events->dispatch(new LoginSucceeded($user->id, $user->email));
+
+        return $session;
     }
 }
