@@ -33,6 +33,13 @@ Estas regras valem para todo código gerado neste repositório. Detalhes de mód
 - Permissões e papéis são os enums `Permission` e `UserRole` de `Domain/Identity`; a matriz de acesso vive só em `UserRole::permissions()`. Permissão nova entra no enum, na matriz e no teste `AuthorizationTest`.
 - Operação crítica publica um evento em `Domain/Shared/Events`; o listener `RecordAuditTrail` grava em `audit_logs`. Toda ação auditada é um caso do enum `Domain/Shared/Enums/AuditAction`, com o nome em português em `label()`; a API devolve `action_label` e a busca da auditoria aceita esse nome. Senhas e tokens nunca entram em log nem em auditoria. `audit_logs` é somente inserção: um trigger no banco recusa UPDATE, DELETE e TRUNCATE.
 
+## Migrations em produção
+
+- A produção roda no Render com a role restrita `erp_app` e `RUN_MIGRATIONS=false`: nenhuma migration executa no boot do contêiner.
+- Commit com migration nova exige `php artisan migrate --force` manual, do terminal local, como `neondb_owner` (dona das tabelas), pelo host direto do Neon (sem `-pooler`), com `DB_SSLMODE=require` e `DB_EMULATE_PREPARES=false`. Procedimento completo no README, seção "Migrations em produção".
+- Migration que só acrescenta roda antes do deploy. Migration que renomeia ou remove colunas usadas pelo código anterior: iniciar o deploy no Render primeiro e rodar o `migrate --force` logo em seguida, para encurtar a indisponibilidade das telas afetadas.
+- Ao entregar uma tarefa com migration, avisar que esse passo manual é necessário.
+
 ## Frontend (Vue 3 + TypeScript, em `resources/js`)
 
 - Composition API com `<script setup lang="ts">`; TypeScript em modo `strict`, sem `any`.

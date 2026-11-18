@@ -53,7 +53,7 @@ A aplicação usa somente PostgreSQL 16 com TLS (`DB_SSLMODE=require`). O fluxo 
    # SCRAMBLE_ENABLED=true   # opcional: publica /docs/api
    ```
 
-   `PORT=8080` faz o Render encaminhar o tráfego para a porta em que o Nginx da imagem escuta (o padrão do Render é outra). `RUN_MIGRATIONS=true` aplica migrations novas a cada deploy; com uma única instância, é seguro. `TRUSTED_PROXIES=render` confia na rede interna do Render e nas faixas da Cloudflare, que fica na frente de todo serviço do Render: o proxy do Render não descarta o `X-Forwarded-For` enviado pelo cliente, e com `*` o IP visto seria o da Cloudflare, não o do usuário.
+   `PORT=8080` faz o Render encaminhar o tráfego para a porta em que o Nginx da imagem escuta (o padrão do Render é outra). `RUN_MIGRATIONS=true` aplica migrations novas a cada deploy; com uma única instância, é seguro. Em produção, com a role `erp_app`, fica `false` (veja [Migrations em produção](#migrations-em-produção)). `TRUSTED_PROXIES=render` confia na rede interna do Render e nas faixas da Cloudflare, que fica na frente de todo serviço do Render: o proxy do Render não descarta o `X-Forwarded-For` enviado pelo cliente, e com `*` o IP visto seria o da Cloudflare, não o do usuário.
 
    Segredos (`APP_KEY`, `DB_PASSWORD`, `DB_URL`) entram só na aba *Environment* do serviço, nunca como argumento de build: a imagem não recebe `ARG` e o `.dockerignore` deixa `.env`, chaves e bancos locais fora dela.
 
@@ -85,7 +85,32 @@ DB_PASSWORD=<senha da erp_app>
 RUN_MIGRATIONS=false
 ```
 
-Com a `erp_app` a aplicação não consegue rodar migrations: antes de publicar uma versão com migration nova, rode `php artisan migrate --force` do seu terminal como `neondb_owner`, pela conexão direta (passo 2). Tabelas criadas assim já ficam acessíveis à `erp_app`.
+Com a `erp_app` a aplicação não consegue rodar migrations; o procedimento está em [Migrations em produção](#migrations-em-produção). Tabelas criadas pela `neondb_owner` já ficam acessíveis à `erp_app`.
+
+### Migrations em produção
+
+A produção roda no Render com a role restrita `erp_app` e `RUN_MIGRATIONS=false`: **nenhuma migration executa no boot do contêiner**. Todo commit que traz migration nova exige o passo manual abaixo, feito do seu terminal como `neondb_owner` (dona das tabelas), pelo host **direto** do Neon (sem `-pooler`):
+
+```bash
+git pull origin main
+php artisan config:clear
+
+export APP_ENV=production APP_DEBUG=false DB_CONNECTION=pgsql \
+       DB_HOST=<host direto, sem -pooler> DB_PORT=5432 DB_DATABASE=neondb \
+       DB_USERNAME=neondb_owner DB_PASSWORD='<senha da neondb_owner>' \
+       DB_SSLMODE=require DB_EMULATE_PREPARES=false
+
+php artisan migrate --force
+
+unset APP_ENV APP_DEBUG DB_CONNECTION DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD DB_SSLMODE DB_EMULATE_PREPARES
+```
+
+Ordem em relação ao deploy:
+
+- **Migration que só acrescenta** (tabela, coluna nova ou anulável, índice, constraint): rode o `migrate --force` antes do deploy. O código anterior continua funcionando com o banco novo.
+- **Migration que renomeia ou remove colunas usadas pelo código anterior**: inicie o deploy no Render primeiro e rode o `migrate --force` logo em seguida. Entre a migration e o deploy novo ficar no ar, as telas que usam essas colunas podem falhar por alguns minutos; as demais seguem funcionando.
+
+Depois, confira `GET /api/v1/health` e abra as telas afetadas em produção.
 
 ### Supabase
 
