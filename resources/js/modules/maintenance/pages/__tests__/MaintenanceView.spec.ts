@@ -24,11 +24,11 @@ const order = (id: string, status: MaintenanceOrderSummary['status'], type: Main
     opened_at: '2026-11-13T10:00:00+00:00',
     completed_at: status === 'completed' ? '2026-11-14T16:30:00+00:00' : null,
     estimated_completion_at: null,
-    vehicle: { id: `bus-${id}`, plate: `ABC1D2${id}` },
+    vehicle: { id: `truck-${id}`, plate: `ABC1D2${id}` },
     mechanic: { id: 'mechanic-1', name: 'Maria Souza' },
 });
 
-const vehicles = [{ id: 'bus-9', plate: 'XYZ9876', chassis: '9BWZZZ377VT004251', capacity: 46, class_type: 'executivo', status: 'active', current_mileage: 1000 }];
+const vehicles = [{ id: 'truck-9', plate: 'XYZ9876', chassis: '9BWZZZ377VT004251', payload_kg: 32_000, vehicle_type: 'cavalo_mecanico', vehicle_type_label: 'Cavalo mecânico', model: 'Volvo FH 540', min_meters_per_liter: null, effective_min_meters_per_liter: 2_000, status: 'active', current_mileage: 1000 }];
 const mechanics = [{ id: 'mechanic-1', name: 'Maria Souza' }];
 
 let orders: MaintenanceOrderSummary[] = [];
@@ -121,7 +121,7 @@ describe('MaintenanceView', () => {
 
         await wrapper.get('[data-test="new-order"]').trigger('click');
         await flushPromises();
-        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="vehicle_id"]').setValue('truck-9');
         await wrapper.get('[data-test="type-preventive"]').setValue();
         await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
         await wrapper.get('[data-test="description"]').setValue('Troca de óleo e filtros');
@@ -129,7 +129,7 @@ describe('MaintenanceView', () => {
         await flushPromises();
 
         expect(http.post).toHaveBeenCalledWith('/maintenance/orders', {
-            vehicle_id: 'bus-9',
+            vehicle_id: 'truck-9',
             mechanic_id: 'mechanic-1',
             type: 'preventive',
             description: 'Troca de óleo e filtros',
@@ -155,7 +155,7 @@ describe('MaintenanceView', () => {
         expect((estimate.element as HTMLInputElement).value).toBe('');
         expect(wrapper.get('label[for="order-estimate"]').text()).toBe('Previsão de término (opcional)');
 
-        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="vehicle_id"]').setValue('truck-9');
         await wrapper.get('[data-test="type-corrective"]').setValue();
         await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
         await wrapper.get('[data-test="description"]').setValue('Reparo no ar-condicionado');
@@ -164,7 +164,7 @@ describe('MaintenanceView', () => {
         await flushPromises();
 
         expect(http.post).toHaveBeenCalledWith('/maintenance/orders', {
-            vehicle_id: 'bus-9',
+            vehicle_id: 'truck-9',
             mechanic_id: 'mechanic-1',
             type: 'corrective',
             description: 'Reparo no ar-condicionado',
@@ -181,7 +181,7 @@ describe('MaintenanceView', () => {
 
         await wrapper.get('[data-test="new-order"]').trigger('click');
         await flushPromises();
-        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="vehicle_id"]').setValue('truck-9');
         await wrapper.get('[data-test="type-corrective"]').setValue();
         await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
         await wrapper.get('[data-test="description"]').setValue('Reparo no ar-condicionado');
@@ -229,7 +229,7 @@ describe('MaintenanceView', () => {
 
         await wrapper.get('[data-test="new-order"]').trigger('click');
         await flushPromises();
-        await wrapper.get('[data-test="vehicle_id"]').setValue('bus-9');
+        await wrapper.get('[data-test="vehicle_id"]').setValue('truck-9');
         await wrapper.get('[data-test="type-corrective"]').setValue();
         await wrapper.get('[data-test="mechanic_id"]').setValue('mechanic-1');
         await wrapper.get('[data-test="description"]').setValue('Reparo no ar-condicionado');

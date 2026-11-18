@@ -15,7 +15,7 @@ const trip = (id: string, from: number, to: number, status: TimelineTrip['status
     arrival_time: at(to),
     rest_until: at(to + 11),
     line: { origin: 'Curitiba', destination: 'Ourinhos' },
-    vehicle: { id: 'bus-1', plate: 'ABC1D23' },
+    vehicle: { id: 'truck-1', plate: 'ABC1D23' },
     driver: { id: 'driver-1', name: 'Ana Lima' },
 });
 
@@ -24,8 +24,8 @@ const timeline = (overrides: Partial<ScheduleTimeline> = {}): ScheduleTimeline =
     to: at(40),
     driver_rest_hours: 11,
     vehicles: [
-        { id: 'bus-1', plate: 'ABC1D23', status: 'active', trips: [trip('t1', 8, 14)], maintenance_orders: [] },
-        { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-50), estimated_completion_at: null }] },
+        { id: 'truck-1', plate: 'ABC1D23', status: 'active', trips: [trip('t1', 8, 14)], maintenance_orders: [] },
+        { id: 'truck-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-50), estimated_completion_at: null }] },
     ],
     drivers: [
         { id: 'driver-1', name: 'Ana Lima', trips: [trip('t1', 8, 14)] },
@@ -93,7 +93,7 @@ describe('ScheduleGrid', () => {
         const order = grid(
             timeline({
                 vehicles: [
-                    { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'preventive', status: 'in_progress', opened_at: at(-5), estimated_completion_at: at(18) }] },
+                    { id: 'truck-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'preventive', status: 'in_progress', opened_at: at(-5), estimated_completion_at: at(18) }] },
                 ],
             }),
         ).get('[data-test="block-maintenance"]');
@@ -109,7 +109,7 @@ describe('ScheduleGrid', () => {
         const order = grid(
             timeline({
                 vehicles: [
-                    { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(10), estimated_completion_at: at(200) }] },
+                    { id: 'truck-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(10), estimated_completion_at: at(200) }] },
                 ],
             }),
         ).get('[data-test="block-maintenance"]');
@@ -123,7 +123,7 @@ describe('ScheduleGrid', () => {
         const order = grid(
             timeline({
                 vehicles: [
-                    { id: 'bus-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-20), estimated_completion_at: at(2) }] },
+                    { id: 'truck-2', plate: 'XYZ9K88', status: 'maintenance', trips: [], maintenance_orders: [{ id: 'o1', type: 'corrective', status: 'open', opened_at: at(-20), estimated_completion_at: at(2) }] },
                 ],
             }),
         ).get('[data-test="block-maintenance"]');
@@ -140,7 +140,7 @@ describe('ScheduleGrid', () => {
     it('clips what starts before the grid and drops what is entirely outside', () => {
         const wrapper = grid(
             timeline({
-                vehicles: [{ id: 'bus-1', plate: 'ABC1D23', status: 'active', trips: [trip('early', -2, 2, 'in_progress'), trip('late', 38, 46)], maintenance_orders: [] }],
+                vehicles: [{ id: 'truck-1', plate: 'ABC1D23', status: 'active', trips: [trip('early', -2, 2, 'in_progress'), trip('late', 38, 46)], maintenance_orders: [] }],
                 drivers: [{ id: 'driver-1', name: 'Ana Lima', trips: [trip('old', -16, -8, 'completed')] }],
             }),
         );
@@ -177,7 +177,7 @@ describe('ScheduleGrid', () => {
         // 51,9% de 40 horas = 20h45: arredonda para baixo, 20h30.
         await clickTrack(wrapper, 'vehicle-row', 0, 0.519);
 
-        expect(wrapper.emitted('schedule')).toEqual([[{ vehicle_id: 'bus-1', departure_time: toDateTimeInput(new Date(at(20.5))) }]]);
+        expect(wrapper.emitted('schedule')).toEqual([[{ vehicle_id: 'truck-1', departure_time: toDateTimeInput(new Date(at(20.5))) }]]);
     });
 
     it('opens the scheduling with the driver whose row was clicked', async () => {
@@ -212,7 +212,7 @@ describe('ScheduleGrid', () => {
         await buttons[0]!.trigger('click');
         await buttons[2]!.trigger('click');
 
-        expect(wrapper.emitted('schedule')).toEqual([[{ vehicle_id: 'bus-1' }], [{ driver_id: 'driver-2' }]]);
+        expect(wrapper.emitted('schedule')).toEqual([[{ vehicle_id: 'truck-1' }], [{ driver_id: 'driver-2' }]]);
     });
 
     it('is read-only without permission to schedule', async () => {

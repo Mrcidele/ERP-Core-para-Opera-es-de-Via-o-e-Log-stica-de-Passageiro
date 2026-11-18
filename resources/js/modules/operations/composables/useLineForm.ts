@@ -4,7 +4,7 @@ import { useLineStore } from '../stores/lineStore';
 import type { Line } from '../types/trip';
 
 interface StopState {
-    /** Identidade da linha do formulário, para a lista não se embaralhar ao reordenar. */
+    /** Identidade da rota do formulário, para a lista não se embaralhar ao reordenar. */
     key: number;
     city_name: string;
     cumulative_km: number | null | '';
@@ -22,7 +22,7 @@ interface LineFormState {
 /** Erros por caminho de campo, no formato da API: `origin`, `stops`, `stops.0.cumulative_km`. */
 type FieldErrors = Record<string, string>;
 
-/** Formulário de linha: cadastro quando `line` é null, edição caso contrário. */
+/** Formulário de rota: cadastro quando `line` é null, edição caso contrário. */
 export function useLineForm(line: Line | null, onSaved: (saved: Line) => void) {
     const store = useLineStore();
     let nextKey = 0;

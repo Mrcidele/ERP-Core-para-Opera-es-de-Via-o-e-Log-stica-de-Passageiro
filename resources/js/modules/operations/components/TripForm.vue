@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { formatDuration, formatKm } from '@/core/utils/format';
-import { VEHICLE_CLASS_LABELS } from '@/modules/fleet/types/vehicle';
+import { formatDuration, formatKg, formatKm } from '@/core/utils/format';
+import { VEHICLE_TYPE_LABELS } from '@/modules/fleet/types/vehicle';
 import { useTripForm } from '../composables/useTripForm';
 import type { TripPrefill } from '../types/timeline';
 import type { Trip } from '../types/trip';
@@ -14,11 +14,11 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
 <template>
     <div v-if="store.optionsStatus === 'loading' || store.optionsStatus === 'idle'" data-test="options-loading" class="space-y-3" aria-busy="true">
         <div v-for="row in 5" :key="row" class="h-11 animate-pulse rounded-md bg-ink-50" />
-        <span class="sr-only">Carregando linhas, veículos e motoristas</span>
+        <span class="sr-only">Carregando rotas, veículos e motoristas</span>
     </div>
 
     <div v-else-if="store.optionsStatus === 'error'" data-test="options-error">
-        <h3 class="font-display text-lg font-semibold">Não foi possível carregar linhas, veículos e motoristas</h3>
+        <h3 class="font-display text-lg font-semibold">Não foi possível carregar rotas, veículos e motoristas</h3>
         <p class="mt-1 text-ink-500">Verifique a conexão e tente de novo.</p>
         <button type="button" class="btn btn-quiet mt-5" @click="store.loadOptions()">Tentar novamente</button>
     </div>
@@ -29,13 +29,13 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
         </p>
 
         <div>
-            <label class="field-label" for="trip-line">Linha</label>
+            <label class="field-label" for="trip-line">Rota</label>
             <select id="trip-line" v-model="form.line_id" data-test="line_id" class="field-input" :aria-invalid="Boolean(errors.line_id)">
                 <option value="" disabled>Selecione</option>
                 <option v-for="line in store.lines" :key="line.id" :value="line.id">{{ line.origin }} → {{ line.destination }}</option>
             </select>
             <p v-if="errors.line_id" data-test="line_id-error" class="field-error">{{ errors.line_id }}</p>
-            <p v-else-if="store.lines.length === 0" data-test="no-lines" class="field-hint">Nenhuma linha cadastrada.</p>
+            <p v-else-if="store.lines.length === 0" data-test="no-lines" class="field-hint">Nenhuma rota cadastrada.</p>
             <p v-else-if="selectedLine" data-test="line-hint" class="field-hint">
                 {{ formatKm(selectedLine.distance_km) }}, duração estimada de {{ formatDuration(selectedLine.estimated_duration_minutes) }}.
             </p>
@@ -46,7 +46,7 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
             <select id="trip-vehicle" v-model="form.vehicle_id" data-test="vehicle_id" class="field-input" :aria-invalid="Boolean(errors.vehicle_id)">
                 <option value="" disabled>Selecione</option>
                 <option v-for="vehicle in store.vehicles" :key="vehicle.id" :value="vehicle.id">
-                    {{ vehicle.plate }} ({{ VEHICLE_CLASS_LABELS[vehicle.class_type] }}, {{ vehicle.capacity }} lugares)
+                    {{ vehicle.plate }} ({{ VEHICLE_TYPE_LABELS[vehicle.vehicle_type] }}, {{ formatKg(vehicle.payload_kg) }})
                 </option>
             </select>
             <p v-if="errors.vehicle_id" data-test="vehicle_id-error" class="field-error">{{ errors.vehicle_id }}</p>
@@ -63,7 +63,7 @@ const { form, errors, selectedLine, submit, store } = useTripForm((trip) => emit
                 </option>
             </select>
             <p v-if="errors.driver_id" data-test="driver_id-error" class="field-error">{{ errors.driver_id }}</p>
-            <p v-else-if="store.drivers.length === 0" data-test="no-drivers" class="field-hint">Nenhum motorista ativo na tripulação.</p>
+            <p v-else-if="store.drivers.length === 0" data-test="no-drivers" class="field-hint">Nenhum motorista ativo na equipe.</p>
             <p v-else class="field-hint">Só motoristas ativos aparecem aqui.</p>
         </div>
 

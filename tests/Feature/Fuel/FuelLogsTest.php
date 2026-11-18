@@ -11,7 +11,8 @@ use Illuminate\Database\QueryException;
 beforeEach(function (): void {
     $this->travelTo('2026-11-13 10:00:00');
     $this->admin = actingAsRole(UserRole::Admin);
-    $this->bus = VehicleModel::factory()->create(['plate' => 'ABC1D23', 'current_mileage' => 100_000, 'status' => 'active']);
+    // Cavalo mecânico sem meta própria: vale o padrão do tipo, 2,0 km/L.
+    $this->truck = VehicleModel::factory()->create(['plate' => 'ABC1D23', 'current_mileage' => 100_000, 'status' => 'active', 'vehicle_type' => 'cavalo_mecanico', 'min_meters_per_liter' => null]);
 });
 
 /**
@@ -21,7 +22,7 @@ beforeEach(function (): void {
 function fuelPayload(array $overrides = []): array
 {
     return [
-        'vehicle_id' => test()->bus->id,
+        'vehicle_id' => test()->truck->id,
         'odometer_km' => 100_000,
         'liters_milliliters' => 200_000,
         'total_cost_cents' => 119_800,
@@ -44,7 +45,8 @@ it('records a fuel log with who recorded it and no efficiency on the first one',
         'distance_km' => null,
         'km_per_liter' => null,
         'low_efficiency_alert' => false,
-        'vehicle' => ['id' => $this->bus->id, 'plate' => 'ABC1D23'],
+        'min_meters_per_liter' => 2_000,
+        'vehicle' => ['id' => $this->truck->id, 'plate' => 'ABC1D23'],
         'recorded_by' => ['id' => $this->admin->id, 'name' => $this->admin->name],
     ]]);
 
@@ -70,7 +72,7 @@ it('computes km per liter between two fuel logs of the same vehicle', function (
         ->assertJsonPath('data.km_per_liter', 2.85);
 });
 
-it('raises the low efficiency alert below 2.2 km/L', function (int $distance, float|int $kmPerLiter, bool $alert): void {
+it('raises the low efficiency alert below the 2.0 km/L target of a tractor unit', function (int $distance, float|int $kmPerLiter, bool $alert): void {
     $this->postJson('/api/v1/fuel/logs', fuelPayload())->assertCreated();
 
     $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_000 + $distance, 'liters_milliliters' => 100_000, 'fueled_at' => '2026-11-11T08:00:00-03:00']))
@@ -79,10 +81,48 @@ it('raises the low efficiency alert below 2.2 km/L', function (int $distance, fl
         ->assertJsonPath('data.low_efficiency_alert', $alert);
 })->with([
     'consumo alto' => [150, 1.5, true],
-    'logo abaixo do limite' => [219, 2.19, true],
-    'no limite' => [220, 2.2, false],
+    'logo abaixo da meta' => [199, 1.99, true],
+    'na meta' => [200, 2, false],
     'dentro do padrão' => [310, 3.1, false],
 ]);
+
+it('takes the target from the vehicle type when the vehicle has no target of its own', function (string $type, bool $alert, int $target): void {
+    $vehicle = VehicleModel::factory()->create(['current_mileage' => 0, 'vehicle_type' => $type, 'min_meters_per_liter' => null]);
+    $this->postJson('/api/v1/fuel/logs', fuelPayload(['vehicle_id' => $vehicle->id, 'odometer_km' => 1_000]))->assertCreated();
+
+    // 400 km com 100 L: 4 km/L.
+    $this->postJson('/api/v1/fuel/logs', fuelPayload(['vehicle_id' => $vehicle->id, 'odometer_km' => 1_400, 'liters_milliliters' => 100_000, 'fueled_at' => '2026-11-11T08:00:00-03:00']))
+        ->assertCreated()
+        ->assertJsonPath('data.km_per_liter', 4)
+        ->assertJsonPath('data.min_meters_per_liter', $target)
+        ->assertJsonPath('data.low_efficiency_alert', $alert);
+})->with([
+    'VUC espera 5,0 km/L' => ['vuc', true, 5_000],
+    'toco espera 4,5 km/L' => ['toco', true, 4_500],
+    'truck espera 3,5 km/L' => ['truck', false, 3_500],
+    'cavalo mecânico espera 2,0 km/L' => ['cavalo_mecanico', false, 2_000],
+]);
+
+it('prefers the target of the vehicle over the default of its type', function (): void {
+    $this->truck->update(['min_meters_per_liter' => 2_600]);
+    $this->postJson('/api/v1/fuel/logs', fuelPayload())->assertCreated();
+
+    // 250 km com 100 L: 2,5 km/L, acima do padrão do cavalo (2,0) mas abaixo da meta deste veículo (2,6).
+    $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_250, 'liters_milliliters' => 100_000, 'fueled_at' => '2026-11-11T08:00:00-03:00']))
+        ->assertCreated()
+        ->assertJsonPath('data.km_per_liter', 2.5)
+        ->assertJsonPath('data.min_meters_per_liter', 2_600)
+        ->assertJsonPath('data.low_efficiency_alert', true);
+});
+
+it('records in the audit trail the efficiency, the target and the alert of a fuel log below target', function (): void {
+    $this->postJson('/api/v1/fuel/logs', fuelPayload())->assertCreated();
+    $id = $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_180, 'liters_milliliters' => 100_000, 'fueled_at' => '2026-11-11T08:00:00-03:00']))->json('data.id');
+
+    $values = AuditLogModel::query()->where('auditable_id', $id)->sole()->new_values;
+
+    expect([$values['meters_per_liter'] ?? null, $values['min_meters_per_liter'] ?? null, $values['low_efficiency_alert'] ?? null])->toBe([1_800, 2_000, true]);
+});
 
 it('refuses an odometer lower than the last fuel log of the vehicle', function (): void {
     $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_500]))->assertCreated();
@@ -115,7 +155,7 @@ it('refuses a fuel log out of chronological order, in the future or for an unkno
 ]);
 
 it('refuses a fuel log for a deleted vehicle', function (): void {
-    $this->bus->delete();
+    $this->truck->delete();
 
     $this->postJson('/api/v1/fuel/logs', fuelPayload())->assertUnprocessable()->assertJsonValidationErrors('vehicle_id');
 });
@@ -140,15 +180,15 @@ it('rejects invalid input', function (array $overrides, string $field): void {
 it('takes the vehicle mileage up to the odometer, and never down', function (int $odometer, int $expected): void {
     $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => $odometer]))->assertCreated();
 
-    expect($this->bus->refresh()->current_mileage)->toBe($expected);
-    $this->getJson("/api/v1/fleet/vehicles/{$this->bus->id}")->assertOk()->assertJsonPath('data.current_mileage', $expected);
+    expect($this->truck->refresh()->current_mileage)->toBe($expected);
+    $this->getJson("/api/v1/fleet/vehicles/{$this->truck->id}")->assertOk()->assertJsonPath('data.current_mileage', $expected);
 })->with([
     'hodômetro à frente do cadastro' => [100_820, 100_820],
     'hodômetro atrás do cadastro' => [99_500, 100_000],
 ]);
 
 it('flags the preventive maintenance once the odometer passes the scheduled mileage', function (): void {
-    $this->bus->update(['next_preventive_maintenance_km' => 100_500]);
+    $this->truck->update(['next_preventive_maintenance_km' => 100_500]);
 
     $this->postJson('/api/v1/fuel/logs', fuelPayload(['odometer_km' => 100_600]))->assertCreated();
 
@@ -164,23 +204,26 @@ it('audits the fuel log', function (): void {
         ->toBe(['fuel_log.recorded', 'fuel_log', $id, null, $this->admin->id])
         // O JSONB não preserva a ordem das chaves.
         ->and($log->new_values)->toEqual([
-            'vehicle_id' => $this->bus->id,
+            'vehicle_id' => $this->truck->id,
             'odometer_km' => 100_000,
             'liters_milliliters' => 200_000,
             'total_cost_cents' => 119_800,
             'station_name' => 'Posto Graal Ourinhos',
             'fueled_at' => '2026-11-10T11:00:00+00:00',
+            'meters_per_liter' => null,
+            'min_meters_per_liter' => 2_000,
+            'low_efficiency_alert' => false,
         ]);
 
     $this->getJson('/api/v1/audit-logs?search=abastecimento')->assertOk()->assertJsonPath('data.0.action_label', 'Abastecimento registrado');
 });
 
 it('lists the fuel logs most recent first, paged, each with its own efficiency', function (): void {
-    $other = VehicleModel::factory()->create(['plate' => 'XYZ9K88']);
+    $other = VehicleModel::factory()->create(['plate' => 'XYZ9K88', 'vehicle_type' => 'cavalo_mecanico', 'min_meters_per_liter' => null]);
 
     foreach (range(1, 9) as $day) {
         FuelLogModel::factory()->create([
-            'vehicle_id' => $this->bus->id, 'recorded_by_user_id' => $this->admin->id, 'station_name' => 'Posto Graal Ourinhos',
+            'vehicle_id' => $this->truck->id, 'recorded_by_user_id' => $this->admin->id, 'station_name' => 'Posto Graal Ourinhos',
             'odometer_km' => 100_000 + $day * 300, 'liters_milliliters' => 100_000, 'fueled_at' => sprintf('2026-11-%02d 12:00:00+00', $day),
         ]);
         FuelLogModel::factory()->create([
@@ -215,9 +258,9 @@ it('lists the fuel logs most recent first, paged, each with its own efficiency',
 });
 
 it('ignores a deleted fuel log when computing the efficiency of the next one', function (): void {
-    $first = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'odometer_km' => 100_000, 'fueled_at' => '2026-11-01 12:00:00+00']);
-    $mistake = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'odometer_km' => 100_590, 'fueled_at' => '2026-11-02 12:00:00+00']);
-    FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'odometer_km' => 100_600, 'liters_milliliters' => 200_000, 'fueled_at' => '2026-11-03 12:00:00+00']);
+    $first = FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id, 'odometer_km' => 100_000, 'fueled_at' => '2026-11-01 12:00:00+00']);
+    $mistake = FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id, 'odometer_km' => 100_590, 'fueled_at' => '2026-11-02 12:00:00+00']);
+    FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id, 'odometer_km' => 100_600, 'liters_milliliters' => 200_000, 'fueled_at' => '2026-11-03 12:00:00+00']);
 
     $this->getJson('/api/v1/fuel/logs')->assertOk()->assertJsonPath('data.0.distance_km', 10);
 
@@ -243,7 +286,7 @@ it('lets who can see the fleet list the fuel logs and only who manages it record
 
 it('shows the fuel spent since the first day of the month on the dashboard', function (): void {
     $log = fn (string $at, int $cost, int $milliliters) => FuelLogModel::factory()->create([
-        'vehicle_id' => $this->bus->id, 'fueled_at' => $at, 'total_cost_cents' => $cost, 'liters_milliliters' => $milliliters,
+        'vehicle_id' => $this->truck->id, 'fueled_at' => $at, 'total_cost_cents' => $cost, 'liters_milliliters' => $milliliters,
     ]);
 
     $log('2026-10-31 23:59:59+00', 999_999, 900_000);
@@ -300,7 +343,7 @@ it('deletes a wrong fuel log, recomputing the efficiency chain, and audits the d
 
     expect([$log->auditable_type, $log->auditable_id, $log->new_values, $log->user_id])->toBe(['fuel_log', $typo, null, $this->admin->id])
         ->and($log->old_values)->toEqual([
-            'vehicle_id' => $this->bus->id,
+            'vehicle_id' => $this->truck->id,
             'odometer_km' => 106_300,
             'liters_milliliters' => 210_000,
             'total_cost_cents' => 119_800,
@@ -332,11 +375,11 @@ it('keeps the vehicle mileage when a fuel log is deleted', function (): void {
 
     $this->deleteJson("/api/v1/fuel/logs/{$id}")->assertNoContent();
 
-    expect($this->bus->refresh()->current_mileage)->toBe(100_820);
+    expect($this->truck->refresh()->current_mileage)->toBe(100_820);
 });
 
 it('returns 404 for a fuel log that does not exist or was already deleted', function (string $id): void {
-    $deleted = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id]);
+    $deleted = FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id]);
     $deleted->delete();
 
     $this->deleteJson('/api/v1/fuel/logs/'.($id === 'deleted' ? $deleted->id : $id))->assertNotFound();
@@ -345,7 +388,7 @@ it('returns 404 for a fuel log that does not exist or was already deleted', func
 })->with(['0193a5b0-7c1e-7000-8000-000000000000', 'not-a-uuid', 'deleted']);
 
 it('lets only who manages the fleet delete a fuel log', function (UserRole $role, int $status): void {
-    $log = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id]);
+    $log = FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id]);
     actingAsRole($role);
 
     $this->deleteJson("/api/v1/fuel/logs/{$log->id}")->assertStatus($status);
@@ -356,8 +399,8 @@ it('lets only who manages the fleet delete a fuel log', function (UserRole $role
 ]);
 
 it('takes a deleted fuel log out of the month spent on the dashboard', function (): void {
-    $kept = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'fueled_at' => '2026-11-05 12:00:00+00', 'total_cost_cents' => 100_000, 'liters_milliliters' => 150_000]);
-    $wrong = FuelLogModel::factory()->create(['vehicle_id' => $this->bus->id, 'fueled_at' => '2026-11-06 12:00:00+00', 'total_cost_cents' => 900_000, 'liters_milliliters' => 800_000]);
+    $kept = FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id, 'fueled_at' => '2026-11-05 12:00:00+00', 'total_cost_cents' => 100_000, 'liters_milliliters' => 150_000]);
+    $wrong = FuelLogModel::factory()->create(['vehicle_id' => $this->truck->id, 'fueled_at' => '2026-11-06 12:00:00+00', 'total_cost_cents' => 900_000, 'liters_milliliters' => 800_000]);
 
     $this->deleteJson("/api/v1/fuel/logs/{$wrong->id}")->assertNoContent();
 

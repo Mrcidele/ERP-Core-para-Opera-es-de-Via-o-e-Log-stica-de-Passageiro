@@ -17,7 +17,7 @@ const trip = (id: string, status: TripSummary['status']): TripSummary => ({
     departure_time: '2026-11-20T11:00:00+00:00',
     arrival_time: '2026-11-20T17:30:00+00:00',
     line: { id: 'line-1', origin: 'Curitiba', destination: 'Ourinhos', distance_km: 400 },
-    vehicle: { id: 'bus-1', plate: 'ABC1D23' },
+    vehicle: { id: 'truck-1', plate: 'ABC1D23' },
     driver: { id: 'driver-1', name: 'João da Silva' },
 });
 
@@ -113,7 +113,7 @@ describe('tripStore', () => {
             }
 
             const current = config?.params?.page ?? 1;
-            const item = url === '/fleet/vehicles' ? { id: `bus-${current}`, status: 'active' } : { id: `emp-${current}`, status: 'active', role: current === 1 ? 'driver' : 'mechanic' };
+            const item = url === '/fleet/vehicles' ? { id: `truck-${current}`, status: 'active' } : { id: `emp-${current}`, status: 'active', role: current === 1 ? 'driver' : 'mechanic' };
 
             return Promise.resolve(page([item], { current_page: current, last_page: 2, per_page: 100, total: 2 }));
         });
@@ -122,7 +122,7 @@ describe('tripStore', () => {
         await store.loadOptions();
 
         expect(http.get).toHaveBeenCalledWith('/fleet/vehicles', { params: { status: 'active', page: 2, per_page: 100 } });
-        expect(store.vehicles.map((vehicle) => vehicle.id)).toEqual(['bus-1', 'bus-2']);
+        expect(store.vehicles.map((vehicle) => vehicle.id)).toEqual(['truck-1', 'truck-2']);
         expect(store.drivers.map((driver) => driver.id)).toEqual(['emp-1']);
         expect(store.optionsStatus).toBe('success');
     });

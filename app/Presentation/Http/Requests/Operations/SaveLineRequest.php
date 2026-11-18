@@ -8,7 +8,7 @@ use App\Domain\Operations\DTOs\LineDataDTO;
 use App\Domain\Operations\DTOs\LineStopDTO;
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Cadastro de linha, na criação e na edição. A ordem do array `stops` define a sequência das paradas. */
+/** Cadastro de rota, na criação e na edição. A ordem do array `stops` define a sequência das paradas. */
 final class SaveLineRequest extends FormRequest
 {
     public const MAX_STOPS = 40;

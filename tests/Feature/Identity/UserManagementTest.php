@@ -59,28 +59,28 @@ it('filters by status and searches name or e-mail', function (): void {
 it('creates a user with an Argon2id hash, who can then log in, and audits it from the web', function (): void {
     $this->postJson('/api/v1/identity/users', [
         'name' => 'Bruna Lima',
-        'email' => 'Bruna@Viacao.com',
+        'email' => 'Bruna@Transportadora.com',
         'role' => 'dispatcher',
         'password' => NEW_PASSWORD,
         'password_confirmation' => NEW_PASSWORD,
     ])
         ->assertCreated()
-        ->assertJsonPath('data.email', 'bruna@viacao.com')
+        ->assertJsonPath('data.email', 'bruna@transportadora.com')
         ->assertJsonPath('data.role', 'dispatcher')
         ->assertJsonPath('data.active', true)
         ->assertJsonMissingPath('data.password');
 
-    $user = UserModel::query()->where('email', 'bruna@viacao.com')->sole();
+    $user = UserModel::query()->where('email', 'bruna@transportadora.com')->sole();
     expect($user->getRawOriginal('password'))->toStartWith('$argon2id$');
 
     $log = latestUserAudit();
     expect($log->action)->toBe('user.created')
         ->and($log->user_id)->toBe($this->admin->id)
-        ->and($log->new_values)->toEqual(['name' => 'Bruna Lima', 'email' => 'bruna@viacao.com', 'role' => 'dispatcher', 'channel' => 'web'])
+        ->and($log->new_values)->toEqual(['name' => 'Bruna Lima', 'email' => 'bruna@transportadora.com', 'role' => 'dispatcher', 'channel' => 'web'])
         ->and(json_encode($log->getAttributes()))->not->toContain(NEW_PASSWORD)->not->toContain('argon2');
 
     $this->app['auth']->forgetGuards();
-    $this->postJson('/api/v1/auth/login', ['email' => 'bruna@viacao.com', 'password' => NEW_PASSWORD])->assertOk();
+    $this->postJson('/api/v1/auth/login', ['email' => 'bruna@transportadora.com', 'password' => NEW_PASSWORD])->assertOk();
 });
 
 it('rejects a weak, unconfirmed or missing password and an invalid role', function (array $payload, string $field): void {

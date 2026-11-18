@@ -92,7 +92,7 @@ const rowError = (index: number): string | undefined =>
 
         <fieldset>
             <legend class="field-label">Paradas</legend>
-            <p class="field-hint !mt-0.5">Na ordem em que o ônibus passa. O km e o tempo contam a partir da origem.</p>
+            <p class="field-hint !mt-0.5">Coletas, entregas e passagens, na ordem em que o caminhão passa. O km e o tempo contam a partir da origem.</p>
 
             <div v-if="distance > 0" class="mt-3 rounded-lg border border-ink-200 bg-ink-50/60 px-4 py-3" data-test="route-preview">
                 <RouteStrip :distance-km="distance" :stops="previewStops" />
@@ -203,20 +203,20 @@ const rowError = (index: number): string | undefined =>
                 </li>
             </ol>
             <p v-else class="mt-3 rounded-lg border border-dashed border-ink-200 px-4 py-3 text-sm text-ink-500" data-test="no-stops">
-                Linha direta. Adicione as cidades em que o ônibus para no caminho.
+                Rota direta. Adicione as cidades em que o caminhão para para coletar ou entregar.
             </p>
 
             <button type="button" class="btn btn-quiet btn-sm mt-3" data-test="add-stop" :disabled="!canAddStop" @click="addStop">
                 <AppIcon name="plus" />
                 Adicionar parada
             </button>
-            <p v-if="!canAddStop" class="field-hint">Limite de {{ MAX_LINE_STOPS }} paradas por linha.</p>
+            <p v-if="!canAddStop" class="field-hint">Limite de {{ MAX_LINE_STOPS }} paradas por rota.</p>
         </fieldset>
 
         <div class="drawer-actions">
             <button type="button" class="btn btn-quiet" data-test="cancel" @click="emit('cancel')">Cancelar</button>
             <button type="submit" class="btn btn-primary" data-test="submit" :disabled="store.saveStatus === 'loading'">
-                {{ store.saveStatus === 'loading' ? 'Salvando…' : line ? 'Salvar alterações' : 'Cadastrar linha' }}
+                {{ store.saveStatus === 'loading' ? 'Salvando…' : line ? 'Salvar alterações' : 'Cadastrar rota' }}
             </button>
         </div>
     </form>

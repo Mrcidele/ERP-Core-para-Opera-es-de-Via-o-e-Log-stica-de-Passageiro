@@ -238,13 +238,13 @@ it('finds records by the action name in Portuguese, by its code, by user and by 
     expect($actions('Veículo excluído'))->toBe(['vehicle.deleted'])
         ->and($actions('veiculo excluido'))->toBe(['vehicle.deleted'])
         ->and($actions('exclu'))->toEqualCanonicalizing(['vehicle.deleted', 'line.deleted'])
-        ->and($actions('Linha'))->toEqualCanonicalizing(['line.created', 'line.deleted'])
+        ->and($actions('Rota'))->toEqualCanonicalizing(['line.created', 'line.deleted'])
         ->and($actions('line.created'))->toBe(['line.created'])
         ->and($actions($this->admin->name))->toHaveCount(3)
         ->and($actions('127.0.0'))->toHaveCount(3)
         ->and($actions('Viagem cancelada'))->toBe([]);
 
-    $this->getJson('/api/v1/audit-logs?search=criada')->assertOk()->assertJsonPath('data.0.action_label', 'Linha criada');
+    $this->getJson('/api/v1/audit-logs?search=criada')->assertOk()->assertJsonPath('data.0.action_label', 'Rota criada');
 });
 
 it('shows the code itself as the label of an action the system no longer knows', function (): void {

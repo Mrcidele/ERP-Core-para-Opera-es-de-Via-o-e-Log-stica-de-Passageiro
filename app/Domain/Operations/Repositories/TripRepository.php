@@ -18,8 +18,8 @@ interface TripRepository
     public function nextIdentity(): string;
 
     /**
-     * Viagens ordenadas pela partida, com linha, veículo e motorista.
-     * Busca por cidade da linha, placa ou motorista; filtro por status.
+     * Viagens ordenadas pela partida, com rota, veículo e motorista.
+     * Busca por cidade da rota, placa ou motorista; filtro por status.
      *
      * @return Page<TripSummaryDTO>
      */

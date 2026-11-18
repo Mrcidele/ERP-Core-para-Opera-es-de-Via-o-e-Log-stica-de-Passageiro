@@ -170,9 +170,7 @@ return [
     */
     'attributes' => [
         'arrival_time' => 'chegada',
-        'capacity' => 'capacidade',
         'chassis' => 'chassi',
-        'class_type' => 'classe',
         'cnh_category' => 'categoria da CNH',
         'cnh_expiration_date' => 'validade da CNH',
         'cnh_number' => 'número da CNH',
@@ -189,9 +187,11 @@ return [
         'estimated_completion_at' => 'previsão de término',
         'estimated_duration_minutes' => 'duração',
         'fueled_at' => 'data do abastecimento',
-        'line_id' => 'linha',
+        'line_id' => 'rota',
         'liters_milliliters' => 'volume',
         'mechanic_id' => 'mecânico',
+        'min_meters_per_liter' => 'meta de rendimento',
+        'model' => 'modelo',
         'name' => 'nome',
         'needs_maintenance' => 'revisão vencida',
         'next_preventive_maintenance_km' => 'próxima revisão preventiva',
@@ -200,6 +200,7 @@ return [
         'page' => 'página',
         'password' => 'senha',
         'password_confirmation' => 'confirmação da senha',
+        'payload_kg' => 'carga útil (kg)',
         'per_page' => 'itens por página',
         'plate' => 'placa',
         'role' => 'perfil',
@@ -213,5 +214,6 @@ return [
         'total_cost_cents' => 'valor total',
         'type' => 'tipo',
         'vehicle_id' => 'veículo',
+        'vehicle_type' => 'tipo de veículo',
     ],
 ];

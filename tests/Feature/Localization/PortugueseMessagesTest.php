@@ -98,14 +98,14 @@ it('names every field of every API form in Portuguese', function (): void {
 it('answers validation errors in Portuguese, with field names in Portuguese', function (): void {
     actingAsRole(UserRole::Admin);
 
-    $this->postJson('/api/v1/fleet/vehicles', ['capacity' => 'muitos', 'current_mileage' => -1])
+    $this->postJson('/api/v1/fleet/vehicles', ['payload_kg' => 'muitos', 'current_mileage' => -1])
         ->assertUnprocessable()
         ->assertJsonPath('message', 'O campo placa é obrigatório. (e mais 4 erros)')
         ->assertJsonValidationErrors([
             'plate' => 'O campo placa é obrigatório.',
             'chassis' => 'O campo chassi é obrigatório.',
-            'capacity' => 'O campo capacidade deve ser um número inteiro.',
-            'class_type' => 'O campo classe é obrigatório.',
+            'payload_kg' => 'O campo carga útil (kg) deve ser um número inteiro.',
+            'vehicle_type' => 'O campo tipo de veículo é obrigatório.',
         ]);
 
     $this->postJson('/api/v1/identity/users', ['name' => 'Ana', 'email' => 'ana', 'role' => 'admin', 'password' => 'curta', 'password_confirmation' => 'outra'])

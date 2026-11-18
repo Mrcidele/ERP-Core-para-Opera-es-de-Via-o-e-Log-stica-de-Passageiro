@@ -49,11 +49,11 @@ describe('MercosulPlate', () => {
 
 describe('StatCard', () => {
     it('shows label, value and subtitle, without the alert by default', () => {
-        const wrapper = mount(StatCard, { props: { label: 'Disponibilidade da frota', value: '80%', subtitle: '8 de 10 ônibus ativos', icon: 'gauge' } });
+        const wrapper = mount(StatCard, { props: { label: 'Disponibilidade da frota', value: '80%', subtitle: '8 de 10 veículos ativos', icon: 'gauge' } });
 
         expect(wrapper.text()).toContain('Disponibilidade da frota');
         expect(wrapper.get('[data-test="stat-value"]').text()).toBe('80%');
-        expect(wrapper.get('[data-test="stat-subtitle"]').text()).toBe('8 de 10 ônibus ativos');
+        expect(wrapper.get('[data-test="stat-subtitle"]').text()).toBe('8 de 10 veículos ativos');
         expect(wrapper.find('[data-test="stat-alert"]').exists()).toBe(false);
     });
 
@@ -67,12 +67,12 @@ describe('StatCard', () => {
 describe('EmptyState', () => {
     it('shows title, description and the main action', () => {
         const wrapper = mount(EmptyState, {
-            props: { title: 'Nenhum veículo cadastrado', description: 'Cadastre o primeiro ônibus.' },
+            props: { title: 'Nenhum veículo cadastrado', description: 'Cadastre o primeiro caminhão.' },
             slots: { default: '<button>Cadastrar veículo</button>' },
         });
 
         expect(wrapper.text()).toContain('Nenhum veículo cadastrado');
-        expect(wrapper.text()).toContain('Cadastre o primeiro ônibus.');
+        expect(wrapper.text()).toContain('Cadastre o primeiro caminhão.');
         expect(wrapper.get('button').text()).toBe('Cadastrar veículo');
     });
 

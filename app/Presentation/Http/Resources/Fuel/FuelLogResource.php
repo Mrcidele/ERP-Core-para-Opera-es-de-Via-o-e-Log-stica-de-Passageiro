@@ -30,6 +30,7 @@ final class FuelLogResource extends JsonResource
      *     distance_km: int|null,
      *     km_per_liter: float|null,
      *     low_efficiency_alert: bool,
+     *     min_meters_per_liter: int,
      *     vehicle: array{id: string, plate: string},
      *     recorded_by: array{id: string, name: string},
      * }
@@ -49,6 +50,8 @@ final class FuelLogResource extends JsonResource
             'distance_km' => $this->resource->distanceKm(),
             'km_per_liter' => $this->resource->kmPerLiter(),
             'low_efficiency_alert' => $this->resource->lowEfficiencyAlert(),
+            // Meta de rendimento do veículo (metros por litro) usada no alerta.
+            'min_meters_per_liter' => $this->resource->minMetersPerLiter,
             'vehicle' => ['id' => $log->vehicleId, 'plate' => $this->resource->vehiclePlate],
             'recorded_by' => ['id' => $log->recordedByUserId, 'name' => $this->resource->recordedByName],
         ];

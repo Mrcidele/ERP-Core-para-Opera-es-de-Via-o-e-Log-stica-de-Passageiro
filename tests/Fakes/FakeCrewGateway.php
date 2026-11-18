@@ -10,7 +10,7 @@ use App\Domain\Operations\Contracts\CrewGateway as OperationsCrewGateway;
 use DateTimeImmutable;
 use DateTimeZone;
 
-/** Tripulação em memória vista pelos módulos Operations e Maintenance. */
+/** Equipe em memória vista pelos módulos Operations e Maintenance. */
 final class FakeCrewGateway implements MaintenanceCrewGateway, OperationsCrewGateway
 {
     /**

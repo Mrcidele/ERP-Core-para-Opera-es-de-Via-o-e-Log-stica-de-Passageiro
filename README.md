@@ -1,4 +1,6 @@
-# ERP Core para Operações de Viação e Logística de Passageiros
+# ERP FrotaCarga — gestão operacional para transportadoras e frotas de caminhões
+
+Controle operacional da transportadora: frota (VUC, toco, truck, bitruck, cavalo mecânico e utilitários), motoristas com CNH e descanso em dia, rotas e escala de viagens, oficina com OS que bloqueia o caminhão na escala, abastecimento com rendimento por trecho e alerta abaixo da meta de km/L de cada veículo, e trilha de auditoria que não pode ser apagada. Complementa o emissor fiscal (CT-e, MDF-e, CIOT), que fica fora do sistema.
 
 Laravel 12 (PHP 8.4) + Vue 3/TypeScript, organizado em domínios com Clean Architecture. Regras em [`CLAUDE.md`](CLAUDE.md), desenho em [`docs/architecture.md`](docs/architecture.md).
 
@@ -65,10 +67,10 @@ No dia a dia, o administrador cria, edita, desativa e reativa usuários na tela 
 
 ```bash
 php artisan erp:create-user                       # interativo; erp:create-admin é o mesmo comando
-php artisan erp:create-user --name="Ana Souza" --email=ana@viacao.com.br --role=dispatcher
+php artisan erp:create-user --name="Ana Souza" --email=ana@transportadora.com.br --role=dispatcher
 
 # automação, sem terminal: a senha chega pela entrada padrão, nunca como argumento
-printf '%s\n' "$SENHA" | php artisan erp:create-user --name="Ana Souza" --email=ana@viacao.com.br --password-stdin --no-interaction
+printf '%s\n' "$SENHA" | php artisan erp:create-user --name="Ana Souza" --email=ana@transportadora.com.br --password-stdin --no-interaction
 ```
 
 A senha nunca é aceita como argumento, porque ficaria no histórico do shell e visível em `ps`: no terminal ela é pedida duas vezes sem eco; em automação, use `--password-stdin`. A senha precisa de 12 a 128 caracteres, com maiúsculas, minúsculas e números, e é gravada com Argon2id (contas antigas em bcrypt continuam entrando e passam para Argon2id no próximo login). `--role` (padrão `admin`) aceita `admin`, `dispatcher`, `fleet_manager` e `mechanic_supervisor`. E-mail já cadastrado é recusado, e cada criação entra na auditoria como "Usuário criado" (sem a senha).
@@ -103,8 +105,8 @@ Fica aberta em `APP_ENV=local` e `testing`. Em produção e homologação respon
 `docker/production/Dockerfile` gera uma imagem única com Nginx e PHP-FPM 8.4 (Alpine) sob o Supervisor, com os assets do Vue já compilados.
 
 ```bash
-docker build -f docker/production/Dockerfile -t erp-viacao .
-docker run -d -p 8080:8080 --env-file .env.production -e RUN_MIGRATIONS=true erp-viacao
+docker build -f docker/production/Dockerfile -t erp-frotacarga .
+docker run -d -p 8080:8080 --env-file .env.production -e RUN_MIGRATIONS=true erp-frotacarga
 ```
 
 Variáveis mínimas do `.env.production`: `APP_KEY` (gere com `php artisan key:generate --show`), `APP_URL`, os `DB_*` do pooler (seção de deploy) e, atrás de balanceador, `TRUSTED_PROXIES` (`render`, IPs/faixas do proxy, ou `*` quando há um único proxy na frente) para que o limite de tentativas e a auditoria vejam o IP real do usuário. A imagem já define `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`, `DB_SSLMODE=require`, `DB_STATEMENT_TIMEOUT=15s` e cache no banco (`CACHE_STORE=database`); a API autentica por token, então a sessão fica em memória (`SESSION_DRIVER=array`). A imagem não traz a extensão do Redis.

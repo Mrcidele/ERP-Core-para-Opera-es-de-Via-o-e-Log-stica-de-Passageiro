@@ -6,7 +6,7 @@ namespace App\Domain\Operations\DTOs;
 
 use App\Domain\Operations\Entities\Trip;
 
-/** Viagem com os dados de linha, veículo e motorista que a listagem exibe. */
+/** Viagem com os dados de rota, veículo e motorista que a listagem exibe. */
 final readonly class TripSummaryDTO
 {
     public function __construct(

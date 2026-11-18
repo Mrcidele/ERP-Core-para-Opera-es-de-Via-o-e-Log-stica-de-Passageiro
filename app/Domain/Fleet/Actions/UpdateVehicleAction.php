@@ -39,11 +39,13 @@ final readonly class UpdateVehicleAction
             id: $current->id,
             plate: $data->plate,
             chassis: $data->chassis,
-            capacity: $data->capacity,
-            classType: $data->classType,
+            payloadKg: $data->payloadKg,
+            type: $data->type,
             status: $data->status,
             currentMileage: $data->currentMileage,
             nextPreventiveMaintenanceKm: $data->nextPreventiveMaintenanceKm,
+            minMetersPerLiter: $data->minMetersPerLiter,
+            model: $data->model,
         );
 
         $this->vehicles->save($vehicle);

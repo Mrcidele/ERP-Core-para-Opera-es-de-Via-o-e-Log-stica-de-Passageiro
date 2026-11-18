@@ -30,7 +30,7 @@ onMounted(() => store.fetchAll());
 
 const name = (line: Line): string => `${line.origin} → ${line.destination}`;
 
-// A relação de linhas vem inteira da API; a busca por cidade (origem, destino ou parada) é feita aqui.
+// A relação de rotas vem inteira da API; a busca por cidade (origem, destino ou parada) é feita aqui.
 const visibleLines = computed(() => {
     const term = search.value.trim().toLocaleLowerCase('pt-BR');
 
@@ -57,7 +57,7 @@ function askRemove(line: Line): void {
 }
 
 function onSaved(line: Line): void {
-    toast.success(editing.value ? `Linha ${name(line)} atualizada.` : `Linha ${name(line)} cadastrada.`);
+    toast.success(editing.value ? `Rota ${name(line)} atualizada.` : `Rota ${name(line)} cadastrada.`);
     formOpen.value = false;
 }
 
@@ -65,7 +65,7 @@ async function confirmRemove(): Promise<void> {
     const line = removing.value;
 
     if (line && (await store.remove(line.id))) {
-        toast.success(`Linha ${name(line)} excluída.`);
+        toast.success(`Rota ${name(line)} excluída.`);
         removing.value = null;
     }
 }
@@ -74,12 +74,12 @@ async function confirmRemove(): Promise<void> {
 <template>
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Linhas e rotas</h1>
+            <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Rotas</h1>
             <p class="mt-1 text-sm text-ink-500">Trajetos da operação, com as paradas no caminho, a distância e a duração.</p>
         </div>
         <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-line" @click="openCreate">
             <AppIcon name="plus" />
-            Cadastrar linha
+            Cadastrar rota
         </button>
     </header>
 
@@ -88,13 +88,13 @@ async function confirmRemove(): Promise<void> {
             <SearchField v-model="search" class="w-full sm:w-80" label="Buscar por cidade de origem, destino ou parada" :delay="150" />
         </div>
 
-        <TableSkeleton v-if="store.listStatus === 'loading' || store.listStatus === 'idle'" data-test="loading" :columns="5" label="Carregando linhas" />
+        <TableSkeleton v-if="store.listStatus === 'loading' || store.listStatus === 'idle'" data-test="loading" :columns="5" label="Carregando rotas" />
 
         <EmptyState
             v-else-if="store.listStatus === 'error'"
             data-test="list-error"
             icon="alert"
-            title="Não foi possível carregar as linhas"
+            title="Não foi possível carregar as rotas"
             description="Verifique a conexão e tente de novo."
         >
             <button type="button" class="btn btn-quiet" @click="store.fetchAll()">Tentar novamente</button>
@@ -104,21 +104,21 @@ async function confirmRemove(): Promise<void> {
             v-else-if="store.lines.length === 0"
             data-test="empty"
             icon="signpost"
-            title="Nenhuma linha cadastrada"
-            :description="canManage ? 'Cadastre a primeira linha para poder agendar viagens.' : 'Ainda não há linhas cadastradas.'"
+            title="Nenhuma rota cadastrada"
+            :description="canManage ? 'Cadastre a primeira rota para poder agendar viagens.' : 'Ainda não há rotas cadastradas.'"
         >
-            <button v-if="canManage" type="button" class="btn btn-primary" @click="openCreate">Cadastrar linha</button>
+            <button v-if="canManage" type="button" class="btn btn-primary" @click="openCreate">Cadastrar rota</button>
         </EmptyState>
 
-        <EmptyState v-else-if="visibleLines.length === 0" data-test="no-results" icon="search" title="Nenhuma linha passa por essa cidade">
+        <EmptyState v-else-if="visibleLines.length === 0" data-test="no-results" icon="search" title="Nenhuma rota passa por essa cidade">
             <button type="button" class="btn btn-quiet" data-test="clear-filters" @click="search = ''">Limpar busca</button>
         </EmptyState>
 
         <template v-else>
             <LineTable :lines="visibleLines" :can-manage="canManage" @edit="openEdit" @remove="askRemove" />
             <p class="num border-t border-ink-200 px-5 py-2.5 text-xs text-ink-500" data-test="count">
-                <template v-if="search.trim() !== ''">{{ visibleLines.length }} de {{ countLabel(store.lines.length, 'linha', 'linhas') }}</template>
-                <template v-else>{{ countLabel(store.lines.length, 'linha', 'linhas') }}</template>
+                <template v-if="search.trim() !== ''">{{ visibleLines.length }} de {{ countLabel(store.lines.length, 'rota', 'rotas') }}</template>
+                <template v-else>{{ countLabel(store.lines.length, 'rota', 'rotas') }}</template>
             </p>
         </template>
     </section>
@@ -126,7 +126,7 @@ async function confirmRemove(): Promise<void> {
     <SlideOver
         :open="formOpen"
         size="lg"
-        :title="editing ? `Editar ${name(editing)}` : 'Cadastrar linha'"
+        :title="editing ? `Editar ${name(editing)}` : 'Cadastrar rota'"
         :subtitle="editing ? 'As viagens já agendadas passam a usar os novos dados.' : 'Informe o trajeto e as paradas no caminho.'"
         @close="formOpen = false"
     >
@@ -136,8 +136,8 @@ async function confirmRemove(): Promise<void> {
     <ConfirmDialog
         :open="removing !== null"
         :title="removing ? `Excluir ${name(removing)}?` : ''"
-        message="A linha deixa de aparecer para novos agendamentos. As viagens já realizadas continuam no histórico."
-        confirm-label="Excluir linha"
+        message="A rota deixa de aparecer para novos agendamentos. As viagens já realizadas continuam no histórico."
+        confirm-label="Excluir rota"
         :busy="store.removeStatus === 'loading'"
         :error="store.removeError"
         @confirm="confirmRemove"

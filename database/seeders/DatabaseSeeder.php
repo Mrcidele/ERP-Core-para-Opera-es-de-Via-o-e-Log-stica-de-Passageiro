@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Domain\Crew\Enums\EmployeeRole;
 use App\Domain\Fleet\Enums\VehicleStatus;
+use App\Domain\Fleet\Enums\VehicleType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Infrastructure\Database\Models\EmployeeModel;
 use App\Infrastructure\Database\Models\FuelLogModel;
@@ -15,6 +16,7 @@ use App\Infrastructure\Database\Models\MaintenanceOrderModel;
 use App\Infrastructure\Database\Models\TripModel;
 use App\Infrastructure\Database\Models\UserModel;
 use App\Infrastructure\Database\Models\VehicleModel;
+use Database\Factories\VehicleModelFactory;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -33,7 +35,45 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $vehicles = VehicleModel::factory(30)->create();
+        // Frota de uma transportadora do Paraná: cavalos para carga fechada (lotação), bitrucks e trucks na distribuição
+        // regional e VUCs/utilitários na entrega urbana. [tipo, modelo, status]
+        $fleet = [
+            [VehicleType::TractorUnit, 'Volvo FH 540', VehicleStatus::Active],
+            [VehicleType::TractorUnit, 'Volvo FH 540', VehicleStatus::Active],
+            [VehicleType::TractorUnit, 'Scania R450', VehicleStatus::Active],
+            [VehicleType::TractorUnit, 'Scania R450', VehicleStatus::Active],
+            [VehicleType::TractorUnit, 'Mercedes-Benz Actros 2651', VehicleStatus::Active],
+            [VehicleType::TractorUnit, 'DAF XF 530', VehicleStatus::Maintenance],
+            [VehicleType::TractorUnit, 'Volvo FH 460', VehicleStatus::Active],
+            [VehicleType::TractorUnit, 'Scania R450', VehicleStatus::Inactive],
+            [VehicleType::Bitruck, 'Volvo VM 330', VehicleStatus::Active],
+            [VehicleType::Bitruck, 'Mercedes-Benz Atego 3030', VehicleStatus::Active],
+            [VehicleType::Bitruck, 'VW Constellation 30.330', VehicleStatus::Active],
+            [VehicleType::Bitruck, 'Scania P 320', VehicleStatus::Maintenance],
+            [VehicleType::Truck, 'VW Constellation 24.280', VehicleStatus::Active],
+            [VehicleType::Truck, 'Mercedes-Benz Atego 2430', VehicleStatus::Active],
+            [VehicleType::Truck, 'Volvo VM 270', VehicleStatus::Active],
+            [VehicleType::Truck, 'Iveco Tector 240E28', VehicleStatus::Active],
+            [VehicleType::Toco, 'VW Delivery 13.180', VehicleStatus::Active],
+            [VehicleType::Toco, 'Mercedes-Benz Accelo 1316', VehicleStatus::Active],
+            [VehicleType::Toco, 'Ford Cargo 1119', VehicleStatus::Maintenance],
+            [VehicleType::Vuc, 'VW Delivery 9.170', VehicleStatus::Active],
+            [VehicleType::Vuc, 'VW Delivery 11.180', VehicleStatus::Active],
+            [VehicleType::Vuc, 'Mercedes-Benz Accelo 815', VehicleStatus::Active],
+            [VehicleType::Vuc, 'Iveco Daily 70C17', VehicleStatus::Active],
+            [VehicleType::Utility, 'Renault Master Furgão', VehicleStatus::Active],
+            [VehicleType::Utility, 'Fiat Ducato Cargo', VehicleStatus::Active],
+        ];
+
+        $vehicles = collect($fleet)->map(fn (array $vehicle) => VehicleModel::factory()->create([
+            'vehicle_type' => $vehicle[0],
+            'model' => $vehicle[1],
+            'status' => $vehicle[2],
+            'payload_kg' => VehicleModelFactory::typicalPayloadKg($vehicle[0]),
+        ]));
+
+        // Um cavalo novo com meta própria mais exigente que o padrão do tipo (2,0 km/L).
+        $vehicles[0]->update(['min_meters_per_liter' => 2_300]);
 
         $drivers = EmployeeModel::factory(20)->create();
 
@@ -44,14 +84,16 @@ class DatabaseSeeder extends Seeder
         $mechanics = EmployeeModel::factory(5)->withoutLicense(EmployeeRole::Mechanic)->create();
         EmployeeModel::factory(3)->withoutLicense(EmployeeRole::Admin)->create();
 
-        // Linhas com as paradas intermediárias: [cidade, km acumulado, minutos desde a partida].
+        // Rotas de carga com os pontos de parada (coleta, entrega ou passagem): [cidade, km acumulado, minutos desde a partida].
         foreach ([
-            ['Curitiba', 'Ourinhos', 400, 390, [['Ponta Grossa', 115, 105], ['Castro', 160, 150], ['Jaguariaíva', 240, 230], ['Santo Antônio da Platina', 345, 335]]],
-            ['Curitiba', 'Londrina', 380, 360, [['Ponta Grossa', 115, 105], ['Ortigueira', 245, 230], ['Apucarana', 325, 305]]],
-            ['Curitiba', 'Foz do Iguaçu', 640, 600, [['Guarapuava', 255, 240], ['Laranjeiras do Sul', 365, 345], ['Cascavel', 500, 470], ['Medianeira', 580, 545]]],
-            ['Curitiba', 'Florianópolis', 300, 285, [['Joinville', 130, 120], ['Itajaí', 215, 200], ['Balneário Camboriú', 225, 215]]],
-            ['Curitiba', 'São Paulo', 410, 390, [['Registro', 215, 200]]],
-            ['Curitiba', 'Ponta Grossa', 115, 120, []],
+            ['Cascavel', 'Paranaguá', 600, 660, [['Guarapuava', 245, 270], ['Ponta Grossa', 440, 480], ['Curitiba', 510, 560]]],
+            ['Maringá', 'Paranaguá', 520, 570, [['Apucarana', 60, 65], ['Ponta Grossa', 360, 395], ['São José dos Pinhais', 440, 485]]],
+            ['Araucária', 'Londrina', 390, 430, [['Ponta Grossa', 120, 135], ['Ortigueira', 250, 275]]],
+            ['São José dos Pinhais', 'Joinville', 125, 140, [['Garuva', 85, 95]]],
+            ['Curitiba', 'Porto Alegre', 710, 780, [['Joinville', 130, 145], ['Itajaí', 215, 235], ['Florianópolis', 300, 330]]],
+            ['Curitiba', 'Guarulhos', 420, 465, [['Registro', 215, 240]]],
+            ['Araucária', 'Ponta Grossa', 105, 115, []],
+            ['Curitiba', 'Paranaguá', 90, 100, []],
         ] as [$origin, $destination, $distance, $minutes, $stops]) {
             $line = LineModel::factory()->create([
                 'origin' => $origin,
@@ -71,17 +113,35 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Abastecimentos das últimas semanas de dez veículos: do mais antigo para o mais recente, o hodômetro
-        // termina na quilometragem atual. O último veículo roda pouco por litro, para o alerta de consumo aparecer.
+        // Abastecimentos das últimas semanas dos veículos ativos: do mais antigo para o mais recente, o hodômetro
+        // termina na quilometragem atual. Rendimento e volume de diesel conforme o tipo; dois veículos rodam
+        // abaixo da meta, para o alerta de consumo aparecer (um cavalo com 1,7 km/L e um VUC com 4,1 km/L).
         $recorder = UserModel::query()->orderBy('created_at')->first();
+        // [km/L mínimo, km/L máximo, litros mínimos, litros máximos] por tipo.
+        $consumption = [
+            VehicleType::TractorUnit->value => [2.0, 2.6, 380, 620],
+            VehicleType::Bitruck->value => [2.5, 3.1, 220, 360],
+            VehicleType::Truck->value => [3.5, 4.3, 160, 260],
+            VehicleType::Toco->value => [4.5, 5.6, 110, 180],
+            VehicleType::Vuc->value => [5.0, 6.8, 60, 110],
+            VehicleType::Utility->value => [8.0, 10.5, 45, 75],
+        ];
 
         if ($recorder !== null) {
-            foreach ($vehicles->take(10)->values() as $index => $vehicle) {
-                $kmPerLiter = $index === 9 ? 1.7 : fake()->randomFloat(2, 2.6, 3.4);
+            $fueled = $vehicles->where('status', VehicleStatus::Active)->values();
+
+            foreach ($fueled as $index => $vehicle) {
+                [$minKml, $maxKml, $minLiters, $maxLiters] = $consumption[$vehicle->vehicle_type->value];
+                $kmPerLiter = match (true) {
+                    $index === 0 => fake()->randomFloat(2, 2.4, 2.6),
+                    $index === 2 => 1.7,
+                    $vehicle->model === 'Iveco Daily 70C17' => 4.1,
+                    default => fake()->randomFloat(2, $minKml, $maxKml),
+                };
                 $odometer = $vehicle->current_mileage;
 
                 foreach ([2, 6, 11, 17, 24] as $daysAgo) {
-                    $liters = fake()->numberBetween(180_000, 380_000);
+                    $liters = fake()->numberBetween($minLiters * 1000, $maxLiters * 1000);
 
                     FuelLogModel::factory()->create([
                         'vehicle_id' => $vehicle->id,

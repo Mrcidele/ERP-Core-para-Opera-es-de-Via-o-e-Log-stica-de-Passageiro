@@ -29,9 +29,9 @@ enum AuditAction: string
     {
         return match ($this) {
             self::VehicleDeleted => 'Veículo excluído',
-            self::LineCreated => 'Linha criada',
-            self::LineUpdated => 'Linha alterada',
-            self::LineDeleted => 'Linha excluída',
+            self::LineCreated => 'Rota criada',
+            self::LineUpdated => 'Rota alterada',
+            self::LineDeleted => 'Rota excluída',
             self::TripScheduled => 'Viagem agendada',
             self::TripCompleted => 'Viagem concluída',
             self::TripCanceled => 'Viagem cancelada',

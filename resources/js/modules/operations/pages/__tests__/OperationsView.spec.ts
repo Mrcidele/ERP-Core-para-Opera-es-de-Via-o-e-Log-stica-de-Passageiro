@@ -22,12 +22,12 @@ const trip = (id: string, status: TripSummary['status'], destination = 'Ourinhos
     departure_time: '2026-11-20T11:00:00+00:00',
     arrival_time: '2026-11-20T17:30:00+00:00',
     line: { id: 'line-1', origin: 'Curitiba', destination, distance_km: 400 },
-    vehicle: { id: 'bus-1', plate: 'ABC1D23' },
+    vehicle: { id: 'truck-1', plate: 'ABC1D23' },
     driver: { id: 'driver-1', name: 'João da Silva' },
 });
 
 /** O que a API devolve: a escala paginada em /operations/trips e listas vazias nas opções do formulário. */
-const bus = { id: 'bus-1', plate: 'ABC1D23', chassis: '9BWZZZ377VT004251', capacity: 46, class_type: 'executivo', status: 'active', current_mileage: 1000 };
+const truck = { id: 'truck-1', plate: 'ABC1D23', chassis: '9BWZZZ377VT004251', payload_kg: 32_000, vehicle_type: 'cavalo_mecanico', vehicle_type_label: 'Cavalo mecânico', model: 'Volvo FH 540', min_meters_per_liter: null, effective_min_meters_per_liter: 2_000, status: 'active', current_mileage: 1000 };
 const driver = { id: 'driver-1', name: 'João da Silva', cpf: '52998224725', role: 'driver', status: 'active', cnh_number: '12345678901', cnh_category: 'D', cnh_expiration_date: '2099-01-01' };
 
 /** Grade de dois dias, do início de hoje (horário local) em diante. */
@@ -40,7 +40,7 @@ function timelineFrom(start: Date): ScheduleTimeline {
         arrival_time: at(36),
         rest_until: at(47),
         line: { origin: 'Curitiba', destination: 'Ourinhos' },
-        vehicle: { id: 'bus-1', plate: 'ABC1D23' },
+        vehicle: { id: 'truck-1', plate: 'ABC1D23' },
         driver: { id: 'driver-1', name: 'João da Silva' },
     };
 
@@ -48,7 +48,7 @@ function timelineFrom(start: Date): ScheduleTimeline {
         from: at(-3),
         to: at(45),
         driver_rest_hours: 11,
-        vehicles: [{ id: 'bus-1', plate: 'ABC1D23', status: 'active', trips: [scheduled], maintenance_orders: [] }],
+        vehicles: [{ id: 'truck-1', plate: 'ABC1D23', status: 'active', trips: [scheduled], maintenance_orders: [] }],
         drivers: [{ id: 'driver-1', name: 'João da Silva', trips: [scheduled] }],
     };
 }
@@ -70,7 +70,7 @@ function serve(trips: TripSummary[]): void {
             return Promise.resolve({ data: { data: [] } });
         }
 
-        return Promise.resolve(page<unknown>(url === '/operations/trips' ? trips : url === '/fleet/vehicles' ? [bus] : [driver]));
+        return Promise.resolve(page<unknown>(url === '/operations/trips' ? trips : url === '/fleet/vehicles' ? [truck] : [driver]));
     });
 }
 
@@ -217,7 +217,7 @@ describe('OperationsView', () => {
         await wrapper.get('[data-test="filter-completed"]').trigger('click');
         await flushPromises();
 
-        const csv = new Blob(['Linha;Placa'], { type: 'text/csv' });
+        const csv = new Blob(['Rota;Placa'], { type: 'text/csv' });
         http.get.mockResolvedValue({ data: csv, headers: { 'content-disposition': 'attachment; filename=manifesto-de-viagens-2026-11-15.csv' } });
         await wrapper.get('[data-test="export-csv"]').trigger('click');
         await flushPromises();
@@ -324,7 +324,7 @@ describe('OperationsView', () => {
             await wrapper.findAll('[data-test="schedule-row"]')[0]!.trigger('click');
             await flushPromises();
 
-            expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('bus-1');
+            expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('truck-1');
             expect((wrapper.get('[data-test="driver_id"]').element as HTMLSelectElement).value).toBe('');
         });
 

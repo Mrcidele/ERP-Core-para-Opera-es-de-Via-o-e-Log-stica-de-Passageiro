@@ -25,19 +25,20 @@ const log = (id: string, overrides: Partial<FuelLog> = {}): FuelLog => ({
     distance_km: 640,
     km_per_liter: 3.2,
     low_efficiency_alert: false,
-    vehicle: { id: 'bus-1', plate: 'ABC1D23' },
+    min_meters_per_liter: 2_000,
+    vehicle: { id: 'truck-1', plate: 'ABC1D23' },
     recorded_by: { id: 'user-1', name: 'Fernanda Frota' },
     ...overrides,
 });
 
 const normal = log('1');
-const thirsty = log('2', { odometer_km: 100_340, distance_km: 340, liters_milliliters: 200_000, km_per_liter: 1.7, low_efficiency_alert: true, vehicle: { id: 'bus-2', plate: 'XYZ9K88' } });
+const thirsty = log('2', { odometer_km: 100_340, distance_km: 340, liters_milliliters: 200_000, km_per_liter: 1.7, low_efficiency_alert: true, min_meters_per_liter: 2_200, vehicle: { id: 'truck-2', plate: 'XYZ9K88' } });
 const first = log('3', { distance_km: null, km_per_liter: null, liters_milliliters: 350_500, total_cost_cents: 209_950 });
 const parked = log('4', { distance_km: 0, km_per_liter: null });
 
 const vehicles = [
-    { id: 'bus-1', plate: 'ABC1D23', chassis: '9BWZZZ377VT004251', capacity: 46, class_type: 'executivo', status: 'active', current_mileage: 100_000, next_preventive_maintenance_km: null, needs_preventive_maintenance: false },
-    { id: 'bus-2', plate: 'XYZ9K88', chassis: '9BWZZZ377VT004252', capacity: 46, class_type: 'leito', status: 'maintenance', current_mileage: 55_000, next_preventive_maintenance_km: null, needs_preventive_maintenance: false },
+    { id: 'truck-1', plate: 'ABC1D23', chassis: '9BWZZZ377VT004251', payload_kg: 32_000, vehicle_type: 'cavalo_mecanico', vehicle_type_label: 'Cavalo mecânico', model: 'Volvo FH 540', min_meters_per_liter: null, effective_min_meters_per_liter: 2_000, status: 'active', current_mileage: 100_000, next_preventive_maintenance_km: null, needs_preventive_maintenance: false },
+    { id: 'truck-2', plate: 'XYZ9K88', chassis: '9BWZZZ377VT004252', payload_kg: 18_000, vehicle_type: 'bitruck', vehicle_type_label: 'Bitruck', model: null, min_meters_per_liter: 2_200, effective_min_meters_per_liter: 2_200, status: 'maintenance', current_mileage: 55_000, next_preventive_maintenance_km: null, needs_preventive_maintenance: false },
 ];
 
 let logs: FuelLog[] = [];
@@ -65,7 +66,7 @@ const flat = (text: string): string => text.replace(/\s+/g, ' ').trim();
 async function fillForm(wrapper: VueWrapper): Promise<void> {
     await wrapper.get('[data-test="new-fuel-log"]').trigger('click');
     await flushPromises();
-    await wrapper.get('[data-test="vehicle_id"]').setValue('bus-1');
+    await wrapper.get('[data-test="vehicle_id"]').setValue('truck-1');
     await wrapper.get('[data-test="odometer_km"]').setValue(100_640);
     await wrapper.get('[data-test="liters"]').setValue('350,5');
     await wrapper.get('[data-test="total_cost"]').setValue('2.099,50');
@@ -161,7 +162,7 @@ describe('FuelView', () => {
         await flushPromises();
 
         expect(http.post).toHaveBeenCalledWith('/fuel/logs', {
-            vehicle_id: 'bus-1',
+            vehicle_id: 'truck-1',
             odometer_km: 100_640,
             liters_milliliters: 350_500,
             total_cost_cents: 209_950,
@@ -186,7 +187,7 @@ describe('FuelView', () => {
         expect(toast.tone).toBe('warning');
         expect(toast.title).toBe('Consumo alto');
         expect(toast.message).toContain('rendimento de 1,70 km/L');
-        expect(toast.message).toContain('padrão de 2,20 km/L');
+        expect(toast.message).toContain('meta de 2,2 km/L deste veículo');
     });
 
     it('offers every vehicle, defaults the date to now and validates before calling the API', async () => {

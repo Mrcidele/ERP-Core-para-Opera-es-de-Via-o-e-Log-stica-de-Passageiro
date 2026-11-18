@@ -8,8 +8,8 @@ use App\Domain\Fleet\Actions\ListVehiclesAction;
 use App\Domain\Fleet\Actions\UpdateVehicleAction;
 use App\Domain\Fleet\DTOs\UpdateVehicleDTO;
 use App\Domain\Fleet\Entities\Vehicle;
-use App\Domain\Fleet\Enums\VehicleClass;
 use App\Domain\Fleet\Enums\VehicleStatus;
+use App\Domain\Fleet\Enums\VehicleType;
 use App\Domain\Fleet\Exceptions\DuplicateChassisException;
 use App\Domain\Fleet\Exceptions\DuplicatePlateException;
 use App\Domain\Fleet\Exceptions\MileageDecreaseException;
@@ -25,8 +25,8 @@ function storedVehicle(InMemoryVehicleRepository $repository, string $plate, str
         id: $repository->nextIdentity(),
         plate: $plate,
         chassis: $chassis,
-        capacity: 46,
-        classType: VehicleClass::Executivo,
+        payloadKg: 32_000,
+        type: VehicleType::TractorUnit,
         status: VehicleStatus::Active,
         currentMileage: $mileage,
     );
@@ -42,8 +42,8 @@ function changes(Vehicle $vehicle, string ...$overrides): UpdateVehicleDTO
         id: $overrides['id'] ?? $vehicle->id,
         plate: $overrides['plate'] ?? $vehicle->plate,
         chassis: $overrides['chassis'] ?? $vehicle->chassis,
-        capacity: 42,
-        classType: VehicleClass::Leito,
+        payloadKg: 18_000,
+        type: VehicleType::Bitruck,
         status: VehicleStatus::Maintenance,
         currentMileage: (int) ($overrides['mileage'] ?? $vehicle->currentMileage),
     );
@@ -84,8 +84,8 @@ it('updates a vehicle keeping its own plate and chassis', function (): void {
     $updated = (new UpdateVehicleAction($this->repository))->execute(changes($this->first, mileage: '150000'));
 
     expect($updated->id)->toBe($this->first->id)
-        ->and($updated->capacity)->toBe(42)
-        ->and($updated->classType)->toBe(VehicleClass::Leito)
+        ->and($updated->payloadKg)->toBe(18_000)
+        ->and($updated->type)->toBe(VehicleType::Bitruck)
         ->and($updated->status)->toBe(VehicleStatus::Maintenance)
         ->and($updated->currentMileage)->toBe(150_000)
         ->and($this->repository->findById($this->first->id))->toBe($updated);
@@ -129,10 +129,23 @@ it('fails to delete an unknown vehicle', function (): void {
 });
 
 it('lists only the vehicles due for preventive maintenance when asked', function (): void {
-    $this->repository->save(new Vehicle('due', 'DUE1A11', '9BWZZZ377VT004299', 46, VehicleClass::Executivo, VehicleStatus::Active, 100_000, 90_000));
+    $this->repository->save(new Vehicle('due', 'DUE1A11', '9BWZZZ377VT004299', 32_000, VehicleType::TractorUnit, VehicleStatus::Active, 100_000, 90_000));
 
     $list = new ListVehiclesAction($this->repository);
 
     expect(array_map(fn (Vehicle $v): string => $v->plate, $list->execute(onlyDueForMaintenance: true)->items))->toBe(['DUE1A11'])
         ->and($list->execute()->total)->toBe(3);
+});
+
+it('follows the default of the new type when the fuel target is cleared on update', function (): void {
+    $withTarget = (new UpdateVehicleAction($this->repository))->execute(new UpdateVehicleDTO(
+        $this->first->id, 'BBB1B11', '9BWZZZ377VT004251', 6_000, VehicleType::Toco, VehicleStatus::Active, 100_000, minMetersPerLiter: 5_200,
+    ));
+    $cleared = (new UpdateVehicleAction($this->repository))->execute(new UpdateVehicleDTO(
+        $this->first->id, 'BBB1B11', '9BWZZZ377VT004251', 6_000, VehicleType::Toco, VehicleStatus::Active, 100_000,
+    ));
+
+    expect($withTarget->fuelEfficiencyTarget())->toBe(5_200)
+        ->and($cleared->minMetersPerLiter)->toBeNull()
+        ->and($cleared->fuelEfficiencyTarget())->toBe(4_500);
 });

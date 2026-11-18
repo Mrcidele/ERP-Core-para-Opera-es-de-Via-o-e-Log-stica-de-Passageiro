@@ -13,10 +13,10 @@ const form = reactive({ email: '', password: '' });
 
 // Resumo do que o sistema controla, no painel de identidade.
 const highlights: { icon: IconName; title: string; text: string }[] = [
-    { icon: 'bus', title: 'Frota', text: 'Quilometragem, disponibilidade e revisão preventiva de cada ônibus.' },
-    { icon: 'route', title: 'Viagens', text: 'Escala sem conflito de veículo, com 11 horas de descanso do motorista.' },
-    { icon: 'license', title: 'Tripulação', text: 'CNH válida até a chegada de cada viagem.' },
-    { icon: 'wrench', title: 'Oficina', text: 'Ordens de serviço que tiram e devolvem o veículo da operação.' },
+    { icon: 'truck', title: 'Frota', text: 'Hodômetro, revisão preventiva e meta de km/L de cada caminhão.' },
+    { icon: 'route', title: 'Viagens', text: 'Escala sem conflito de caminhão, com as 11 horas de descanso da Lei do Motorista.' },
+    { icon: 'license', title: 'Motoristas', text: 'CNH válida até a chegada de cada viagem.' },
+    { icon: 'wrench', title: 'Oficina', text: 'OS que tira o caminhão da escala e devolve quando a manutenção termina.' },
 ];
 const clientErrors = ref<Partial<Record<LoginField, string>>>({});
 
@@ -71,16 +71,16 @@ async function submit(): Promise<void> {
         <aside class="relative overflow-hidden bg-ink-950 px-6 py-8 text-ink-300 sm:px-10 lg:flex lg:flex-col lg:px-14 lg:py-12">
             <div class="relative flex items-center gap-3">
                 <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-signal-500 text-ink-950">
-                    <AppIcon name="bus" />
+                    <AppIcon name="truck" />
                 </span>
-                <span class="font-display text-lg font-semibold tracking-tight text-white">ERP Viação</span>
+                <span class="font-display text-lg font-semibold tracking-tight text-white">ERP FrotaCarga</span>
             </div>
 
             <div class="relative mt-10 hidden lg:my-auto lg:block">
                 <p class="max-w-md font-display text-4xl font-semibold leading-[1.1] tracking-tight text-white">
                     A operação inteira na mesma escala.
                 </p>
-                <p class="mt-4 max-w-md text-ink-400">Do ônibus na garagem à viagem concluída, com as regras da viação conferidas a cada passo.</p>
+                <p class="mt-4 max-w-md text-ink-400">Do caminhão no pátio à entrega concluída, com as regras da transportadora conferidas a cada passo.</p>
 
                 <ul class="mt-10 max-w-md space-y-5" data-test="operation-summary">
                     <li v-for="item in highlights" :key="item.title" class="flex gap-4">

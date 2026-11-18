@@ -21,7 +21,7 @@ export const lineSchema = z
         destination: z.string().trim().min(1, 'Informe a cidade de destino.').max(120, 'O nome da cidade é longo demais.'),
         distance_km: km('Informe a distância.').min(1, 'A distância mínima é 1 km.'),
         estimated_duration_minutes: minutes('Informe a duração.').min(1, 'A duração mínima é 1 minuto.'),
-        stops: z.array(stopSchema).max(MAX_LINE_STOPS, `Uma linha aceita até ${MAX_LINE_STOPS} paradas.`),
+        stops: z.array(stopSchema).max(MAX_LINE_STOPS, `Uma rota aceita até ${MAX_LINE_STOPS} paradas.`),
     })
     .superRefine((line, ctx) => {
         if (line.origin.toLocaleLowerCase('pt-BR') === line.destination.toLocaleLowerCase('pt-BR')) {
@@ -42,7 +42,7 @@ export const lineSchema = z
             if (stop.estimated_minutes < previousMinutes) {
                 ctx.addIssue({ code: 'custom', path: ['stops', index, 'estimated_minutes'], message: `Informe ${previousMinutes} min ou mais.` });
             } else if (stop.estimated_minutes >= line.estimated_duration_minutes) {
-                ctx.addIssue({ code: 'custom', path: ['stops', index, 'estimated_minutes'], message: 'O tempo deve ser menor que a duração da linha.' });
+                ctx.addIssue({ code: 'custom', path: ['stops', index, 'estimated_minutes'], message: 'O tempo deve ser menor que a duração da rota.' });
             }
 
             previousKm = stop.cumulative_km;

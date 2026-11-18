@@ -118,7 +118,7 @@ it('returns 404 for an unknown trip', function (string $transition, string $id):
 })->with(['start', 'complete', 'cancel'])->with(['0193a5b0-7c1e-7000-8000-000000000000', 'abc']);
 
 it('flags the vehicle for preventive maintenance once a completed trip takes it past the scheduled mileage', function (): void {
-    // 100.000 km no hodômetro, revisão aos 100.300 km, linha de 400 km.
+    // 100.000 km no hodômetro, revisão aos 100.300 km, rota de 400 km.
     $this->vehicle->update(['next_preventive_maintenance_km' => 100_300]);
     $trip = scheduleTrip();
 

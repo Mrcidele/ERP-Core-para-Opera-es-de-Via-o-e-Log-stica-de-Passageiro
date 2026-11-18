@@ -23,6 +23,9 @@ final class InMemoryFuelLogRepository implements FuelLogRepository
     /** @var list<string> ids excluídos, na ordem */
     public array $deleted = [];
 
+    /** @var array<string, int> id do veículo => meta de rendimento em metros por litro (padrão 2.200) */
+    public array $targets = [];
+
     public function nextIdentity(): string
     {
         return 'fuel-'.(count($this->logs) + 1);
@@ -94,7 +97,7 @@ final class InMemoryFuelLogRepository implements FuelLogRepository
             $previous = $candidate;
         }
 
-        return new FuelLogSummaryDTO($log, 'AAA0A00', 'Usuário', $previous?->odometerKm);
+        return new FuelLogSummaryDTO($log, 'AAA0A00', 'Usuário', $previous?->odometerKm, $this->targets[$log->vehicleId] ?? 2_200);
     }
 
     /**

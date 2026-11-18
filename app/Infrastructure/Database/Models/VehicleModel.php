@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Database\Models;
 
-use App\Domain\Fleet\Enums\VehicleClass;
 use App\Domain\Fleet\Enums\VehicleStatus;
+use App\Domain\Fleet\Enums\VehicleType;
 use Database\Factories\VehicleModelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,11 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $id
  * @property string $plate
  * @property string $chassis
- * @property int $capacity
- * @property VehicleClass $class_type
+ * @property int $payload_kg
+ * @property VehicleType $vehicle_type
  * @property VehicleStatus $status
  * @property int $current_mileage
  * @property int|null $next_preventive_maintenance_km
+ * @property int|null $min_meters_per_liter
+ * @property string|null $model
  */
 final class VehicleModel extends Model
 {
@@ -36,11 +38,13 @@ final class VehicleModel extends Model
         'id',
         'plate',
         'chassis',
-        'capacity',
-        'class_type',
+        'payload_kg',
+        'vehicle_type',
         'status',
         'current_mileage',
         'next_preventive_maintenance_km',
+        'min_meters_per_liter',
+        'model',
     ];
 
     protected static function newFactory(): VehicleModelFactory
@@ -54,11 +58,12 @@ final class VehicleModel extends Model
     protected function casts(): array
     {
         return [
-            'capacity' => 'integer',
-            'class_type' => VehicleClass::class,
+            'payload_kg' => 'integer',
+            'vehicle_type' => VehicleType::class,
             'status' => VehicleStatus::class,
             'current_mileage' => 'integer',
             'next_preventive_maintenance_km' => 'integer',
+            'min_meters_per_liter' => 'integer',
         ];
     }
 }

@@ -13,14 +13,14 @@ vi.mock('@/core/api/http', async (importOriginal) => ({
     http,
 }));
 
-const lines = [{ id: 'line-1', origin: 'Curitiba', destination: 'Ourinhos', distance_km: 400, estimated_duration_minutes: 390 }];
+const lines = [{ id: 'line-1', origin: 'Curitiba', destination: 'Paranaguá', distance_km: 90, estimated_duration_minutes: 100 }];
 
 const vehicle = (id: string, plate: string, status: string) => ({
     id,
     plate,
     chassis: '9BWZZZ377VT004251',
-    capacity: 46,
-    class_type: 'executivo',
+    payload_kg: 32_000,
+    vehicle_type: 'cavalo_mecanico',
     status,
     current_mileage: 1000,
 });
@@ -38,7 +38,7 @@ const employee = (id: string, name: string, role: string, status: string) => ({
 
 const options: Record<string, unknown[]> = {
     '/operations/lines': lines,
-    '/fleet/vehicles': [vehicle('bus-1', 'ABC1D23', 'active'), vehicle('bus-2', 'XYZ9876', 'maintenance')],
+    '/fleet/vehicles': [vehicle('truck-1', 'ABC1D23', 'active'), vehicle('truck-2', 'XYZ9876', 'maintenance')],
     '/crew/employees': [
         employee('driver-1', 'João da Silva', 'driver', 'active'),
         employee('driver-2', 'Pedro Afastado', 'driver', 'on_leave'),
@@ -49,7 +49,7 @@ const options: Record<string, unknown[]> = {
 const scheduled: Trip = {
     id: 'trip-1',
     line_id: 'line-1',
-    vehicle_id: 'bus-1',
+    vehicle_id: 'truck-1',
     driver_id: 'driver-1',
     departure_time: '2099-11-20T11:00:00+00:00',
     arrival_time: '2099-11-20T17:30:00+00:00',
@@ -57,7 +57,7 @@ const scheduled: Trip = {
 };
 
 async function mountForm(overrides: Record<string, unknown[]> = {}, initial: TripPrefill = {}): Promise<VueWrapper> {
-    // Linhas vêm em lista simples; veículos e funcionários, paginados e filtrados por status no servidor.
+    // Rotas vêm em lista simples; veículos e funcionários, paginados e filtrados por status no servidor.
     http.get.mockImplementation((url: string, config?: { params?: { status?: string } }) => {
         const list = (overrides[url] ?? options[url] ?? []) as { status?: string }[];
         const status = config?.params?.status;
@@ -72,7 +72,7 @@ async function mountForm(overrides: Record<string, unknown[]> = {}, initial: Tri
 
 async function fill(wrapper: VueWrapper, departure = '2099-11-20T08:00', arrival = '2099-11-20T14:30'): Promise<void> {
     await wrapper.get('[data-test="line_id"]').setValue('line-1');
-    await wrapper.get('[data-test="vehicle_id"]').setValue('bus-1');
+    await wrapper.get('[data-test="vehicle_id"]').setValue('truck-1');
     await wrapper.get('[data-test="driver_id"]').setValue('driver-1');
     await wrapper.get('[data-test="departure_time"]').setValue(departure);
     await wrapper.get('[data-test="arrival_time"]').setValue(arrival);
@@ -100,8 +100,8 @@ describe('TripForm', () => {
         const wrapper = await mountForm();
 
         expect(http.get.mock.calls.map(([url]) => url).sort()).toEqual(['/crew/employees', '/fleet/vehicles', '/operations/lines']);
-        expect(optionTexts(wrapper, 'line_id')).toEqual(['Curitiba → Ourinhos']);
-        expect(optionTexts(wrapper, 'vehicle_id')).toEqual(['ABC1D23 (Executivo, 46 lugares)']);
+        expect(optionTexts(wrapper, 'line_id')).toEqual(['Curitiba → Paranaguá']);
+        expect(optionTexts(wrapper, 'vehicle_id')).toEqual(['ABC1D23 (Cavalo mecânico, 32.000 kg)']);
         expect(optionTexts(wrapper, 'driver_id')).toEqual(['João da Silva (CNH D)']);
     });
 
@@ -110,7 +110,7 @@ describe('TripForm', () => {
 
         await wrapper.get('[data-test="line_id"]').setValue('line-1');
 
-        expect(wrapper.get('[data-test="line-hint"]').text()).toContain('400 km, duração estimada de 6h 30min');
+        expect(wrapper.get('[data-test="line-hint"]').text()).toContain('90 km, duração estimada de 1h 40min');
     });
 
     it('says when there is nothing to choose', async () => {
@@ -160,7 +160,7 @@ describe('TripForm', () => {
 
         expect(http.post).toHaveBeenCalledWith('/operations/trips', {
             line_id: 'line-1',
-            vehicle_id: 'bus-1',
+            vehicle_id: 'truck-1',
             driver_id: 'driver-1',
             departure_time: new Date(2099, 10, 20, 8, 0).toISOString(),
             arrival_time: new Date(2099, 10, 20, 14, 30).toISOString(),
@@ -193,9 +193,9 @@ describe('TripForm', () => {
     });
 
     it('starts with the vehicle, the driver and the departure chosen on the schedule grid', async () => {
-        const wrapper = await mountForm({}, { vehicle_id: 'bus-1', driver_id: 'driver-1', departure_time: '2099-11-20T08:00' });
+        const wrapper = await mountForm({}, { vehicle_id: 'truck-1', driver_id: 'driver-1', departure_time: '2099-11-20T08:00' });
 
-        expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('bus-1');
+        expect((wrapper.get('[data-test="vehicle_id"]').element as HTMLSelectElement).value).toBe('truck-1');
         expect((wrapper.get('[data-test="driver_id"]').element as HTMLSelectElement).value).toBe('driver-1');
         expect((wrapper.get('[data-test="departure_time"]').element as HTMLInputElement).value).toBe('2099-11-20T08:00');
         expect((wrapper.get('[data-test="line_id"]').element as HTMLSelectElement).value).toBe('');

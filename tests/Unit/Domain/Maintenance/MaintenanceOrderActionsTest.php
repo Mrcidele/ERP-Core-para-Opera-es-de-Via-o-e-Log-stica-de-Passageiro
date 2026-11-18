@@ -33,14 +33,14 @@ use Tests\Fakes\InMemoryMaintenanceOrderRepository;
 use Tests\Fakes\InMemoryTripRepository;
 use Tests\Fakes\RecordingEventDispatcher;
 
-function orderData(string $vehicle = 'bus-1', string $mechanic = 'mechanic-1'): OpenMaintenanceOrderDTO
+function orderData(string $vehicle = 'truck-1', string $mechanic = 'mechanic-1'): OpenMaintenanceOrderDTO
 {
     return new OpenMaintenanceOrderDTO($vehicle, $mechanic, MaintenanceType::Corrective, 'Reparo no ar-condicionado');
 }
 
 beforeEach(function (): void {
     $this->orders = new InMemoryMaintenanceOrderRepository;
-    $this->fleet = new FakeFleetGateway(['bus-1', 'bus-2']);
+    $this->fleet = new FakeFleetGateway(['truck-1', 'truck-2']);
     $this->crew = new FakeCrewGateway(activeDriverIds: ['driver-1'], activeMechanicIds: ['mechanic-1']);
 
     $this->events = new RecordingEventDispatcher;
@@ -60,9 +60,9 @@ it('opens an order and puts the vehicle in maintenance', function (): void {
         ->and($order->openedAt->format('Y-m-d H:i'))->toBe('2026-11-13 10:00')
         ->and($order->completedAt)->toBeNull()
         ->and($this->orders->findById($order->id))->toBe($order)
-        ->and($this->fleet->statuses['bus-1'])->toBe('maintenance')
-        ->and($this->fleet->statuses['bus-2'])->toBe('active')
-        ->and($this->events->events)->toEqual([new MaintenanceOrderOpened($order->id, 'bus-1', 'mechanic-1', 'corrective')]);
+        ->and($this->fleet->statuses['truck-1'])->toBe('maintenance')
+        ->and($this->fleet->statuses['truck-2'])->toBe('active')
+        ->and($this->events->events)->toEqual([new MaintenanceOrderOpened($order->id, 'truck-1', 'mechanic-1', 'corrective')]);
 });
 
 it('rejects an unknown vehicle', function (): void {
@@ -75,7 +75,7 @@ it('rejects an employee who is not an active mechanic and leaves the vehicle unt
     expect(fn () => $this->open->execute(orderData(mechanic: 'driver-1')))->toThrow(MechanicNotAvailableException::class);
 
     expect($this->orders->orders)->toBeEmpty()
-        ->and($this->fleet->statuses['bus-1'])->toBe('active');
+        ->and($this->fleet->statuses['truck-1'])->toBe('active');
 });
 
 it('completes an order with its final cost and returns the vehicle to service', function (): void {
@@ -87,8 +87,8 @@ it('completes an order with its final cost and returns the vehicle to service', 
         ->and($completed->costCents)->toBe(45_090)
         ->and($completed->completedAt?->format('Y-m-d H:i'))->toBe('2026-11-14 16:30')
         ->and($this->orders->findById($order->id))->toBe($completed)
-        ->and($this->fleet->statuses['bus-1'])->toBe('active')
-        ->and($this->events->events[1])->toEqual(new MaintenanceOrderCompleted($order->id, 'bus-1', 45_090));
+        ->and($this->fleet->statuses['truck-1'])->toBe('active')
+        ->and($this->events->events[1])->toEqual(new MaintenanceOrderCompleted($order->id, 'truck-1', 45_090));
 });
 
 it('keeps the vehicle in maintenance while another order is still pending', function (): void {
@@ -96,10 +96,10 @@ it('keeps the vehicle in maintenance while another order is still pending', func
     $second = $this->open->execute(orderData());
 
     $this->complete->execute(new CompleteMaintenanceOrderDTO($first->id, 0));
-    expect($this->fleet->statuses['bus-1'])->toBe('maintenance');
+    expect($this->fleet->statuses['truck-1'])->toBe('maintenance');
 
     $this->cancel->execute($second->id);
-    expect($this->fleet->statuses['bus-1'])->toBe('active');
+    expect($this->fleet->statuses['truck-1'])->toBe('active');
 });
 
 it('cancels an order and returns the vehicle to service', function (): void {
@@ -109,7 +109,7 @@ it('cancels an order and returns the vehicle to service', function (): void {
 
     expect($canceled->status)->toBe(MaintenanceStatus::Canceled)
         ->and($canceled->completedAt)->toBeNull()
-        ->and($this->fleet->statuses['bus-1'])->toBe('active');
+        ->and($this->fleet->statuses['truck-1'])->toBe('active');
 });
 
 it('rejects a negative cost', function (): void {
@@ -119,7 +119,7 @@ it('rejects a negative cost', function (): void {
         ->toThrow(NegativeMaintenanceCostException::class);
 
     expect($this->orders->findById($order->id)?->status)->toBe(MaintenanceStatus::Open)
-        ->and($this->fleet->statuses['bus-1'])->toBe('maintenance');
+        ->and($this->fleet->statuses['truck-1'])->toBe('maintenance');
 });
 
 it('rejects completing or canceling an order that is already closed', function (string $firstClose): void {
@@ -144,7 +144,7 @@ it('fails for an unknown order', function (): void {
 
 it('lists orders from the most recent to the oldest', function (): void {
     $old = (new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-01 08:00:00'), $this->events))->execute(orderData());
-    $recent = $this->open->execute(orderData(vehicle: 'bus-2'));
+    $recent = $this->open->execute(orderData(vehicle: 'truck-2'));
 
     $result = (new ListMaintenanceOrdersAction($this->orders))->execute();
 
@@ -153,7 +153,7 @@ it('lists orders from the most recent to the oldest', function (): void {
 
 it('pages the orders and exports every one of them', function (): void {
     $old = (new OpenMaintenanceOrderAction($this->orders, $this->fleet, $this->crew, new FixedClock('2026-11-01 08:00:00'), $this->events))->execute(orderData());
-    $recent = $this->open->execute(orderData(vehicle: 'bus-2'));
+    $recent = $this->open->execute(orderData(vehicle: 'truck-2'));
 
     $page = (new ListMaintenanceOrdersAction($this->orders))->execute(new PageQuery(page: 2, perPage: 1));
     $exported = (new ExportMaintenanceOrdersAction($this->orders))->execute(new PageQuery(page: 2, perPage: 1));
@@ -169,7 +169,7 @@ it('blocks scheduling trips for a vehicle with a pending order and frees it when
     $trips = new InMemoryTripRepository;
     $schedule = new ScheduleTripAction($trips, $lines, $this->fleet, $this->crew, new FixedClock('2026-11-13 10:00:00'), new ImmediateTransactionRunner, new RecordingEventDispatcher);
     $utc = new DateTimeZone('UTC');
-    $trip = new ScheduleTripDTO('line-1', 'bus-1', 'driver-1', new DateTimeImmutable('2026-11-20 08:00', $utc), new DateTimeImmutable('2026-11-20 14:30', $utc));
+    $trip = new ScheduleTripDTO('line-1', 'truck-1', 'driver-1', new DateTimeImmutable('2026-11-20 08:00', $utc), new DateTimeImmutable('2026-11-20 14:30', $utc));
 
     $order = $this->open->execute(orderData());
 
@@ -184,16 +184,16 @@ it('blocks scheduling trips for a vehicle with a pending order and frees it when
 it('opens an order with an estimated completion and keeps it through completion', function (): void {
     $estimate = new DateTimeImmutable('2026-11-14 18:00:00', new DateTimeZone('UTC'));
 
-    $order = $this->open->execute(new OpenMaintenanceOrderDTO('bus-1', 'mechanic-1', MaintenanceType::Preventive, 'Revisão dos freios', $estimate));
+    $order = $this->open->execute(new OpenMaintenanceOrderDTO('truck-1', 'mechanic-1', MaintenanceType::Preventive, 'Revisão dos freios', $estimate));
 
     expect($order->estimatedCompletionAt)->toEqual($estimate)
         ->and($this->complete->execute(new CompleteMaintenanceOrderDTO($order->id, 45_000))->estimatedCompletionAt)->toEqual($estimate);
 });
 
 it('rejects an estimated completion that is not after the opening', function (string $estimate): void {
-    $data = new OpenMaintenanceOrderDTO('bus-1', 'mechanic-1', MaintenanceType::Corrective, 'Revisão dos freios', new DateTimeImmutable($estimate, new DateTimeZone('UTC')));
+    $data = new OpenMaintenanceOrderDTO('truck-1', 'mechanic-1', MaintenanceType::Corrective, 'Revisão dos freios', new DateTimeImmutable($estimate, new DateTimeZone('UTC')));
 
     expect(fn () => $this->open->execute($data))->toThrow(InvalidEstimatedCompletionException::class)
         ->and($this->orders->orders)->toBe([])
-        ->and($this->fleet->statuses['bus-1'])->toBe('active');
+        ->and($this->fleet->statuses['truck-1'])->toBe('active');
 })->with(['2026-11-13 10:00:00', '2026-11-12 08:00:00']);

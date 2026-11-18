@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fuelLogSchema } from '../fuelLogSchema';
 
 const valid = {
-    vehicle_id: 'bus-1',
+    vehicle_id: 'truck-1',
     odometer_km: 100_640,
     liters: '350,5',
     total_cost: '2.099,50',
@@ -33,7 +33,7 @@ describe('fuelLogSchema', () => {
 
     it('sends milliliters, cents and the date in ISO 8601 UTC', () => {
         expect(fuelLogSchema.parse(valid)).toEqual({
-            vehicle_id: 'bus-1',
+            vehicle_id: 'truck-1',
             odometer_km: 100_640,
             liters_milliliters: 350_500,
             total_cost_cents: 209_950,

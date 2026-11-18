@@ -58,7 +58,7 @@ async function confirmRemove(): Promise<void> {
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Frota</h1>
-            <p class="mt-1 text-sm text-ink-500">Ônibus cadastrados, com quilometragem, revisão preventiva e situação.</p>
+            <p class="mt-1 text-sm text-ink-500">Caminhões e utilitários, com tipo, carga útil, meta de km/L, quilometragem, revisão preventiva e situação.</p>
         </div>
         <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-vehicle" @click="openCreate">
             <AppIcon name="plus" />
@@ -71,7 +71,7 @@ async function confirmRemove(): Promise<void> {
             :statuses="STATUS_OPTIONS"
             :status="store.status"
             :search="store.search"
-            search-label="Buscar por placa ou chassi"
+            search-label="Buscar por placa, chassi ou modelo"
             @update:status="store.applyFilters({ status: $event })"
             @update:search="store.applyFilters({ search: $event })"
         >
@@ -103,9 +103,9 @@ async function confirmRemove(): Promise<void> {
         <EmptyState
             v-else-if="store.vehicles.length === 0 && !store.filtering"
             data-test="empty"
-            icon="bus"
+            icon="truck"
             title="Nenhum veículo cadastrado"
-            :description="canManage ? 'Cadastre o primeiro ônibus para começar a montar a frota.' : 'Ainda não há ônibus na frota.'"
+            :description="canManage ? 'Cadastre o primeiro caminhão para começar a montar a frota.' : 'Ainda não há caminhões na frota.'"
         >
             <button v-if="canManage" type="button" class="btn btn-primary" @click="openCreate">Cadastrar veículo</button>
         </EmptyState>

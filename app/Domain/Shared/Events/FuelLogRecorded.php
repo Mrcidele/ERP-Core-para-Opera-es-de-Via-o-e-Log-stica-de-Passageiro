@@ -16,5 +16,10 @@ final readonly class FuelLogRecorded
         public int $totalCostCents,
         public string $stationName,
         public DateTimeImmutable $fueledAt,
+        /** Rendimento do trecho em metros por litro; null no primeiro abastecimento ou sem rodagem. */
+        public ?int $metersPerLiter,
+        /** Meta de rendimento do veículo, em metros por litro. */
+        public int $minMetersPerLiter,
+        public bool $lowEfficiencyAlert,
     ) {}
 }

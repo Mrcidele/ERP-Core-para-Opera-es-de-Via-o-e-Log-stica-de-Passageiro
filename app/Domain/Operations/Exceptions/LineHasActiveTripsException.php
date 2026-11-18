@@ -10,6 +10,6 @@ final class LineHasActiveTripsException extends DomainException
 {
     public function __construct()
     {
-        parent::__construct('line', 'Esta linha tem viagens agendadas ou em andamento. Conclua ou cancele as viagens antes de excluí-la.');
+        parent::__construct('line', 'Esta rota tem viagens agendadas ou em andamento. Conclua ou cancele as viagens antes de excluí-la.');
     }
 }

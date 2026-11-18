@@ -65,7 +65,7 @@ const { form, errors, submit, store } = useOpenMaintenanceOrderForm((order) => e
                 <option v-for="mechanic in store.mechanics" :key="mechanic.id" :value="mechanic.id">{{ mechanic.name }}</option>
             </select>
             <p v-if="errors.mechanic_id" data-test="mechanic_id-error" class="field-error">{{ errors.mechanic_id }}</p>
-            <p v-else-if="store.mechanics.length === 0" data-test="no-mechanics" class="field-hint">Nenhum mecânico ativo na tripulação.</p>
+            <p v-else-if="store.mechanics.length === 0" data-test="no-mechanics" class="field-hint">Nenhum mecânico ativo na equipe.</p>
         </div>
 
         <div>

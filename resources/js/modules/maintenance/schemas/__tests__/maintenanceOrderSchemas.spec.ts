@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatCents } from '@/core/utils/format';
 import { completeMaintenanceOrderSchema, openMaintenanceOrderSchema, reaisToCents } from '../maintenanceOrderSchemas';
 
-const valid = { vehicle_id: 'bus-1', mechanic_id: 'mechanic-1', type: 'corrective', description: '  Reparo no ar-condicionado ', estimated_completion_at: '' };
+const valid = { vehicle_id: 'truck-1', mechanic_id: 'mechanic-1', type: 'corrective', description: '  Reparo no ar-condicionado ', estimated_completion_at: '' };
 
 describe('openMaintenanceOrderSchema', () => {
     it('accepts a valid order and trims the description', () => {

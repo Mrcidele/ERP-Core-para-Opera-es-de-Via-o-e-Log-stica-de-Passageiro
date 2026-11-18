@@ -6,11 +6,11 @@ namespace App\Domain\Operations\Exceptions;
 
 use App\Domain\Shared\Exceptions\NotFoundException;
 
-/** Linha inexistente (ou já excluída) em uma edição ou exclusão: responde 404. */
+/** Rota inexistente (ou já excluída) em uma edição ou exclusão: responde 404. */
 final class LineRecordNotFoundException extends NotFoundException
 {
     public function __construct(string $id)
     {
-        parent::__construct("Linha {$id} não encontrada.");
+        parent::__construct("Rota {$id} não encontrada.");
     }
 }

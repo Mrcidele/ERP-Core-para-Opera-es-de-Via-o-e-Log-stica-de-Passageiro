@@ -21,11 +21,11 @@ const groups: { label: string; sections: Section[] }[] = [
         label: 'Operação',
         sections: [
             { name: 'dashboard', label: 'Painel', icon: 'panel' },
-            { name: 'fleet', label: 'Frota', icon: 'bus', permission: 'fleet.view' },
+            { name: 'fleet', label: 'Frota', icon: 'truck', permission: 'fleet.view' },
             { name: 'fuel', label: 'Abastecimento', icon: 'fuel', permission: 'fleet.view' },
             { name: 'operations', label: 'Operações', icon: 'route', permission: 'operations.view' },
-            { name: 'lines', label: 'Linhas e rotas', icon: 'signpost', permission: 'operations.view' },
-            { name: 'crew', label: 'Tripulação', icon: 'crew', permission: 'crew.view' },
+            { name: 'lines', label: 'Rotas', icon: 'signpost', permission: 'operations.view' },
+            { name: 'crew', label: 'Equipe', icon: 'crew', permission: 'crew.view' },
             { name: 'maintenance', label: 'Manutenção', icon: 'wrench', permission: 'maintenance.view' },
         ],
     },
@@ -79,9 +79,9 @@ async function signOut(): Promise<void> {
         >
             <div class="flex h-16 shrink-0 items-center gap-3 px-5">
                 <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-signal-500 text-ink-950">
-                    <AppIcon name="bus" />
+                    <AppIcon name="truck" />
                 </span>
-                <span class="font-display text-base font-semibold tracking-tight text-white">ERP Viação</span>
+                <span class="font-display text-base font-semibold tracking-tight text-white">ERP FrotaCarga</span>
             </div>
 
             <nav aria-label="Seções" class="flex-1 space-y-6 overflow-y-auto px-3 py-4">
@@ -142,7 +142,7 @@ async function signOut(): Promise<void> {
                 <AppIcon name="menu" />
             </button>
             <p class="min-w-0 truncate text-sm">
-                <span class="text-ink-400">ERP Viação</span>
+                <span class="text-ink-400">ERP FrotaCarga</span>
                 <span class="mx-2 text-ink-300" aria-hidden="true">/</span>
                 <span class="font-medium text-ink-900" data-test="header-title">{{ route.meta.title }}</span>
             </p>

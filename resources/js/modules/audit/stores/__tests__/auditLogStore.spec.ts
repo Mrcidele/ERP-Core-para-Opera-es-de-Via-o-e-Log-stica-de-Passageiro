@@ -42,7 +42,7 @@ describe('auditLogStore', () => {
 
 describe('audit labels', () => {
     it('labels the entities and falls back to the code', () => {
-        expect(['vehicle', 'line', 'trip', 'maintenance_order', 'user', 'other'].map(auditEntityLabel)).toEqual(['Veículo', 'Linha', 'Viagem', 'Ordem de serviço', 'Usuário', 'other']);
+        expect(['vehicle', 'line', 'trip', 'maintenance_order', 'user', 'other'].map(auditEntityLabel)).toEqual(['Veículo', 'Rota', 'Viagem', 'Ordem de serviço', 'Usuário', 'other']);
     });
 
     it('treats deletions and refused logins as sensitive', () => {

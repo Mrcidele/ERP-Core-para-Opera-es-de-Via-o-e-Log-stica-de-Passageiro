@@ -22,7 +22,7 @@ const logs: AuditLog[] = [
         auditable_type: 'trip',
         auditable_id: '0193a5b0-7c1e-7000-8000-000000000003',
         old_values: { status: 'in_progress' },
-        new_values: { status: 'completed', vehicle_id: 'bus-1', distance_km: 400 },
+        new_values: { status: 'completed', vehicle_id: 'truck-1', distance_km: 400 },
         ip_address: '10.0.0.7',
         created_at: '2026-11-13T12:00:00+00:00',
         user: { id: 'u2', name: 'Diego Despachante' },
@@ -111,7 +111,7 @@ describe('AuditLogsView', () => {
         expect(dialog.classes()).toContain('max-w-3xl');
         expect(dialog.text()).toContain('por Diego Despachante');
         expect(wrapper.get('[data-test="old-values"] pre').text()).toBe(JSON.stringify({ status: 'in_progress' }, null, 2));
-        expect(wrapper.get('[data-test="new-values"] pre').text()).toBe(JSON.stringify({ status: 'completed', vehicle_id: 'bus-1', distance_km: 400 }, null, 2));
+        expect(wrapper.get('[data-test="new-values"] pre').text()).toBe(JSON.stringify({ status: 'completed', vehicle_id: 'truck-1', distance_km: 400 }, null, 2));
         expect(wrapper.findAll('[data-test="changed-keys"] span').map((key) => key.text())).toEqual(['status', 'vehicle_id', 'distance_km']);
         expect(flat(wrapper.get('[data-test="audit-meta"]').text())).toContain('0193a5b0-7c1e-7000-8000-000000000003');
     });

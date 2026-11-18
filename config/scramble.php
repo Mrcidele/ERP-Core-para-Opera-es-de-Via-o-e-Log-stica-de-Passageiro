@@ -64,7 +64,7 @@ return [
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => 'API do ERP de operações de viação: frota, tripulação, linhas e viagens, manutenção, abastecimento e auditoria. '
+        'description' => 'API do ERP FrotaCarga, para transportadoras e frotas de caminhões: frota, equipe, rotas e viagens, oficina, abastecimento e auditoria. '
             .'Autentique em `POST /api/v1/auth/login` e envie o token no cabeçalho `Authorization: Bearer <token>`. '
             .'Datas com hora em ISO 8601 com fuso; valores em centavos (`_cents`) e volumes em mililitros (`_milliliters`).',
     ],

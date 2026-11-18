@@ -47,3 +47,10 @@ export const formatLiters = (milliliters: number): string => `${liters.format(mi
 
 /** 2.85 → "2,85 km/L". */
 export const formatKmPerLiter = (value: number): string => `${efficiency.format(value)} km/L`;
+
+/** Meta de rendimento: 2200 m/L → "2,2 km/L" (o rendimento trafega em metros por litro). */
+export const formatMetersPerLiter = (metersPerLiter: number): string =>
+    `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(metersPerLiter / 1000)} km/L`;
+
+/** 18000 → "18.000 kg". */
+export const formatKg = (kilograms: number): string => `${new Intl.NumberFormat('pt-BR').format(kilograms)} kg`;

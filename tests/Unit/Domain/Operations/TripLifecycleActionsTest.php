@@ -24,7 +24,7 @@ function storedTrip(InMemoryTripRepository $trips, TripStatus $status, string $d
     $utc = new DateTimeZone('UTC');
     $start = new DateTimeImmutable($departure, $utc);
 
-    $trip = new Trip($trips->nextIdentity(), 'line-1', 'bus-1', 'driver-1', $start, $start->modify('+6 hours'), $status);
+    $trip = new Trip($trips->nextIdentity(), 'line-1', 'truck-1', 'driver-1', $start, $start->modify('+6 hours'), $status);
 
     $trips->save($trip);
 
@@ -54,7 +54,7 @@ it('completes a trip in progress and announces it with the line distance', funct
 
     expect($completed->status)->toBe(TripStatus::Completed)
         ->and($this->trips->findById($trip->id)?->status)->toBe(TripStatus::Completed)
-        ->and($this->events->events)->toEqual([new TripCompleted($trip->id, 'bus-1', 400)]);
+        ->and($this->events->events)->toEqual([new TripCompleted($trip->id, 'truck-1', 400)]);
 });
 
 it('cancels a scheduled trip', function (): void {

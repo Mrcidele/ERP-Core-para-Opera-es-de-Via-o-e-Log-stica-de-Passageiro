@@ -18,7 +18,7 @@ function toDate(value: string): Date | null {
 
 export const scheduleTripSchema = z
     .object({
-        line_id: z.string().min(1, 'Selecione a linha.'),
+        line_id: z.string().min(1, 'Selecione a rota.'),
         vehicle_id: z.string().min(1, 'Selecione o veículo.'),
         driver_id: z.string().min(1, 'Selecione o motorista.'),
         departure_time: z.string(),

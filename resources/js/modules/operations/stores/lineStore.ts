@@ -9,7 +9,7 @@ const byRoute = (a: Line, b: Line): number =>
     a.origin.localeCompare(b.origin, 'pt-BR') || a.destination.localeCompare(b.destination, 'pt-BR');
 
 export const useLineStore = defineStore('operations/lines', () => {
-    // A relação de linhas é curta e também alimenta o formulário de viagem: vem inteira, sem paginação.
+    // A relação de rotas é curta e também alimenta o formulário de viagem: vem inteira, sem paginação.
     const lines = ref<Line[]>([]);
     const listStatus = ref<RequestStatus>('idle');
 
@@ -66,7 +66,7 @@ export const useLineStore = defineStore('operations/lines', () => {
     }
 
     const create = (payload: LinePayload): Promise<Line | null> =>
-        save(() => http.post('/operations/lines', payload), 'Não foi possível cadastrar a linha. Tente novamente.');
+        save(() => http.post('/operations/lines', payload), 'Não foi possível cadastrar a rota. Tente novamente.');
 
     const update = (id: string, payload: LinePayload): Promise<Line | null> =>
         save(() => http.put(`/operations/lines/${id}`, payload), 'Não foi possível salvar as alterações. Tente novamente.');
@@ -88,8 +88,8 @@ export const useLineStore = defineStore('operations/lines', () => {
 
             return true;
         } catch (error) {
-            // Linha com viagem agendada ou em andamento: a API explica o motivo no campo `line`.
-            removeError.value = extractValidationErrors(error)?.line?.[0] ?? extractErrorMessage(error, 'Não foi possível excluir a linha. Tente novamente.');
+            // Rota com viagem agendada ou em andamento: a API explica o motivo no campo `line`.
+            removeError.value = extractValidationErrors(error)?.line?.[0] ?? extractErrorMessage(error, 'Não foi possível excluir a rota. Tente novamente.');
             removeStatus.value = 'error';
 
             return false;

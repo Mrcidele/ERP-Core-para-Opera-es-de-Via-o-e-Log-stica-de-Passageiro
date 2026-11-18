@@ -109,10 +109,18 @@ it('refuses at the database an arrival that is not after the departure', functio
         ->toThrow(QueryException::class, 'trips_arrival_after_departure');
 });
 
-it('refuses at the database a vehicle with invalid capacity or mileage', function (array $attributes, string $constraint): void {
+it('refuses at the database a vehicle type outside the cargo fleet', function (): void {
+    $vehicle = VehicleModel::factory()->create();
+
+    expect(fn () => DB::transaction(fn () => DB::table('vehicles')->where('id', $vehicle->id)->update(['vehicle_type' => 'leito'])))
+        ->toThrow(QueryException::class, 'vehicles_vehicle_type_valid');
+});
+
+it('refuses at the database a vehicle with invalid payload, fuel target or mileage', function (array $attributes, string $constraint): void {
     expect(fn () => DB::transaction(fn () => VehicleModel::factory()->create($attributes)))
         ->toThrow(QueryException::class, $constraint);
 })->with([
-    'zero capacity' => [['capacity' => 0], 'vehicles_capacity_positive'],
+    'zero payload' => [['payload_kg' => 0], 'vehicles_payload_kg_positive'],
+    'fuel target out of range' => [['min_meters_per_liter' => 100], 'vehicles_min_meters_per_liter_range'],
     'negative mileage' => [['current_mileage' => -1], 'vehicles_mileage_not_negative'],
 ]);

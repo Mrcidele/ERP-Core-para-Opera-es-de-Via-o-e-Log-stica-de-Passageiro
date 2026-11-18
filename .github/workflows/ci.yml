@@ -112,7 +112,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build da imagem
-        run: docker build -f docker/production/Dockerfile -t erp-viacao:ci .
+        run: docker build -f docker/production/Dockerfile -t erp-frotacarga:ci .
 
       # Rede do host: o contêiner alcança o Postgres do CI em 127.0.0.1:5432 e publica a aplicação em :8080.
       # O Postgres do CI não usa TLS, por isso DB_SSLMODE=disable (em produção a imagem exige `require`).
@@ -123,7 +123,7 @@ jobs:
             -e APP_URL=http://localhost:8080 \
             -e DB_HOST=127.0.0.1 -e DB_PORT=5432 -e DB_DATABASE=erp_smoke \
             -e DB_USERNAME=erp -e DB_PASSWORD=secret -e DB_SSLMODE=disable \
-            erp-viacao:ci
+            erp-frotacarga:ci
 
       - name: Aguarda Nginx e PHP-FPM
         run: |
@@ -202,9 +202,9 @@ jobs:
       - name: Configuração insegura impede a subida
         run: |
           key="base64:$(openssl rand -base64 32)"
-          ! docker run --rm -e APP_KEY="$key" -e APP_DEBUG=true erp-viacao:ci true
-          ! docker run --rm -e APP_KEY="curta" erp-viacao:ci true
-          ! docker run --rm erp-viacao:ci true
+          ! docker run --rm -e APP_KEY="$key" -e APP_DEBUG=true erp-frotacarga:ci true
+          ! docker run --rm -e APP_KEY="curta" erp-frotacarga:ci true
+          ! docker run --rm erp-frotacarga:ci true
 
       - name: Health check responde 503 sem o banco
         run: |

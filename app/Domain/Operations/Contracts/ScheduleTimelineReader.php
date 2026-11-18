@@ -7,7 +7,7 @@ namespace App\Domain\Operations\Contracts;
 use App\Domain\Operations\DTOs\ScheduleTimelineDTO;
 use DateTimeImmutable;
 
-/** Consulta de leitura da grade de escala, que cruza viagens com a frota, a tripulação e a oficina. */
+/** Consulta de leitura da grade de escala, que cruza viagens com a frota, a equipe e a oficina. */
 interface ScheduleTimelineReader
 {
     /**

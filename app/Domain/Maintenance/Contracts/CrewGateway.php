@@ -6,7 +6,7 @@ namespace App\Domain\Maintenance\Contracts;
 
 use App\Domain\Maintenance\DTOs\MechanicDTO;
 
-/** O que Maintenance precisa da Tripulação, sem depender das classes do módulo Crew. */
+/** O que Maintenance precisa da Equipe, sem depender das classes do módulo Crew. */
 interface CrewGateway
 {
     /** O funcionário existe, não foi excluído, é mecânico e está com status ativo? */

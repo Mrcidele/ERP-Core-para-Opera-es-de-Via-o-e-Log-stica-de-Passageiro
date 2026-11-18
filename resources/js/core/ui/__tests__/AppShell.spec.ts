@@ -41,9 +41,9 @@ describe('AppShell', () => {
     });
 
     it.each([
-        ['admin', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção', 'Usuários', 'Auditoria']],
-        ['dispatcher', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação']],
-        ['fleet_manager', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção']],
+        ['admin', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Rotas', 'Equipe', 'Manutenção', 'Usuários', 'Auditoria']],
+        ['dispatcher', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Rotas', 'Equipe']],
+        ['fleet_manager', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Rotas', 'Equipe', 'Manutenção']],
         ['mechanic_supervisor', ['Painel', 'Frota', 'Abastecimento', 'Manutenção']],
     ] as const)('shows to %s only the areas it can open', async (role, expected) => {
         signInAs(role);

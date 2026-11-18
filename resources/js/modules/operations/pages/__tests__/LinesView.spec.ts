@@ -65,7 +65,7 @@ describe('LinesView', () => {
         expect(rows(wrapper)[2]!.get('[data-test="line-stops"]').text()).toBe('Direta, sem paradas');
         expect(rows(wrapper)[1]!.text()).toContain('400 km');
         expect(rows(wrapper)[1]!.text()).toContain('6h 30min');
-        expect(wrapper.get('[data-test="count"]').text()).toBe('3 linhas');
+        expect(wrapper.get('[data-test="count"]').text()).toBe('3 rotas');
     });
 
     it('places each stop on the itinerary in proportion to its km', async () => {
@@ -84,7 +84,7 @@ describe('LinesView', () => {
         await vi.advanceTimersByTimeAsync(200);
 
         expect(names(wrapper)).toEqual(['Curitiba → Ourinhos', 'Curitiba → Ponta Grossa']);
-        expect(wrapper.get('[data-test="count"]').text()).toBe('2 de 3 linhas');
+        expect(wrapper.get('[data-test="count"]').text()).toBe('2 de 3 rotas');
         expect(http.get).toHaveBeenCalledTimes(1);
 
         await wrapper.get('[data-test="search"]').setValue('Manaus');
@@ -109,7 +109,7 @@ describe('LinesView', () => {
         await flushPromises();
 
         expect(names(wrapper)).toEqual(['Curitiba → Florianópolis', 'Curitiba → Londrina', 'Curitiba → Ourinhos', 'Curitiba → Ponta Grossa']);
-        expect(lastToast()).toBe('Linha Curitiba → Londrina cadastrada.');
+        expect(lastToast()).toBe('Rota Curitiba → Londrina cadastrada.');
         expect(wrapper.find('form').exists()).toBe(false);
     });
 
@@ -128,7 +128,7 @@ describe('LinesView', () => {
 
         expect(http.put).toHaveBeenCalledWith('/operations/lines/line-1', expect.objectContaining({ distance_km: 410 }));
         expect(rows(wrapper)[1]!.text()).toContain('410 km');
-        expect(lastToast()).toBe('Linha Curitiba → Ourinhos atualizada.');
+        expect(lastToast()).toBe('Rota Curitiba → Ourinhos atualizada.');
     });
 
     it('deletes a line only after confirmation', async () => {
@@ -143,13 +143,13 @@ describe('LinesView', () => {
 
         expect(http.delete).toHaveBeenCalledWith('/operations/lines/line-2');
         expect(names(wrapper)).toEqual(['Curitiba → Florianópolis', 'Curitiba → Ourinhos']);
-        expect(lastToast()).toBe('Linha Curitiba → Ponta Grossa excluída.');
+        expect(lastToast()).toBe('Rota Curitiba → Ponta Grossa excluída.');
     });
 
     it('keeps the line and explains when it has scheduled or running trips', async () => {
         http.delete.mockRejectedValue({
             isAxiosError: true,
-            response: { status: 422, data: { errors: { line: ['Esta linha tem viagens agendadas ou em andamento. Conclua ou cancele as viagens antes de excluí-la.'] } } },
+            response: { status: 422, data: { errors: { line: ['Esta rota tem viagens agendadas ou em andamento. Conclua ou cancele as viagens antes de excluí-la.'] } } },
         });
         const wrapper = await mountView();
 
@@ -160,7 +160,7 @@ describe('LinesView', () => {
         expect(wrapper.get('[data-test="confirm-error"]').text()).toContain('tem viagens agendadas ou em andamento');
         expect(rows(wrapper)).toHaveLength(3);
 
-        // O motivo não fica para a próxima linha que o usuário tentar excluir.
+        // O motivo não fica para a próxima rota que o usuário tentar excluir.
         await wrapper.get('[data-test="confirm-cancel"]').trigger('click');
         await rows(wrapper)[2]!.get('[data-test="remove"]').trigger('click');
         expect(wrapper.find('[data-test="confirm-error"]').exists()).toBe(false);
@@ -178,7 +178,7 @@ describe('LinesView', () => {
 
     it('shows the empty and error states', async () => {
         const empty = await mountView([]);
-        expect(empty.get('[data-test="empty"]').text()).toContain('Nenhuma linha cadastrada');
+        expect(empty.get('[data-test="empty"]').text()).toContain('Nenhuma rota cadastrada');
 
         setActivePinia(createPinia());
         signInAs('admin');

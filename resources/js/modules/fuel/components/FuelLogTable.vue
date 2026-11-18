@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/core/ui/AppIcon.vue';
 import MercosulPlate from '@/core/ui/MercosulPlate.vue';
-import { formatCents, formatDateTime, formatKm, formatKmPerLiter, formatLiters } from '@/core/utils/format';
+import { formatCents, formatDateTime, formatKm, formatKmPerLiter, formatLiters, formatMetersPerLiter } from '@/core/utils/format';
 import type { FuelLog } from '../types/fuelLog';
 
 defineProps<{ logs: FuelLog[]; canManage: boolean }>();
@@ -53,6 +53,9 @@ const pricePerLiter = (log: FuelLog): string => formatCents(Math.round(log.total
                                 class="mt-1 inline-flex items-center rounded-md bg-brake-50 px-1.5 py-0.5 text-xs font-semibold text-brake-700 ring-1 ring-inset ring-brake-600/20"
                             >
                                 Consumo alto
+                            </span>
+                            <span v-if="log.low_efficiency_alert" class="num block text-xs text-ink-500" data-test="efficiency-target">
+                                meta {{ formatMetersPerLiter(log.min_meters_per_liter) }}
                             </span>
                         </template>
                         <span v-else class="text-xs text-ink-400" data-test="no-efficiency">

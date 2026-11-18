@@ -52,7 +52,7 @@ describe('lineSchema', () => {
         [[stop('A', 160, 150), stop('B', 160, 160)], 'stops.1.cumulative_km', 'Informe um km maior que 160.'],
         [[stop('A', 400, 380)], 'stops.0.cumulative_km', 'A parada fica antes do destino (km 400).'],
         [[stop('A', 100, 150), stop('B', 200, 90)], 'stops.1.estimated_minutes', 'Informe 150 min ou mais.'],
-        [[stop('A', 100, 390)], 'stops.0.estimated_minutes', 'O tempo deve ser menor que a duração da linha.'],
+        [[stop('A', 100, 390)], 'stops.0.estimated_minutes', 'O tempo deve ser menor que a duração da rota.'],
     ])('rejects the stops %o', (stops, field, message) => {
         expect(issues({ ...valid, stops })[field]).toBe(message);
     });
@@ -60,6 +60,6 @@ describe('lineSchema', () => {
     it('limits the number of stops', () => {
         const stops = Array.from({ length: MAX_LINE_STOPS + 1 }, (_, index) => stop(`Cidade ${index}`, index + 1, index + 1));
 
-        expect(issues({ ...valid, stops }).stops).toBe('Uma linha aceita até 40 paradas.');
+        expect(issues({ ...valid, stops }).stops).toBe('Uma rota aceita até 40 paradas.');
     });
 });

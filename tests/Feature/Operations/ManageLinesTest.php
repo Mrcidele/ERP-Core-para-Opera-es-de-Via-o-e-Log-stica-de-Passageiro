@@ -99,7 +99,7 @@ it('rejects invalid input', function (array $overrides, string $field): void {
 ]);
 
 it('saves nothing when a stop is refused by the database', function (): void {
-    // Falha na segunda parada, dentro da transação: a linha e a primeira parada não podem ficar gravadas.
+    // Falha na segunda parada, dentro da transação: a rota e a primeira parada não podem ficar gravadas.
     LineStopModel::creating(function (LineStopModel $stop): void {
         if ($stop->sequence === 2) {
             $stop->sequence = 0;
@@ -165,7 +165,7 @@ it('deletes a line that only has finished trips', function (string $status): voi
 
     $this->assertSoftDeleted('lines', ['id' => $line->id]);
     $this->getJson('/api/v1/operations/lines')->assertOk()->assertJsonCount(0, 'data');
-    // A viagem antiga continua mostrando a linha.
+    // A viagem antiga continua mostrando a rota.
     $this->getJson('/api/v1/operations/trips')->assertOk()->assertJsonPath('data.0.line.destination', $line->destination);
 
     expect(AuditLogModel::query()->sole()->action)->toBe('line.deleted');
@@ -177,7 +177,7 @@ it('refuses to delete a line with a scheduled or running trip', function (string
 
     $this->deleteJson("/api/v1/operations/lines/{$line->id}")
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['line' => 'Esta linha tem viagens agendadas ou em andamento. Conclua ou cancele as viagens antes de excluí-la.']);
+        ->assertJsonValidationErrors(['line' => 'Esta rota tem viagens agendadas ou em andamento. Conclua ou cancele as viagens antes de excluí-la.']);
 
     $this->assertNotSoftDeleted('lines', ['id' => $line->id]);
     $this->assertDatabaseCount('audit_logs', 0);

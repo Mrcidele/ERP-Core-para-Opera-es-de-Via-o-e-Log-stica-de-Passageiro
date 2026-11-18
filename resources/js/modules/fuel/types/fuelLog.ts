@@ -13,10 +13,11 @@ export interface FuelLog {
     distance_km: number | null;
     /** Rendimento do trecho; null no primeiro abastecimento ou quando o veículo não rodou. */
     km_per_liter: number | null;
-    /** Rendimento abaixo de 2,2 km/L (FuelLog::LOW_EFFICIENCY_KM_PER_LITER). */
+    /** Rendimento abaixo da meta do veículo. */
     low_efficiency_alert: boolean;
+    /** Meta de rendimento do veículo, em metros por litro (2200 = 2,2 km/L). */
+    min_meters_per_liter: number;
     vehicle: { id: string; plate: string };
     recorded_by: { id: string; name: string };
 }
 
-export const LOW_EFFICIENCY_KM_PER_LITER = 2.2;

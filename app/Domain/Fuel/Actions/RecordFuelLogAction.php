@@ -66,9 +66,24 @@ final readonly class RecordFuelLogAction
                 $this->fleet->raiseVehicleMileage($log->vehicleId, $log->odometerKm);
             }
 
-            $this->events->dispatch(new FuelLogRecorded($log->id, $log->vehicleId, $log->odometerKm, $log->litersMilliliters, $log->totalCostCents, $log->stationName, $log->fueledAt));
+            $summary = $this->logs->findWithDetails($log->id) ?? throw new RuntimeException('Abastecimento recém-gravado não encontrado.');
+            $kmPerLiter = $summary->kmPerLiter();
 
-            return $this->logs->findWithDetails($log->id) ?? throw new RuntimeException('Abastecimento recém-gravado não encontrado.');
+            // O consumo abaixo da meta do veículo fica registrado na auditoria junto com o abastecimento.
+            $this->events->dispatch(new FuelLogRecorded(
+                $log->id,
+                $log->vehicleId,
+                $log->odometerKm,
+                $log->litersMilliliters,
+                $log->totalCostCents,
+                $log->stationName,
+                $log->fueledAt,
+                metersPerLiter: $kmPerLiter === null ? null : (int) round($kmPerLiter * 1000),
+                minMetersPerLiter: $summary->minMetersPerLiter,
+                lowEfficiencyAlert: $summary->lowEfficiencyAlert(),
+            ));
+
+            return $summary;
         });
     }
 }

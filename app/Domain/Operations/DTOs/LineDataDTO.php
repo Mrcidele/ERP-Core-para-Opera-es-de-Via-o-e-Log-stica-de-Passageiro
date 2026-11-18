@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\DTOs;
 
-/** Dados de cadastro de uma linha, usados na criação e na edição. */
+/** Dados de cadastro de uma rota, usados na criação e na edição. */
 final readonly class LineDataDTO
 {
     /**

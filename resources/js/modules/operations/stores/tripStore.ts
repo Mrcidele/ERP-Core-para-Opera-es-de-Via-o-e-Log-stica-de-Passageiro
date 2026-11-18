@@ -22,7 +22,7 @@ export const useTripStore = defineStore('operations/trips', () => {
     const saveError = ref<string | null>(null);
     const lastScheduled = ref<Trip | null>(null);
 
-    // A escala vem paginada do servidor, com busca por linha, placa ou motorista e filtro por status.
+    // A escala vem paginada do servidor, com busca por rota, placa ou motorista e filtro por status.
     const list = usePagedList<TripSummary>('/operations/trips');
 
     /** Id da viagem cuja mudança de status está em andamento. */

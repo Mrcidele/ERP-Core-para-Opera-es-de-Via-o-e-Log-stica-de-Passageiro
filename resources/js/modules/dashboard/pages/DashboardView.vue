@@ -95,7 +95,7 @@ function licenseLabel(days: number): string {
                 data-test="kpi-availability"
                 label="Disponibilidade da frota"
                 :value="formatPercent(fleet.availability_rate)"
-                :subtitle="`${fleet.active} de ${countLabel(fleet.total, 'ônibus ativo', 'ônibus ativos')}`"
+                :subtitle="`${fleet.active} de ${countLabel(fleet.total, 'veículo ativo', 'veículos ativos')}`"
                 icon="gauge"
                 :tone="fleet.total > 0 && fleet.availability_rate < 70 ? 'attention' : 'positive'"
             />

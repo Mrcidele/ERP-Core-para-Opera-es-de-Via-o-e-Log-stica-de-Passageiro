@@ -44,7 +44,7 @@ export const useMaintenanceStore = defineStore('maintenance/orders', () => {
         optionsStatus.value = 'loading';
 
         try {
-            // Os mecânicos vêm do próprio módulo: a supervisão de oficina não tem acesso à Tripulação.
+            // Os mecânicos vêm do próprio módulo: a supervisão de oficina não tem acesso à Equipe.
             const [allVehicles, mechanicList] = await Promise.all([
                 fetchEveryPage<Vehicle>('/fleet/vehicles'),
                 http.get<{ data: Mechanic[] }>('/maintenance/mechanics'),

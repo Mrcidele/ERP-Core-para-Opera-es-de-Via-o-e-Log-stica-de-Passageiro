@@ -94,11 +94,11 @@ it('filters employees by status and by name or CPF', function (): void {
 
 it('filters trips by status and by line, plate or driver', function (): void {
     $londrina = LineModel::factory()->create(['origin' => 'Curitiba', 'destination' => 'Xanxerê']);
-    $bus = VehicleModel::factory()->create(['plate' => 'QQQ1A11']);
+    $truck = VehicleModel::factory()->create(['plate' => 'QQQ1A11']);
     $ana = EmployeeModel::factory()->create(['name' => 'Zuleica Quintão']);
 
     pagedTrip('2026-12-01 08:00:00', 'scheduled', line: $londrina);
-    pagedTrip('2026-12-02 08:00:00', 'completed', vehicle: $bus);
+    pagedTrip('2026-12-02 08:00:00', 'completed', vehicle: $truck);
     pagedTrip('2026-12-03 08:00:00', 'canceled', driver: $ana);
 
     $this->getJson('/api/v1/operations/trips?status=completed')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.vehicle.plate', 'QQQ1A11');

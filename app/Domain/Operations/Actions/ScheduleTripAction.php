@@ -47,8 +47,8 @@ final readonly class ScheduleTripAction
         }
 
         return $this->transaction->run(function () use ($data): Trip {
-            // A linha fica travada até a viagem ser gravada: uma exclusão simultânea espera por este agendamento,
-            // ou termina antes e a linha deixa de ser encontrada aqui.
+            // A rota fica travada até a viagem ser gravada: uma exclusão simultânea espera por este agendamento,
+            // ou termina antes e a rota deixa de ser encontrada aqui.
             if ($this->lines->lockActive($data->lineId) === null) {
                 throw new LineNotFoundException;
             }

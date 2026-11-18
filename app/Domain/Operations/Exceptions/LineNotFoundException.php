@@ -10,6 +10,6 @@ final class LineNotFoundException extends DomainException
 {
     public function __construct()
     {
-        parent::__construct('line_id', 'A linha informada não existe.');
+        parent::__construct('line_id', 'A rota informada não existe.');
     }
 }

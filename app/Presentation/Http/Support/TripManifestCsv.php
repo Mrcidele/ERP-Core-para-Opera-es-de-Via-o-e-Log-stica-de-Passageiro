@@ -12,7 +12,7 @@ use Generator;
 /** Colunas do manifesto de viagens. */
 final class TripManifestCsv
 {
-    public const HEADER = ['Linha', 'Distância (km)', 'Placa', 'Motorista', 'Partida', 'Chegada', 'Status'];
+    public const HEADER = ['Rota', 'Distância (km)', 'Placa', 'Motorista', 'Partida', 'Chegada', 'Status'];
 
     private const STATUS_LABELS = [
         TripStatus::Scheduled->value => 'Agendada',

@@ -21,7 +21,7 @@ export interface AuditLog {
 
 const ENTITY_LABELS: Record<string, string> = {
     vehicle: 'Veículo',
-    line: 'Linha',
+    line: 'Rota',
     trip: 'Viagem',
     maintenance_order: 'Ordem de serviço',
     fuel_log: 'Abastecimento',

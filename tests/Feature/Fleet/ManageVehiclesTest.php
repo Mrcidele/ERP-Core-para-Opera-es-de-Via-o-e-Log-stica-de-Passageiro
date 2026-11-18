@@ -15,8 +15,8 @@ function updatePayload(VehicleModel $vehicle, array $overrides = []): array
     return [
         'plate' => $vehicle->plate,
         'chassis' => $vehicle->chassis,
-        'capacity' => $vehicle->capacity,
-        'class_type' => $vehicle->class_type->value,
+        'payload_kg' => $vehicle->payload_kg,
+        'vehicle_type' => $vehicle->vehicle_type->value,
         'status' => $vehicle->status->value,
         'current_mileage' => $vehicle->current_mileage,
         ...$overrides,
@@ -32,7 +32,7 @@ it('lists vehicles ordered by plate', function (): void {
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.plate', 'AAA1A11')
         ->assertJsonPath('data.1.plate', 'BBB1B11')
-        ->assertJsonStructure(['data' => [['id', 'plate', 'chassis', 'capacity', 'class_type', 'status', 'current_mileage']]]);
+        ->assertJsonStructure(['data' => [['id', 'plate', 'chassis', 'payload_kg', 'vehicle_type', 'status', 'current_mileage']]]);
 });
 
 it('shows a vehicle', function (): void {
@@ -110,8 +110,8 @@ it('allows registering again the plate and chassis of a deleted vehicle', functi
     $this->postJson('/api/v1/fleet/vehicles', [
         'plate' => $vehicle->plate,
         'chassis' => $vehicle->chassis,
-        'capacity' => 46,
-        'class_type' => 'executivo',
+        'payload_kg' => 32000,
+        'vehicle_type' => 'cavalo_mecanico',
         'current_mileage' => 0,
     ])->assertCreated();
 
@@ -171,4 +171,31 @@ it('lists only the vehicles with the preventive maintenance overdue', function (
 
 it('rejects a needs_maintenance filter that is not a boolean', function (): void {
     $this->getJson('/api/v1/fleet/vehicles?needs_maintenance=talvez')->assertUnprocessable()->assertJsonValidationErrors('needs_maintenance');
+});
+
+it('clears the fuel target of a vehicle so it follows the default of its type again', function (): void {
+    $vehicle = VehicleModel::factory()->create(['vehicle_type' => 'toco', 'min_meters_per_liter' => 5_200]);
+
+    $this->putJson("/api/v1/fleet/vehicles/{$vehicle->id}", updatePayload($vehicle, ['min_meters_per_liter' => null]))
+        ->assertOk()
+        ->assertJsonPath('data.min_meters_per_liter', null)
+        ->assertJsonPath('data.effective_min_meters_per_liter', 4_500);
+});
+
+it('converts the vehicles registered before the cargo fleet, keeping their old 2.2 km/L target', function (): void {
+    $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    DB::table('vehicles')->insert([
+        'id' => '0193b1a0-0000-7000-8000-000000000001', 'plate' => 'OLD1A23', 'chassis' => '9BWZZZ377VT000001',
+        'capacity' => 46, 'class_type' => 'executivo', 'status' => 'active', 'current_mileage' => 300_000,
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
+
+    $this->artisan('migrate')->assertSuccessful();
+
+    $this->getJson('/api/v1/fleet/vehicles/0193b1a0-0000-7000-8000-000000000001')
+        ->assertOk()
+        ->assertJsonPath('data.vehicle_type', 'bitruck')
+        ->assertJsonPath('data.payload_kg', 14_000)
+        ->assertJsonPath('data.min_meters_per_liter', 2_200)
+        ->assertJsonPath('data.current_mileage', 300_000);
 });

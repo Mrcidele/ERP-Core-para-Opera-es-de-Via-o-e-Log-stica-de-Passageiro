@@ -154,7 +154,7 @@ it('lets each role do its own job', function (): void {
     $vehicle = VehicleModel::factory()->create(['status' => 'active']);
     $mechanic = EmployeeModel::factory()->withoutLicense(EmployeeRole::Mechanic)->create(['name' => 'Maria Souza']);
 
-    // O supervisor de oficina não enxerga a tripulação, mas escolhe o mecânico e abre a ordem.
+    // O supervisor de oficina não enxerga a equipe, mas escolhe o mecânico e abre a ordem.
     actingAsRole(UserRole::MechanicSupervisor);
     $this->getJson('/api/v1/crew/employees')->assertForbidden();
     $this->getJson('/api/v1/maintenance/mechanics')
@@ -172,7 +172,7 @@ it('lets each role do its own job', function (): void {
     $this->deleteJson('/api/v1/fleet/vehicles/'.VehicleModel::factory()->create()->id)->assertNoContent();
     $this->postJson('/api/v1/operations/trips', [])->assertForbidden();
 
-    // O despachante consulta frota e tripulação para agendar, mas não cadastra funcionário.
+    // O despachante consulta frota e equipe para agendar, mas não cadastra funcionário.
     actingAsRole(UserRole::Dispatcher);
     $this->getJson('/api/v1/fleet/vehicles')->assertOk();
     $this->getJson('/api/v1/crew/employees')->assertOk();

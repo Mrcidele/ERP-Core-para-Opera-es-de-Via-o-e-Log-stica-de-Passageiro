@@ -35,7 +35,7 @@ function onSaved(employee: Employee): void {
 <template>
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Tripulação</h1>
+            <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Equipe</h1>
             <p class="mt-1 text-sm text-ink-500">Motoristas, mecânicos e equipe administrativa, com a validade da CNH.</p>
         </div>
         <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-employee" @click="formOpen = true">
@@ -60,7 +60,7 @@ function onSaved(employee: Employee): void {
             v-else-if="store.listStatus === 'error'"
             data-test="list-error"
             icon="alert"
-            title="Não foi possível carregar a tripulação"
+            title="Não foi possível carregar a equipe"
             description="Verifique a conexão e tente de novo."
         >
             <button type="button" class="btn btn-quiet" @click="store.fetchAll()">Tentar novamente</button>

@@ -28,7 +28,7 @@ use Tests\Fakes\RecordingEventDispatcher;
 function tripData(
     string $departure = '2026-11-20 08:00',
     string $arrival = '2026-11-20 14:30',
-    string $vehicle = 'bus-1',
+    string $vehicle = 'truck-1',
     string $driver = 'driver-1',
     string $line = 'line-1',
 ): ScheduleTripDTO {
@@ -51,7 +51,7 @@ beforeEach(function (): void {
     $this->action = new ScheduleTripAction(
         $this->trips,
         $this->lines,
-        new FakeFleetGateway(['bus-1', 'bus-2']),
+        new FakeFleetGateway(['truck-1', 'truck-2']),
         $this->crew = new FakeCrewGateway(['driver-1', 'driver-2']),
         new FixedClock('2026-11-13 10:00:00'),
         $this->transaction = new ImmediateTransactionRunner,
@@ -64,7 +64,7 @@ it('schedules a trip', function (): void {
 
     expect($trip->status)->toBe(TripStatus::Scheduled)
         ->and($trip->lineId)->toBe('line-1')
-        ->and($trip->vehicleId)->toBe('bus-1')
+        ->and($trip->vehicleId)->toBe('truck-1')
         ->and($trip->driverId)->toBe('driver-1')
         ->and($trip->departureTime->format('Y-m-d H:i'))->toBe('2026-11-20 08:00')
         ->and($trip->arrivalTime->format('Y-m-d H:i'))->toBe('2026-11-20 14:30')
@@ -87,7 +87,7 @@ it('rejects an unknown line', function (): void {
 });
 
 it('rejects a vehicle that is not active, such as one in maintenance', function (): void {
-    expect(fn () => $this->action->execute(tripData(vehicle: 'bus-in-maintenance')))
+    expect(fn () => $this->action->execute(tripData(vehicle: 'truck-in-maintenance')))
         ->toThrow(VehicleNotAvailableException::class);
 
     expect($this->trips->trips)->toBeEmpty();
@@ -112,7 +112,7 @@ it('rejects overlapping trips for the same vehicle', function (string $departure
 it('rejects overlapping trips for the same driver', function (string $departure, string $arrival): void {
     $this->action->execute(tripData());
 
-    expect(fn () => $this->action->execute(tripData($departure, $arrival, vehicle: 'bus-2')))
+    expect(fn () => $this->action->execute(tripData($departure, $arrival, vehicle: 'truck-2')))
         ->toThrow(DriverScheduleConflictException::class);
 
     expect($this->trips->trips)->toHaveCount(1);
@@ -137,7 +137,7 @@ it('rejects a trip that leaves the driver less than 11 hours of rest', function 
     // Viagem existente: dia 20, das 08:00 às 14:30.
     $this->action->execute(tripData());
 
-    expect(fn () => $this->action->execute(tripData($departure, $arrival, vehicle: 'bus-2')))
+    expect(fn () => $this->action->execute(tripData($departure, $arrival, vehicle: 'truck-2')))
         ->toThrow(DriverRestViolationException::class, 'pelo menos 11 horas de descanso');
 
     expect($this->trips->trips)->toHaveCount(1);
@@ -150,7 +150,7 @@ it('rejects a trip that leaves the driver less than 11 hours of rest', function 
 
 it('accepts a trip with exactly 11 hours of rest before or after', function (string $departure, string $arrival): void {
     $this->action->execute(tripData());
-    $this->action->execute(tripData($departure, $arrival, vehicle: 'bus-2'));
+    $this->action->execute(tripData($departure, $arrival, vehicle: 'truck-2'));
 
     expect($this->trips->trips)->toHaveCount(2);
 })->with([
@@ -161,7 +161,7 @@ it('accepts a trip with exactly 11 hours of rest before or after', function (str
 it('reports an overlap as a schedule conflict, not as missing rest', function (): void {
     $this->action->execute(tripData());
 
-    expect(fn () => $this->action->execute(tripData('2026-11-20 10:00', '2026-11-20 12:00', vehicle: 'bus-2')))
+    expect(fn () => $this->action->execute(tripData('2026-11-20 10:00', '2026-11-20 12:00', vehicle: 'truck-2')))
         ->toThrow(DriverScheduleConflictException::class);
 });
 
@@ -177,7 +177,7 @@ it('does not count the rest after a canceled trip or for another driver', functi
 
 it('allows the same period with another vehicle and another driver', function (): void {
     $this->action->execute(tripData());
-    $this->action->execute(tripData(vehicle: 'bus-2', driver: 'driver-2'));
+    $this->action->execute(tripData(vehicle: 'truck-2', driver: 'driver-2'));
 
     expect($this->trips->trips)->toHaveCount(2);
 });

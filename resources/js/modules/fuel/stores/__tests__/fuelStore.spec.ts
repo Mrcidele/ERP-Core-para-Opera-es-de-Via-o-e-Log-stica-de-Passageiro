@@ -10,8 +10,8 @@ vi.mock('@/core/api/http', async (importOriginal) => ({
     http,
 }));
 
-const payload = { vehicle_id: 'bus-1', odometer_km: 100_640, liters_milliliters: 350_500, total_cost_cents: 209_950, station_name: 'Posto Graal', fueled_at: '2026-11-13T11:30:00.000Z' };
-const log = { id: 'fuel-1', ...payload, distance_km: 640, km_per_liter: 1.83, low_efficiency_alert: true, vehicle: { id: 'bus-1', plate: 'ABC1D23' }, recorded_by: { id: 'u1', name: 'Ana' } };
+const payload = { vehicle_id: 'truck-1', odometer_km: 100_640, liters_milliliters: 350_500, total_cost_cents: 209_950, station_name: 'Posto Graal', fueled_at: '2026-11-13T11:30:00.000Z' };
+const log = { id: 'fuel-1', ...payload, distance_km: 640, km_per_liter: 1.83, low_efficiency_alert: true, min_meters_per_liter: 2_000, vehicle: { id: 'truck-1', plate: 'ABC1D23' }, recorded_by: { id: 'u1', name: 'Ana' } };
 
 describe('fuelStore', () => {
     beforeEach(() => {
@@ -43,13 +43,13 @@ describe('fuelStore', () => {
     });
 
     it('offers every vehicle of the fleet, whatever its status', async () => {
-        http.get.mockResolvedValue(page([{ id: 'bus-1', status: 'active' }, { id: 'bus-2', status: 'maintenance' }]));
+        http.get.mockResolvedValue(page([{ id: 'truck-1', status: 'active' }, { id: 'truck-2', status: 'maintenance' }]));
         const store = useFuelStore();
 
         await store.loadOptions();
 
         expect(http.get).toHaveBeenCalledWith('/fleet/vehicles', { params: { page: 1, per_page: 100 } });
-        expect(store.vehicles.map((vehicle) => vehicle.id)).toEqual(['bus-1', 'bus-2']);
+        expect(store.vehicles.map((vehicle) => vehicle.id)).toEqual(['truck-1', 'truck-2']);
         expect(store.optionsStatus).toBe('success');
     });
 

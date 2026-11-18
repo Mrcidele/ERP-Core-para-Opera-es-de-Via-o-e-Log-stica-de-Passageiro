@@ -15,7 +15,7 @@ const stopNames = (line: Line): string => line.stops.map((stop) => stop.city_nam
         <table class="data-table min-w-[820px]">
             <thead>
                 <tr>
-                    <th scope="col">Linha</th>
+                    <th scope="col">Rota</th>
                     <th scope="col" class="w-[38%]">Itinerário</th>
                     <th scope="col" class="text-right">Distância</th>
                     <th scope="col" class="text-right">Duração</th>
@@ -43,7 +43,7 @@ const stopNames = (line: Line): string => line.stops.map((stop) => stop.city_nam
                                 type="button"
                                 class="icon-btn"
                                 data-test="edit"
-                                :aria-label="`Editar linha ${line.origin} a ${line.destination}`"
+                                :aria-label="`Editar rota ${line.origin} a ${line.destination}`"
                                 @click="emit('edit', line)"
                             >
                                 <AppIcon name="pencil" />
@@ -52,7 +52,7 @@ const stopNames = (line: Line): string => line.stops.map((stop) => stop.city_nam
                                 type="button"
                                 class="icon-btn hover:!bg-brake-50 hover:!text-brake-700"
                                 data-test="remove"
-                                :aria-label="`Excluir linha ${line.origin} a ${line.destination}`"
+                                :aria-label="`Excluir rota ${line.origin} a ${line.destination}`"
                                 @click="emit('remove', line)"
                             >
                                 <AppIcon name="trash" />

@@ -4,7 +4,7 @@ import { scheduleTripSchema } from '../scheduleTripSchema';
 
 const valid = {
     line_id: 'line-1',
-    vehicle_id: 'bus-1',
+    vehicle_id: 'truck-1',
     driver_id: 'driver-1',
     departure_time: '2026-11-20T08:00',
     arrival_time: '2026-11-20T14:30',

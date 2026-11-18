@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { formatKm } from '@/core/utils/format';
+import { formatKm, formatMetersPerLiter } from '@/core/utils/format';
 import { useVehicleForm } from '../composables/useVehicleForm';
-import { VEHICLE_CLASS_LABELS, VEHICLE_CLASSES, VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, type Vehicle } from '../types/vehicle';
+import { VEHICLE_STATUS_LABELS, VEHICLE_STATUSES, VEHICLE_TYPE_LABELS, VEHICLE_TYPES, type Vehicle } from '../types/vehicle';
 
 const props = withDefaults(defineProps<{ vehicle?: Vehicle | null }>(), { vehicle: null });
 const emit = defineEmits<{ saved: [vehicle: Vehicle]; cancel: [] }>();
 
-const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) => emit('saved', saved));
+const { form, errors, submit, store, typeDefaultMetersPerLiter } = useVehicleForm(props.vehicle, (saved) => emit('saved', saved));
 </script>
 
 <template>
@@ -47,37 +47,53 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
 
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="field-label" for="vehicle-class">Classe</label>
+                <label class="field-label" for="vehicle-type">Tipo</label>
                 <select
-                    id="vehicle-class"
-                    v-model="form.class_type"
-                    data-test="class_type"
+                    id="vehicle-type"
+                    v-model="form.vehicle_type"
+                    data-test="vehicle_type"
                     class="field-input"
-                    :aria-invalid="Boolean(errors.class_type)"
+                    :aria-invalid="Boolean(errors.vehicle_type)"
                 >
                     <option value="" disabled>Selecione</option>
-                    <option v-for="vehicleClass in VEHICLE_CLASSES" :key="vehicleClass" :value="vehicleClass">
-                        {{ VEHICLE_CLASS_LABELS[vehicleClass] }}
+                    <option v-for="type in VEHICLE_TYPES" :key="type" :value="type">
+                        {{ VEHICLE_TYPE_LABELS[type] }}
                     </option>
                 </select>
-                <p v-if="errors.class_type" data-test="class_type-error" class="field-error">{{ errors.class_type }}</p>
+                <p v-if="errors.vehicle_type" data-test="vehicle_type-error" class="field-error">{{ errors.vehicle_type }}</p>
             </div>
 
             <div>
-                <label class="field-label" for="vehicle-capacity">Capacidade (lugares)</label>
+                <label class="field-label" for="vehicle-payload">Carga útil (kg)</label>
                 <input
-                    id="vehicle-capacity"
-                    v-model.number="form.capacity"
-                    data-test="capacity"
+                    id="vehicle-payload"
+                    v-model.number="form.payload_kg"
+                    data-test="payload_kg"
                     class="field-input num"
                     type="number"
                     inputmode="numeric"
                     min="1"
-                    max="100"
-                    :aria-invalid="Boolean(errors.capacity)"
+                    max="60000"
+                    :aria-invalid="Boolean(errors.payload_kg)"
                 />
-                <p v-if="errors.capacity" data-test="capacity-error" class="field-error">{{ errors.capacity }}</p>
+                <p v-if="errors.payload_kg" data-test="payload_kg-error" class="field-error">{{ errors.payload_kg }}</p>
             </div>
+        </div>
+
+        <div>
+            <label class="field-label" for="vehicle-model">Modelo</label>
+            <input
+                id="vehicle-model"
+                v-model="form.model"
+                data-test="model"
+                class="field-input"
+                maxlength="60"
+                placeholder="Volvo FH 540"
+                autocomplete="off"
+                :aria-invalid="Boolean(errors.model)"
+            />
+            <p v-if="errors.model" data-test="model-error" class="field-error">{{ errors.model }}</p>
+            <p v-else class="field-hint">Opcional.</p>
         </div>
 
         <div>
@@ -112,6 +128,30 @@ const { form, errors, submit, store } = useVehicleForm(props.vehicle, (saved) =>
                 {{ errors.next_preventive_maintenance_km }}
             </p>
             <p v-else class="field-hint">Opcional. Ao alcançar essa quilometragem, o veículo aparece como revisão vencida.</p>
+        </div>
+
+        <div>
+            <label class="field-label" for="vehicle-min-km-per-liter">Meta de rendimento (km/L)</label>
+            <input
+                id="vehicle-min-km-per-liter"
+                v-model.number="form.min_km_per_liter"
+                data-test="min_km_per_liter"
+                class="field-input num"
+                type="number"
+                inputmode="decimal"
+                step="0.1"
+                min="0.5"
+                max="30"
+                :placeholder="typeDefaultMetersPerLiter === null ? '' : String(typeDefaultMetersPerLiter / 1000).replace('.', ',')"
+                :aria-invalid="Boolean(errors.min_km_per_liter)"
+            />
+            <p v-if="errors.min_km_per_liter" data-test="min_km_per_liter-error" class="field-error">{{ errors.min_km_per_liter }}</p>
+            <p v-else data-test="min_km_per_liter-hint" class="field-hint">
+                Abastecimento abaixo da meta gera alerta de consumo alto.
+                <template v-if="typeDefaultMetersPerLiter !== null">
+                    Em branco, vale o padrão do tipo: <span class="num">{{ formatMetersPerLiter(typeDefaultMetersPerLiter) }}</span>.
+                </template>
+            </p>
         </div>
 
         <fieldset v-if="vehicle">

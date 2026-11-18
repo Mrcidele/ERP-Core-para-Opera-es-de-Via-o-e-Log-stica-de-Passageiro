@@ -1,16 +1,19 @@
 import { computed, reactive, ref } from 'vue';
 import { createVehicleSchema, updateVehicleSchema, type VehicleField } from '../schemas/createVehicleSchema';
 import { useVehicleStore } from '../stores/vehicleStore';
-import type { Vehicle, VehicleClass, VehicleStatus } from '../types/vehicle';
+import { DEFAULT_MIN_METERS_PER_LITER, type Vehicle, type VehicleStatus, type VehicleType } from '../types/vehicle';
 
 interface VehicleFormState {
     plate: string;
     chassis: string;
-    capacity: number | null;
-    class_type: VehicleClass | '';
+    vehicle_type: VehicleType | '';
+    model: string;
+    payload_kg: number | null;
     status: VehicleStatus;
     current_mileage: number | null;
     next_preventive_maintenance_km: number | null | '';
+    /** Meta própria em km/L; vazio segue o padrão do tipo. */
+    min_km_per_liter: number | null | '';
 }
 
 type FieldErrors = Partial<Record<VehicleField, string>>;
@@ -18,12 +21,17 @@ type FieldErrors = Partial<Record<VehicleField, string>>;
 const stateFrom = (vehicle: Vehicle | null): VehicleFormState => ({
     plate: vehicle?.plate ?? '',
     chassis: vehicle?.chassis ?? '',
-    capacity: vehicle?.capacity ?? null,
-    class_type: vehicle?.class_type ?? '',
+    vehicle_type: vehicle?.vehicle_type ?? '',
+    model: vehicle?.model ?? '',
+    payload_kg: vehicle?.payload_kg ?? null,
     status: vehicle?.status ?? 'active',
     current_mileage: vehicle?.current_mileage ?? 0,
     next_preventive_maintenance_km: vehicle?.next_preventive_maintenance_km ?? null,
+    min_km_per_liter: vehicle?.min_meters_per_liter == null ? null : vehicle.min_meters_per_liter / 1000,
 });
+
+/** A API responde pela meta em metros por litro; no formulário o campo é em km/L. */
+const formField = (apiField: string): VehicleField => (apiField === 'min_meters_per_liter' ? 'min_km_per_liter' : (apiField as VehicleField));
 
 /** Formulário de veículo: cadastro quando `vehicle` é null, edição caso contrário. */
 export function useVehicleForm(vehicle: Vehicle | null, onSaved: (saved: Vehicle) => void) {
@@ -40,8 +48,8 @@ export function useVehicleForm(vehicle: Vehicle | null, onSaved: (saved: Vehicle
         for (const [field, messages] of Object.entries(store.validationErrors)) {
             const message = messages[0];
 
-            if (message !== undefined && !(field in merged)) {
-                merged[field as VehicleField] = message;
+            if (message !== undefined && !(formField(field) in merged)) {
+                merged[formField(field)] = message;
             }
         }
 
@@ -86,5 +94,10 @@ export function useVehicleForm(vehicle: Vehicle | null, onSaved: (saved: Vehicle
         }
     }
 
-    return { form, errors, submit, store };
+    /** Padrão do tipo selecionado, mostrado quando o veículo não tem meta própria. */
+    const typeDefaultMetersPerLiter = computed<number | null>(() =>
+        form.vehicle_type === '' ? null : DEFAULT_MIN_METERS_PER_LITER[form.vehicle_type],
+    );
+
+    return { form, errors, submit, store, typeDefaultMetersPerLiter };
 }

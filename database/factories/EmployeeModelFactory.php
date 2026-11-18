@@ -29,7 +29,7 @@ final class EmployeeModelFactory extends Factory
             'role' => EmployeeRole::Driver,
             'status' => EmployeeStatus::Active,
             'cnh_number' => fake()->unique()->numerify('###########'),
-            'cnh_category' => fake()->randomElement(['D', 'E']),
+            'cnh_category' => fake()->randomElement(['C', 'D', 'E', 'E']),
             'cnh_expiration_date' => fake()->dateTimeBetween('+6 months', '+5 years')->format('Y-m-d'),
         ];
     }

@@ -33,11 +33,13 @@ final readonly class IncreaseVehicleMileageAction
             id: $vehicle->id,
             plate: $vehicle->plate,
             chassis: $vehicle->chassis,
-            capacity: $vehicle->capacity,
-            classType: $vehicle->classType,
+            payloadKg: $vehicle->payloadKg,
+            type: $vehicle->type,
             status: $vehicle->status,
             currentMileage: $vehicle->currentMileage + $distanceKm,
             nextPreventiveMaintenanceKm: $vehicle->nextPreventiveMaintenanceKm,
+            minMetersPerLiter: $vehicle->minMetersPerLiter,
+            model: $vehicle->model,
         );
 
         $this->vehicles->save($updated);

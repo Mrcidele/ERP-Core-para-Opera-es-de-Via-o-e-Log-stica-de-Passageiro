@@ -8,7 +8,7 @@ import type { Vehicle } from '../types/vehicle';
 export type { RequestStatus };
 
 export const useVehicleStore = defineStore('fleet/vehicles', () => {
-    // A lista vem paginada do servidor, com busca por placa ou chassi e filtro por status.
+    // A lista vem paginada do servidor, com busca por placa, chassi ou modelo e filtro por status.
     const list = usePagedList<Vehicle>('/fleet/vehicles');
 
     /** Filtro "revisão vencida": só veículos que já alcançaram a quilometragem da próxima preventiva. */

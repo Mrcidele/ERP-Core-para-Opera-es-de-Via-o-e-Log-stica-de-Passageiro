@@ -15,7 +15,7 @@ function inEnvironment(string $environment, bool $enabled = false): void
 it('serves the interactive documentation at /docs/api, not the SPA', function (): void {
     $this->get('/docs/api')
         ->assertOk()
-        ->assertSee('ERP Viação - API Docs')
+        ->assertSee('ERP FrotaCarga - API Docs')
         ->assertSee('elements-api', false)
         ->assertDontSee('<div id="app">', false);
 });
@@ -24,7 +24,7 @@ it('serves the OpenAPI document of the REST API', function (): void {
     $document = $this->getJson('/docs/api.json')->assertOk()->json();
 
     expect($document['openapi'])->toStartWith('3.')
-        ->and($document['info']['title'])->toBe('ERP Viação')
+        ->and($document['info']['title'])->toBe('ERP FrotaCarga')
         ->and(array_keys($document['paths']))->toContain(
             '/v1/fuel/logs',
             '/v1/fuel/logs/{log}',

@@ -22,7 +22,7 @@ final readonly class DeleteLineAction
     public function execute(string $id): void
     {
         $this->transaction->run(function () use ($id): void {
-            // Com a linha travada, nenhum agendamento nela é gravado entre a conferência das viagens e a exclusão.
+            // Com a rota travada, nenhum agendamento nela é gravado entre a conferência das viagens e a exclusão.
             $line = $this->lines->lockActive($id) ?? throw new LineRecordNotFoundException($id);
 
             if ($this->lines->hasActiveTrips($id)) {

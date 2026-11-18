@@ -21,15 +21,15 @@ use Tests\Fakes\ImmediateTransactionRunner;
 use Tests\Fakes\InMemoryFuelLogRepository;
 use Tests\Fakes\RecordingEventDispatcher;
 
-function fuelData(int $odometer, int $milliliters = 100_000, string $at = '2026-11-10 08:00', string $vehicle = 'bus-1', int $cost = 60_000): RecordFuelLogDTO
+function fuelData(int $odometer, int $milliliters = 100_000, string $at = '2026-11-10 08:00', string $vehicle = 'truck-1', int $cost = 60_000): RecordFuelLogDTO
 {
     return new RecordFuelLogDTO($vehicle, 'user-1', $odometer, $milliliters, $cost, 'Posto Graal', new DateTimeImmutable($at, new DateTimeZone('UTC')));
 }
 
 beforeEach(function (): void {
     $this->logs = new InMemoryFuelLogRepository;
-    $this->fleet = new FakeFleetGateway(['bus-1', 'bus-2']);
-    $this->fleet->mileages = ['bus-1' => 100_000, 'bus-2' => 50_000];
+    $this->fleet = new FakeFleetGateway(['truck-1', 'truck-2']);
+    $this->fleet->mileages = ['truck-1' => 100_000, 'truck-2' => 50_000];
     $this->events = new RecordingEventDispatcher;
     $this->transaction = new ImmediateTransactionRunner;
     $this->action = new RecordFuelLogAction($this->logs, $this->fleet, new FixedClock('2026-11-13 10:00:00'), $this->events, $this->transaction);
@@ -46,14 +46,14 @@ it('records the first fuel log of a vehicle without an efficiency', function ():
         ->and($summary->lowEfficiencyAlert())->toBeFalse()
         ->and($this->logs->logs)->toHaveCount(1)
         ->and($this->events->events)->toEqual([
-            new FuelLogRecorded('fuel-1', 'bus-1', 100_000, 100_000, 60_000, 'Posto Graal', new DateTimeImmutable('2026-11-10 08:00', new DateTimeZone('UTC'))),
+            new FuelLogRecorded('fuel-1', 'truck-1', 100_000, 100_000, 60_000, 'Posto Graal', new DateTimeImmutable('2026-11-10 08:00', new DateTimeZone('UTC')), null, 2_200, false),
         ]);
 });
 
 it('computes km per liter from the distance since the previous fuel log of the same vehicle', function (): void {
     $this->action->execute(fuelData(100_000));
     // Outro veículo no meio não entra na conta.
-    $this->action->execute(fuelData(50_000, vehicle: 'bus-2', at: '2026-11-10 12:00'));
+    $this->action->execute(fuelData(50_000, vehicle: 'truck-2', at: '2026-11-10 12:00'));
 
     $summary = $this->action->execute(fuelData(100_600, 200_000, '2026-11-11 08:00'));
 
@@ -63,7 +63,7 @@ it('computes km per liter from the distance since the previous fuel log of the s
         ->and($summary->lowEfficiencyAlert())->toBeFalse();
 });
 
-it('flags low efficiency below 2.2 km/L', function (int $distance, int $milliliters, float $kmPerLiter, bool $alert): void {
+it('flags low efficiency below the target of the vehicle (2.2 km/L here)', function (int $distance, int $milliliters, float $kmPerLiter, bool $alert): void {
     $this->action->execute(fuelData(100_000));
 
     $summary = $this->action->execute(fuelData(100_000 + $distance, $milliliters, '2026-11-11 08:00'));
@@ -100,7 +100,7 @@ it('refuses an odometer lower than the last fuel log of the vehicle', function (
 it('accepts an odometer lower than the one of another vehicle', function (): void {
     $this->action->execute(fuelData(100_600));
 
-    expect($this->action->execute(fuelData(50_100, vehicle: 'bus-2', at: '2026-11-11 08:00'))->log->odometerKm)->toBe(50_100);
+    expect($this->action->execute(fuelData(50_100, vehicle: 'truck-2', at: '2026-11-11 08:00'))->log->odometerKm)->toBe(50_100);
 });
 
 it('refuses a fuel log dated before the last one of the vehicle', function (): void {
@@ -122,7 +122,7 @@ it('refuses an unknown vehicle', function (): void {
 it('raises the vehicle mileage when the odometer is ahead of it, and never lowers it', function (int $odometer, int $expected): void {
     $this->action->execute(fuelData($odometer));
 
-    expect($this->fleet->mileages['bus-1'])->toBe($expected);
+    expect($this->fleet->mileages['truck-1'])->toBe($expected);
 })->with([
     'hodômetro à frente' => [100_750, 100_750],
     'igual' => [100_000, 100_000],
@@ -132,7 +132,7 @@ it('raises the vehicle mileage when the odometer is ahead of it, and never lower
 it('locks the vehicle inside a transaction before reading its last fuel log', function (): void {
     $this->action->execute(fuelData(100_000));
 
-    expect($this->fleet->locked)->toBe(['bus-1'])
+    expect($this->fleet->locked)->toBe(['truck-1'])
         ->and($this->transaction->transactions)->toBe(1);
 });
 
@@ -148,8 +148,34 @@ it('lists the fuel logs, most recent first, one page at a time', function (): vo
         ->and($page->items[0]->previousOdometerKm)->toBe(100_400);
 });
 
-it('keeps the efficiency threshold of heavy road vehicles', function (): void {
-    expect(FuelLog::LOW_EFFICIENCY_KM_PER_LITER)->toBe(2.2);
+it('compares the efficiency with the target of each vehicle', function (): void {
+    // Um VUC que espera 5,0 km/L e um cavalo mecânico que espera 2,0 km/L, os dois fazendo 4,0 km/L.
+    $this->logs->targets = ['truck-1' => 5_000, 'truck-2' => 2_000];
+    $this->action->execute(fuelData(100_000));
+    $this->action->execute(fuelData(50_000, vehicle: 'truck-2'));
+
+    $vuc = $this->action->execute(fuelData(100_400, at: '2026-11-11 08:00'));
+    $tractor = $this->action->execute(fuelData(50_400, vehicle: 'truck-2', at: '2026-11-11 08:00'));
+
+    expect([$vuc->kmPerLiter(), $vuc->minMetersPerLiter, $vuc->lowEfficiencyAlert()])->toBe([4.0, 5_000, true])
+        ->and([$tractor->kmPerLiter(), $tractor->minMetersPerLiter, $tractor->lowEfficiencyAlert()])->toBe([4.0, 2_000, false]);
+});
+
+it('publishes the efficiency, the target and the alert so the audit trail keeps them', function (): void {
+    $this->action->execute(fuelData(100_000));
+    $this->action->execute(fuelData(100_150, 100_000, '2026-11-11 08:00'));
+
+    expect($this->events->events[1])->toEqual(
+        new FuelLogRecorded('fuel-2', 'truck-1', 100_150, 100_000, 60_000, 'Posto Graal', new DateTimeImmutable('2026-11-11 08:00', new DateTimeZone('UTC')), 1_500, 2_200, true),
+    );
+});
+
+it('treats the target as a limit: exactly on it is not an alert', function (): void {
+    $log = new FuelLog('f', 'v', 'u', 100_200, 100_000, 0, 'Posto', new DateTimeImmutable);
+
+    expect($log->hasLowEfficiency(100_000, 2_000))->toBeFalse()
+        ->and($log->hasLowEfficiency(100_000, 2_001))->toBeTrue()
+        ->and($log->hasLowEfficiency(null, 2_000))->toBeFalse();
 });
 
 it('deletes a fuel log inside a transaction, locking it first, and publishes the deletion', function (): void {
@@ -161,7 +187,7 @@ it('deletes a fuel log inside a transaction, locking it first, and publishes the
         ->and($this->logs->locked)->toBe(['fuel-1'])
         ->and($this->transaction->transactions)->toBe(2)
         ->and($this->events->events[1])->toEqual(
-            new FuelLogDeleted('fuel-1', 'bus-1', 100_000, 100_000, 60_000, 'Posto Graal', new DateTimeImmutable('2026-11-10 08:00', new DateTimeZone('UTC'))),
+            new FuelLogDeleted('fuel-1', 'truck-1', 100_000, 100_000, 60_000, 'Posto Graal', new DateTimeImmutable('2026-11-10 08:00', new DateTimeZone('UTC'))),
         );
 });
 

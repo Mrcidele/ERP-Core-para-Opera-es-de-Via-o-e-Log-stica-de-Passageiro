@@ -29,7 +29,7 @@ final class InMemoryVehicleRepository implements VehicleRepository
             $this->vehicles,
             fn (Vehicle $vehicle): bool => (! $onlyDueForMaintenance || $vehicle->needsPreventiveMaintenance())
                 && ($query->status === null || $vehicle->status->value === $query->status)
-                && ($query->search === null || str_contains($vehicle->plate.' '.$vehicle->chassis, mb_strtoupper($query->search))),
+                && ($query->search === null || str_contains(mb_strtoupper($vehicle->plate.' '.$vehicle->chassis.' '.$vehicle->model), mb_strtoupper($query->search))),
         ));
 
         usort($vehicles, fn (Vehicle $a, Vehicle $b): int => $a->plate <=> $b->plate);

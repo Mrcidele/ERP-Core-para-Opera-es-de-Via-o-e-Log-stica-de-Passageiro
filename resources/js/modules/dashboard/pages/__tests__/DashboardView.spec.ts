@@ -23,7 +23,7 @@ const full: DashboardSummary = {
         inactive: 1,
         availability_rate: 80,
         preventive_maintenance_due: [
-            { id: 'bus-1', plate: 'DDD4D44', current_mileage: 100_000, next_preventive_maintenance_km: 95_000, needs_preventive_maintenance: true },
+            { id: 'truck-1', plate: 'DDD4D44', current_mileage: 100_000, next_preventive_maintenance_km: 95_000, needs_preventive_maintenance: true },
         ],
     },
     operations: {
@@ -89,7 +89,7 @@ describe('DashboardView', () => {
 
         expect(http.get).toHaveBeenCalledWith('/dashboard/summary');
         expect(kpi(wrapper, 'availability')).toContain('80%');
-        expect(kpi(wrapper, 'availability')).toContain('8 de 10 ônibus ativos');
+        expect(kpi(wrapper, 'availability')).toContain('8 de 10 veículos ativos');
         expect(value(wrapper, 'in-progress')).toBe('2');
         expect(kpi(wrapper, 'in-progress')).toContain('viagens em andamento');
         expect(value(wrapper, 'next-24h')).toBe('1');

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-# Imagem de produção do ERP Viação. Construir a partir da raiz do repositório:
-#   docker build -f docker/production/Dockerfile -t erp-viacao .
+# Imagem de produção do ERP FrotaCarga. Construir a partir da raiz do repositório:
+#   docker build -f docker/production/Dockerfile -t erp-frotacarga .
 
 # ---------- 1. Assets do frontend (Vue 3 + Vite) ----------
 FROM node:22-alpine AS frontend

@@ -15,7 +15,7 @@ final class InMemoryLineRepository implements LineRepository
     /** @var list<string> */
     public array $deleted = [];
 
-    /** @var list<string> linhas travadas, na ordem */
+    /** @var list<string> rotas travadas, na ordem */
     public array $locked = [];
 
     /** @var list<string> */

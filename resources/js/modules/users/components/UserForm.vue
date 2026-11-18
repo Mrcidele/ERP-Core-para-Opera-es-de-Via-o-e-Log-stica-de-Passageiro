@@ -10,7 +10,7 @@ const { form, errors, submit, store } = useUserForm(props.user, (saved) => emit(
 
 const ROLE_HINTS: Record<(typeof USER_ROLES)[number], string> = {
     admin: 'Acesso total, inclusive usuários e auditoria.',
-    dispatcher: 'Escala, viagens e linhas.',
+    dispatcher: 'Escala, viagens e rotas.',
     fleet_manager: 'Frota, abastecimento e manutenção.',
     mechanic_supervisor: 'Ordens de serviço da oficina.',
 };

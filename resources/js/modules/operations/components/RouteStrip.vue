@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-// Itinerário de uma linha em escala: a origem à esquerda, o destino à direita e cada parada
+// Itinerário de uma rota em escala: a origem à esquerda, o destino à direita e cada parada
 // na posição proporcional ao km em que fica.
 const props = defineProps<{
     distanceKm: number;

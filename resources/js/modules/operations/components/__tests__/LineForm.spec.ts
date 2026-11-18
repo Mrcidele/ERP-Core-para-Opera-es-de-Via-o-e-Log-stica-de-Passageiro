@@ -58,7 +58,7 @@ describe('LineForm', () => {
 
         expect(wrapper.find('[data-test="no-stops"]').exists()).toBe(true);
         expect(wrapper.find('[data-test="route-preview"]').exists()).toBe(false);
-        expect(wrapper.get('[data-test="submit"]').text()).toBe('Cadastrar linha');
+        expect(wrapper.get('[data-test="submit"]').text()).toBe('Cadastrar rota');
     });
 
     it('creates a line sending the stops in the order they are on screen', async () => {
@@ -195,7 +195,7 @@ describe('LineForm', () => {
         await fillLine(wrapper);
         await submit(wrapper);
 
-        expect(wrapper.get('[data-test="error"]').text()).toContain('Não foi possível cadastrar a linha');
+        expect(wrapper.get('[data-test="error"]').text()).toContain('Não foi possível cadastrar a rota');
     });
 
     it('emits cancel', async () => {

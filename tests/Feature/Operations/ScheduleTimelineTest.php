@@ -14,7 +14,7 @@ beforeEach(function (): void {
     actingAsRole(UserRole::Admin);
 
     $this->line = LineModel::factory()->create(['origin' => 'Curitiba', 'destination' => 'Ourinhos']);
-    $this->bus = VehicleModel::factory()->create(['plate' => 'AAA1A11', 'status' => 'active']);
+    $this->truck = VehicleModel::factory()->create(['plate' => 'AAA1A11', 'status' => 'active']);
     $this->ana = EmployeeModel::factory()->create(['name' => 'Ana Lima', 'status' => 'active']);
 });
 
@@ -22,7 +22,7 @@ function timelineTrip(string $departure, string $arrival, string $status = 'sche
 {
     return TripModel::query()->create([
         'line_id' => test()->line->id,
-        'vehicle_id' => ($vehicle ?? test()->bus)->id,
+        'vehicle_id' => ($vehicle ?? test()->truck)->id,
         'driver_id' => ($driver ?? test()->ana)->id,
         'departure_time' => $departure.'+00',
         'arrival_time' => $arrival.'+00',
@@ -48,7 +48,7 @@ it('returns the 48 hours that start at midnight UTC of the date, by vehicle and 
             'to' => '2026-11-22T00:00:00+00:00',
             'driver_rest_hours' => 11,
             'vehicles' => [[
-                'id' => $this->bus->id,
+                'id' => $this->truck->id,
                 'plate' => 'AAA1A11',
                 'status' => 'active',
                 'maintenance_orders' => [],
@@ -60,7 +60,7 @@ it('returns the 48 hours that start at midnight UTC of the date, by vehicle and 
                     // 11 horas de descanso depois da chegada.
                     'rest_until' => '2026-11-21T04:30:00+00:00',
                     'line' => ['origin' => 'Curitiba', 'destination' => 'Ourinhos'],
-                    'vehicle' => ['id' => $this->bus->id, 'plate' => 'AAA1A11'],
+                    'vehicle' => ['id' => $this->truck->id, 'plate' => 'AAA1A11'],
                     'driver' => ['id' => $this->ana->id, 'name' => 'Ana Lima'],
                 ]],
             ]],
@@ -135,7 +135,7 @@ it('shows vehicles with a pending maintenance order, with the order, even though
     $later = VehicleModel::factory()->create(['plate' => 'OFI2C22', 'status' => 'maintenance']);
     MaintenanceOrderModel::factory()->create(['vehicle_id' => $later->id, 'opened_at' => '2026-11-22 00:00:00+00']);
     // Ordem em andamento em um veículo que já voltou a ativo continua aparecendo.
-    $progress = MaintenanceOrderModel::factory()->create(['vehicle_id' => $this->bus->id, 'type' => 'preventive', 'status' => 'in_progress', 'opened_at' => '2026-11-20 09:00:00+00']);
+    $progress = MaintenanceOrderModel::factory()->create(['vehicle_id' => $this->truck->id, 'type' => 'preventive', 'status' => 'in_progress', 'opened_at' => '2026-11-20 09:00:00+00']);
 
     $data = timeline();
 

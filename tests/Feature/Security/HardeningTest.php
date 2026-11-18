@@ -284,8 +284,8 @@ function hardeningVehicle(array $overrides = []): array
     return [
         'plate' => 'SEG1A23',
         'chassis' => '9BWZZZ377VT004299',
-        'capacity' => 44,
-        'class_type' => 'executivo',
+        'payload_kg' => 12000,
+        'vehicle_type' => 'cavalo_mecanico',
         'current_mileage' => 1000,
         ...$overrides,
     ];

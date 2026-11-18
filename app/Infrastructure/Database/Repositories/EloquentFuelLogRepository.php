@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Database\Repositories;
 
+use App\Domain\Fleet\Enums\VehicleType;
 use App\Domain\Fuel\DTOs\FuelLogSummaryDTO;
 use App\Domain\Fuel\Entities\FuelLog;
 use App\Domain\Fuel\Repositories\FuelLogRepository;
@@ -123,7 +124,20 @@ final class EloquentFuelLogRepository implements FuelLogRepository
             vehiclePlate: $model->vehicle->plate ?? '',
             recordedByName: $model->recordedBy->name ?? '',
             previousOdometerKm: $model->previous_odometer_km,
+            minMetersPerLiter: $this->minMetersPerLiter($model),
         );
+    }
+
+    /** A meta própria do veículo ou, sem ela, o padrão do tipo de caminhão. */
+    private function minMetersPerLiter(FuelLogModel $model): int
+    {
+        $vehicle = $model->vehicle;
+
+        if ($vehicle === null) {
+            return VehicleType::Truck->defaultMinMetersPerLiter();
+        }
+
+        return $vehicle->min_meters_per_liter ?? $vehicle->vehicle_type->defaultMinMetersPerLiter();
     }
 
     private function toEntity(FuelLogModel $model): FuelLog

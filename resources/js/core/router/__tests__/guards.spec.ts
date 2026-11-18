@@ -44,7 +44,7 @@ async function visit(router: Router, path: string): Promise<string> {
 describe('navigation guard', () => {
     beforeEach(() => setActivePinia(createPinia()));
 
-    it.each(['/', '/frota', '/operacoes', '/tripulacao', '/manutencao', '/qualquer-coisa'])('sends a visitor from %s to the login', async (path) => {
+    it.each(['/', '/frota', '/operacoes', '/equipe', '/manutencao', '/qualquer-coisa'])('sends a visitor from %s to the login', async (path) => {
         const router = makeRouter();
 
         await visit(router, path);
@@ -70,10 +70,10 @@ describe('navigation guard', () => {
     });
 
     it.each([
-        ['admin', ['/', '/frota', '/operacoes', '/tripulacao', '/manutencao'], []],
-        ['dispatcher', ['/', '/frota', '/operacoes', '/tripulacao'], ['/manutencao']],
-        ['fleet_manager', ['/', '/frota', '/operacoes', '/tripulacao', '/manutencao'], []],
-        ['mechanic_supervisor', ['/', '/frota', '/manutencao'], ['/operacoes', '/tripulacao']],
+        ['admin', ['/', '/frota', '/operacoes', '/equipe', '/manutencao'], []],
+        ['dispatcher', ['/', '/frota', '/operacoes', '/equipe'], ['/manutencao']],
+        ['fleet_manager', ['/', '/frota', '/operacoes', '/equipe', '/manutencao'], []],
+        ['mechanic_supervisor', ['/', '/frota', '/manutencao'], ['/operacoes', '/equipe']],
     ] as const)('opens for %s only the areas its permissions allow', async (role, allowed, denied) => {
         signInAs(role);
         const router = makeRouter();

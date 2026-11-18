@@ -43,16 +43,16 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: 'Operações', permission: 'operations.view' },
     },
     {
-        path: '/linhas',
+        path: '/rotas',
         name: 'lines',
         component: () => import('@/modules/operations/pages/LinesView.vue'),
-        meta: { title: 'Linhas e rotas', permission: 'operations.view' },
+        meta: { title: 'Rotas', permission: 'operations.view' },
     },
     {
-        path: '/tripulacao',
+        path: '/equipe',
         name: 'crew',
         component: () => import('@/modules/crew/pages/CrewView.vue'),
-        meta: { title: 'Tripulação', permission: 'crew.view' },
+        meta: { title: 'Equipe', permission: 'crew.view' },
     },
     {
         path: '/manutencao',
@@ -81,5 +81,5 @@ export const router = createRouter({
 });
 
 router.afterEach((to) => {
-    document.title = `${to.meta.title} | ERP Viação`;
+    document.title = `${to.meta.title} | ERP FrotaCarga`;
 });

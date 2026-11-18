@@ -18,12 +18,16 @@ const make = (id: string, plate: string, status: Vehicle['status']): Vehicle => 
     id,
     plate,
     chassis: `9BWZZZ377VT00425${id}`,
-    capacity: 46,
-    class_type: 'executivo',
+    model: 'Volvo FH 540',
+    payload_kg: 32_000,
+    vehicle_type: 'cavalo_mecanico',
+    vehicle_type_label: 'Cavalo mecânico',
     status,
     current_mileage: 120000,
     next_preventive_maintenance_km: null,
     needs_preventive_maintenance: false,
+    min_meters_per_liter: null,
+    effective_min_meters_per_liter: 2_000,
 });
 
 const fleet = [make('1', 'AAA1A11', 'active'), make('2', 'BBB2B22', 'maintenance'), make('3', 'CCC3C33', 'active')];
@@ -56,6 +60,20 @@ describe('FleetView', () => {
         expect(http.get).toHaveBeenCalledWith('/fleet/vehicles', pageParams());
         expect(plates(wrapper)).toEqual(['AAA1A11', 'BBB2B22', 'CCC3C33']);
         expect(wrapper.get('[data-test="pagination-summary"]').text()).toBe('1 a 15 de 48 veículos');
+    });
+
+    it('shows the truck type, model, payload and fuel target of each vehicle', async () => {
+        const own = { ...make('5', 'DDD4D44', 'active'), vehicle_type: 'vuc' as const, model: null, payload_kg: 3_500, min_meters_per_liter: 6_200, effective_min_meters_per_liter: 6_200 };
+        const wrapper = await mountPage([fleet[0]!, own]);
+        const [tractor, vuc] = wrapper.findAll('[data-test="vehicle-row"]');
+
+        expect(tractor!.get('[data-test="vehicle-type"]').text()).toBe('Cavalo mecânico');
+        expect(tractor!.get('[data-test="vehicle-model"]').text()).toBe('Volvo FH 540');
+        expect(tractor!.text()).toContain('32.000 kg');
+        expect(tractor!.get('[data-test="fuel-target"]').text()).toBe('2,0 km/L padrão do tipo');
+        expect(vuc!.get('[data-test="vehicle-type"]').text()).toBe('VUC / 3/4');
+        expect(vuc!.find('[data-test="vehicle-model"]').exists()).toBe(false);
+        expect(vuc!.get('[data-test="fuel-target"]').text()).toBe('6,2 km/L');
     });
 
     it('changes page through the pagination bar', async () => {
@@ -169,8 +187,8 @@ describe('FleetView', () => {
         await wrapper.get('[data-test="new-vehicle"]').trigger('click');
         await wrapper.get('[data-test="plate"]').setValue('ABC1D23');
         await wrapper.get('[data-test="chassis"]').setValue('9BWZZZ377VT004254');
-        await wrapper.get('[data-test="capacity"]').setValue(46);
-        await wrapper.get('[data-test="class_type"]').setValue('executivo');
+        await wrapper.get('[data-test="payload_kg"]').setValue(32000);
+        await wrapper.get('[data-test="vehicle_type"]').setValue('cavalo_mecanico');
         await wrapper.get('form').trigger('submit');
         await flushPromises();
 

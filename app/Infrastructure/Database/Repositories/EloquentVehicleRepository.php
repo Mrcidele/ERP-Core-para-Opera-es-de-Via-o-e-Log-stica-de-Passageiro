@@ -34,7 +34,10 @@ final class EloquentVehicleRepository implements VehicleRepository
                 // Placa e chassi são gravados em maiúsculas, sem hífen nem espaço.
                 $term = $this->likeTerm((string) preg_replace('/[\s\-]/', '', (string) $query->search));
 
-                $vehicles->where(fn (Builder $match) => $match->where('plate', 'ilike', $term)->orWhere('chassis', 'ilike', $term));
+                $vehicles->where(fn (Builder $match) => $match
+                    ->where('plate', 'ilike', $term)
+                    ->orWhere('chassis', 'ilike', $term)
+                    ->orWhere('model', 'ilike', $this->likeTerm((string) $query->search)));
             })
             ->orderBy('plate')
             ->orderBy('id');
@@ -77,11 +80,13 @@ final class EloquentVehicleRepository implements VehicleRepository
             [
                 'plate' => $vehicle->plate,
                 'chassis' => $vehicle->chassis,
-                'capacity' => $vehicle->capacity,
-                'class_type' => $vehicle->classType,
+                'payload_kg' => $vehicle->payloadKg,
+                'vehicle_type' => $vehicle->type,
                 'status' => $vehicle->status,
                 'current_mileage' => $vehicle->currentMileage,
                 'next_preventive_maintenance_km' => $vehicle->nextPreventiveMaintenanceKm,
+                'min_meters_per_liter' => $vehicle->minMetersPerLiter,
+                'model' => $vehicle->model,
             ],
         );
     }
@@ -98,11 +103,13 @@ final class EloquentVehicleRepository implements VehicleRepository
             id: $model->id,
             plate: $model->plate,
             chassis: $model->chassis,
-            capacity: $model->capacity,
-            classType: $model->class_type,
+            payloadKg: $model->payload_kg,
+            type: $model->vehicle_type,
             status: $model->status,
             currentMileage: $model->current_mileage,
             nextPreventiveMaintenanceKm: $model->next_preventive_maintenance_km,
+            minMetersPerLiter: $model->min_meters_per_liter,
+            model: $model->model,
         );
     }
 }

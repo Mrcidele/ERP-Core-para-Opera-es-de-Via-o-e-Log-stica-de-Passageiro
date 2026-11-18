@@ -15,7 +15,7 @@ export interface Trip {
     status: TripStatus;
 }
 
-/** Item da listagem (TripSummaryResource): a viagem com linha, veículo e motorista. */
+/** Item da listagem (TripSummaryResource): a viagem com rota, veículo e motorista. */
 export interface TripSummary {
     id: string;
     status: TripStatus;
@@ -31,7 +31,7 @@ export interface TripSummary {
 export const TRIP_TRANSITIONS = ['start', 'complete', 'cancel'] as const;
 export type TripTransition = (typeof TRIP_TRANSITIONS)[number];
 
-/** Parada intermediária de uma linha, na ordem de passagem. */
+/** Parada intermediária de uma rota, na ordem de passagem. */
 export interface LineStop {
     sequence: number;
     city_name: string;

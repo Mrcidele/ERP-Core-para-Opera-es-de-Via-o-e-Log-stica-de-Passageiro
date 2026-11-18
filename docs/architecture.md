@@ -4,18 +4,18 @@
 
 | Módulo | Responsabilidade |
 | --- | --- |
-| **Fleet** (Frota) | Cadastro de ônibus, status (ativo, manutenção, inativo), quilometragem, classe (leito, semi-leito, executivo). |
-| **Operations** (Operação) | Linhas, trechos, alocação de ônibus em viagens, controle de catraca/lotação. |
-| **Crew** (Tripulação) | Motoristas, jornada de trabalho e descanso, exames toxicológicos, CNH. |
+| **Fleet** (Frota) | Cadastro de caminhões e utilitários, status (ativo, manutenção, inativo), quilometragem, tipo (Utilitário / Van, VUC / 3/4, Toco, Truck, Bitruck, Cavalo mecânico), carga útil em kg e meta de rendimento (km/L) por veículo, com padrão por tipo. |
+| **Operations** (Operação) | Rotas com pontos de parada (coleta, entrega, passagem), alocação de caminhão e motorista em viagens, grade de escala. No código, rota é `Line`. |
+| **Crew** (Equipe) | Motoristas, jornada de trabalho e descanso, exames toxicológicos, CNH. |
 | **Maintenance** (Manutenção) | Ordens de serviço, estoque de peças (pneus, óleo), preventivas e corretivas. |
 | **Fuel** (Abastecimento) | Abastecimentos por veículo, rendimento em km/L e alerta de consumo. |
 
 ## Modelagem (PostgreSQL 16)
 
-- `vehicles`: `id`, `plate`, `chassis`, `capacity`, `class_type`, `status`, `current_mileage`
+- `vehicles`: `id`, `plate`, `chassis`, `payload_kg` (> 0), `vehicle_type` (CHECK na lista de tipos), `status`, `current_mileage`, `min_meters_per_liter` (null = padrão do tipo; CHECK de 500 a 30000)
 - `employees`: `id`, `name`, `cpf`, `role` (driver, mechanic, admin), `cnh_number`, `cnh_category`, `cnh_expiration_date`, `status` (active, on_leave, inactive)
 - `lines`: `id`, `origin`, `destination`, `distance_km`, `estimated_duration_minutes`
-- `line_stops`: `id`, `line_id` (cascade), `sequence` (> 0, única por linha), `city_name`, `cumulative_km`, `estimated_minutes`
+- `line_stops`: `id`, `line_id` (cascade), `sequence` (> 0, única por rota), `city_name`, `cumulative_km`, `estimated_minutes`
 - `trips`: `id`, `line_id`, `vehicle_id`, `driver_id`, `departure_time`, `arrival_time` (UTC), `status` (scheduled, in_progress, completed, canceled)
 - `fuel_logs`: `id`, `vehicle_id`, `recorded_by_user_id`, `odometer_km`, `liters_milliliters`, `total_cost_cents`, `station_name`, `fueled_at` (UTC), soft delete; índice `(vehicle_id, fueled_at)`
 - `maintenance_orders`: `id`, `vehicle_id`, `mechanic_id`, `type` (preventive, corrective), `status` (open, in_progress, completed, canceled), `description`, `cost_cents`, `opened_at`, `completed_at`
@@ -90,9 +90,8 @@ resources/js/
 | Operations | Agendamento de viagem (`POST /api/v1/operations/trips`): veículo ativo, motorista ativo com CNH válida até a chegada, sem conflito de horário | Implementado |
 | Operations | Trava de concorrência no banco (`EXCLUDE USING GIST`) contra viagens sobrepostas do mesmo veículo ou motorista | Implementado |
 | Operations | Listagem (`GET /operations/trips`) e mudança de status (`POST /operations/trips/{id}/start`, `/complete`, `/cancel`) com tela em tabela | Implementado |
-| Operations | Evento `TripCompleted`: ao concluir a viagem, a Frota soma a distância da linha à quilometragem do veículo | Implementado |
-| Operations | Linhas com paradas intermediárias (`GET`/`POST /api/v1/operations/lines`, `PUT`/`DELETE /operations/lines/{id}`): linha e paradas gravadas em uma transação, auditoria, exclusão lógica bloqueada com viagem agendada ou em andamento; tela Linhas e rotas | Implementado |
-| Operations | Controle de lotação | Pendente |
+| Operations | Evento `TripCompleted`: ao concluir a viagem, a Frota soma a distância da rota à quilometragem do veículo | Implementado |
+| Operations | Rotas com paradas intermediárias (`GET`/`POST /api/v1/operations/lines`, `PUT`/`DELETE /operations/lines/{id}`): rota e paradas gravadas em uma transação, auditoria, exclusão lógica bloqueada com viagem agendada ou em andamento; tela Rotas e rotas | Implementado |
 | Maintenance | Ordens de serviço (`GET`/`POST /api/v1/maintenance/orders`, `PATCH /maintenance/orders/{id}` para concluir ou cancelar) com tela em tabela | Implementado |
 | Maintenance | Abrir a ordem põe o veículo em manutenção; encerrar a última pendente devolve o veículo a ativo | Implementado |
 | Maintenance | Transição para "em andamento", histórico por veículo, estoque de peças | Pendente |
@@ -116,10 +115,10 @@ resources/js/
 | Infra | `GET /api/v1/health` (200/503 conforme o banco), imagem de produção (`docker/production/Dockerfile`) e CI no GitHub Actions (`.github/workflows/ci.yml`) | Implementado |
 | Fleet | Filtro `needs_maintenance` na listagem (revisão preventiva vencida), com o filtro rápido na tela | Implementado |
 | Audit | Ações com nome em português (`AuditAction`, `action_label`) e busca por esse nome | Implementado |
-| Operations | Agendamento e exclusão de linha em transação com a linha travada (`FOR UPDATE`): nunca há viagem ativa em linha excluída | Implementado |
+| Operations | Agendamento e exclusão de rota em transação com a rota travada (`FOR UPDATE`): nunca há viagem ativa em rota excluída | Implementado |
 | Infra | Smoke test da imagem de produção no CI: build, migrations, health 200/503, login e assets | Implementado |
 | Audit | Agendamento de viagem auditado (`trip.scheduled`) | Implementado |
-| Fuel | Abastecimentos (`GET`/`POST /api/v1/fuel/logs`): veículo travado, hodômetro e data nunca anteriores ao último abastecimento do veículo, hodômetro eleva a quilometragem da frota, rendimento em km/L por trecho e alerta abaixo de 2,2 km/L, auditoria `fuel_log.recorded`, gasto do mês no painel; tela Abastecimento | Implementado |
+| Fuel | Abastecimentos (`GET`/`POST /api/v1/fuel/logs`): veículo travado, hodômetro e data nunca anteriores ao último abastecimento do veículo, hodômetro eleva a quilometragem da frota, rendimento em km/L por trecho e alerta abaixo da meta do veículo (meta própria em `min_meters_per_liter` ou padrão do tipo de caminhão), registrado também na auditoria | Implementado |
 | Fuel | Exclusão lógica de abastecimento (`DELETE /api/v1/fuel/logs/{id}`, auditoria `fuel_log.deleted`): o rendimento do abastecimento seguinte é recalculado e o lançamento correto pode ser feito em seguida; resumo do mês na tela | Implementado |
 | Fuel | Edição de abastecimento, relatório de consumo por veículo | Pendente |
 | Operations | Grade de escala (`GET /api/v1/operations/schedule-timeline?date=`): 48 horas por veículo e por motorista, com ordens de serviço pendentes e o descanso de 11 horas; na tela, alternância Lista / Grade e agendamento a partir de um horário livre | Implementado |

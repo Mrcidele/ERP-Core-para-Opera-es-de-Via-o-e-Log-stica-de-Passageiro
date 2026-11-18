@@ -9,9 +9,6 @@ use DateTimeImmutable;
 /** Um abastecimento de um veículo. O volume é guardado em mililitros e o custo em centavos, sem frações. */
 final readonly class FuelLog
 {
-    /** Abaixo disto o consumo de um ônibus rodoviário está fora do padrão. */
-    public const LOW_EFFICIENCY_KM_PER_LITER = 2.2;
-
     public function __construct(
         public string $id,
         public string $vehicleId,
@@ -44,10 +41,14 @@ final readonly class FuelLog
         return round($distance / ($this->litersMilliliters / 1000), 2);
     }
 
-    public function hasLowEfficiency(?int $previousOdometerKm): bool
+    /**
+     * O trecho rendeu menos que a meta do veículo? A meta vem em metros por litro (2.200 = 2,2 km/L)
+     * e é comparada com o rendimento arredondado que aparece na tela.
+     */
+    public function hasLowEfficiency(?int $previousOdometerKm, int $minMetersPerLiter): bool
     {
         $kmPerLiter = $this->kmPerLiter($previousOdometerKm);
 
-        return $kmPerLiter !== null && $kmPerLiter < self::LOW_EFFICIENCY_KM_PER_LITER;
+        return $kmPerLiter !== null && (int) round($kmPerLiter * 1000) < $minMetersPerLiter;
     }
 }

@@ -19,23 +19,23 @@ beforeEach(function (): void {
 });
 
 it('creates a user with the password hashed and the e-mail in lower case', function (): void {
-    $user = $this->action->execute(new CreateUserDTO('  Caio Marcidele ', ' Caio@Viacao.COM ', UserRole::Admin, 'Senha-Forte-2026'), 'console');
+    $user = $this->action->execute(new CreateUserDTO('  Caio Marcidele ', ' Caio@Transportadora.COM ', UserRole::Admin, 'Senha-Forte-2026'), 'console');
 
-    expect($user)->toEqual(new User('user-1', 'Caio Marcidele', 'caio@viacao.com', UserRole::Admin, 'hashed:Senha-Forte-2026'))
+    expect($user)->toEqual(new User('user-1', 'Caio Marcidele', 'caio@transportadora.com', UserRole::Admin, 'hashed:Senha-Forte-2026'))
         ->and($this->users->findById('user-1'))->toEqual($user);
 });
 
 it('publishes the creation without the password', function (): void {
-    $user = $this->action->execute(new CreateUserDTO('Ana', 'ana@viacao.com', UserRole::FleetManager, 'Senha-Forte-2026'), 'console');
+    $user = $this->action->execute(new CreateUserDTO('Ana', 'ana@transportadora.com', UserRole::FleetManager, 'Senha-Forte-2026'), 'console');
 
-    expect($this->events->events)->toEqual([new UserCreated($user->id, 'Ana', 'ana@viacao.com', 'fleet_manager', 'console')])
+    expect($this->events->events)->toEqual([new UserCreated($user->id, 'Ana', 'ana@transportadora.com', 'fleet_manager', 'console')])
         ->and(serialize($this->events->events))->not->toContain('Senha-Forte-2026');
 });
 
 it('refuses an e-mail that is already in use, whatever the case', function (): void {
-    $this->users->add(new User('existing', 'Ana', 'ana@viacao.com', UserRole::Dispatcher, 'hashed:x'));
+    $this->users->add(new User('existing', 'Ana', 'ana@transportadora.com', UserRole::Dispatcher, 'hashed:x'));
 
-    expect(fn () => $this->action->execute(new CreateUserDTO('Outra Ana', 'ANA@viacao.com', UserRole::Admin, 'Senha-Forte-2026'), 'console'))
+    expect(fn () => $this->action->execute(new CreateUserDTO('Outra Ana', 'ANA@transportadora.com', UserRole::Admin, 'Senha-Forte-2026'), 'console'))
         ->toThrow(EmailAlreadyTakenException::class, 'Já existe um usuário com este e-mail.')
         ->and($this->users->users)->toHaveCount(1)
         ->and($this->events->events)->toBe([]);

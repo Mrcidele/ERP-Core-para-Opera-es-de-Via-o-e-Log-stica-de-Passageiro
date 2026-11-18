@@ -7,9 +7,9 @@ use App\Domain\Shared\Enums\AuditAction;
 it('names every audited action in Portuguese', function (): void {
     expect(array_map(fn (AuditAction $action): array => [$action->value, $action->label()], AuditAction::cases()))->toBe([
         ['vehicle.deleted', 'Veículo excluído'],
-        ['line.created', 'Linha criada'],
-        ['line.updated', 'Linha alterada'],
-        ['line.deleted', 'Linha excluída'],
+        ['line.created', 'Rota criada'],
+        ['line.updated', 'Rota alterada'],
+        ['line.deleted', 'Rota excluída'],
         ['trip.scheduled', 'Viagem agendada'],
         ['trip.completed', 'Viagem concluída'],
         ['trip.canceled', 'Viagem cancelada'],

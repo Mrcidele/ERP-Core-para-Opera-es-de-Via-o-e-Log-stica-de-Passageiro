@@ -67,7 +67,7 @@ final class EloquentLineRepository implements LineRepository
 
     public function save(Line $line): void
     {
-        // Linha e paradas entram juntas: uma falha em qualquer parada desfaz tudo.
+        // Rota e paradas entram juntas: uma falha em qualquer parada desfaz tudo.
         DB::transaction(function () use ($line): void {
             LineModel::query()->updateOrCreate(['id' => $line->id], [
                 'origin' => $line->origin,
@@ -96,7 +96,7 @@ final class EloquentLineRepository implements LineRepository
             return null;
         }
 
-        // Quem espera pela trava reavalia a linha quando ela é liberada: se foi excluída nesse meio-tempo, não a encontra mais.
+        // Quem espera pela trava reavalia a rota quando ela é liberada: se foi excluída nesse meio-tempo, não a encontra mais.
         $model = LineModel::query()->with('stops')->whereKey($id)->lockForUpdate()->first();
 
         return $model === null ? null : $this->toEntity($model);

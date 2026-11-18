@@ -78,6 +78,9 @@ final readonly class RecordAuditTrail
             'total_cost_cents' => $event->totalCostCents,
             'station_name' => $event->stationName,
             'fueled_at' => $this->iso($event->fueledAt),
+            'meters_per_liter' => $event->metersPerLiter,
+            'min_meters_per_liter' => $event->minMetersPerLiter,
+            'low_efficiency_alert' => $event->lowEfficiencyAlert,
         ]);
     }
 

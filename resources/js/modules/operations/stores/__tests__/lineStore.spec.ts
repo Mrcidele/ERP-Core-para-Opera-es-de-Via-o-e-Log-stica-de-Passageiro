@@ -102,13 +102,13 @@ describe('lineStore', () => {
 
     it('keeps the line and explains when it still has active trips', async () => {
         http.get.mockResolvedValue({ data: { data: [line('1', 'Ourinhos')] } });
-        http.delete.mockRejectedValue(refusal({ line: ['Esta linha tem viagens agendadas ou em andamento.'] }));
+        http.delete.mockRejectedValue(refusal({ line: ['Esta rota tem viagens agendadas ou em andamento.'] }));
         const store = useLineStore();
         await store.fetchAll();
 
         expect(await store.remove('1')).toBe(false);
         expect(store.lines).toHaveLength(1);
-        expect(store.removeError).toBe('Esta linha tem viagens agendadas ou em andamento.');
+        expect(store.removeError).toBe('Esta rota tem viagens agendadas ou em andamento.');
 
         store.resetRemoveState();
         expect(store.removeError).toBeNull();
@@ -120,6 +120,6 @@ describe('lineStore', () => {
 
         await store.remove('1');
 
-        expect(store.removeError).toContain('Não foi possível excluir a linha');
+        expect(store.removeError).toContain('Não foi possível excluir a rota');
     });
 });

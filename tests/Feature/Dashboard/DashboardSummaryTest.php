@@ -83,7 +83,7 @@ it('summarizes the fleet and lists the vehicles due for preventive maintenance, 
 
 it('counts trips in progress and scheduled for the next 24 hours, and lists the next five', function (): void {
     $line = LineModel::factory()->create(['origin' => 'Curitiba', 'destination' => 'Ourinhos']);
-    $bus = vehicleWith('active', 'ABC1D23');
+    $truck = vehicleWith('active', 'ABC1D23');
     $driver = driverWith('João da Silva', '2030-01-01');
 
     tripWith('in_progress', '2026-11-13 06:00', '2026-11-13 12:00');
@@ -91,7 +91,7 @@ it('counts trips in progress and scheduled for the next 24 hours, and lists the 
     tripWith('completed', '2026-11-12 06:00', '2026-11-12 12:00');
     tripWith('canceled', '2026-11-13 12:00', '2026-11-13 18:00');
     tripWith('scheduled', '2026-11-13 09:00', '2026-11-13 15:00');                       // já devia ter saído: fora da fila
-    $next = tripWith('scheduled', '2026-11-13 11:00', '2026-11-13 17:30', $bus, $driver, $line);
+    $next = tripWith('scheduled', '2026-11-13 11:00', '2026-11-13 17:30', $truck, $driver, $line);
     tripWith('scheduled', '2026-11-14 10:00', '2026-11-14 16:00');                       // exatamente em 24h: conta
     tripWith('scheduled', '2026-11-14 10:01', '2026-11-14 16:00');                       // depois de 24h
     foreach (['15', '16', '17', '18'] as $day) {

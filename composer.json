@@ -1,12 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "mrcidele/erp-viacao",
+    "name": "mrcidele/erp-frotacarga",
     "type": "project",
-    "description": "ERP Core para operações de viação e logística de passageiros.",
+    "description": "ERP operacional para transportadoras e frotas de caminhões.",
     "keywords": [
         "erp",
         "laravel",
-        "viacao"
+        "transportadora",
+        "frota"
     ],
     "license": "MIT",
     "require": {

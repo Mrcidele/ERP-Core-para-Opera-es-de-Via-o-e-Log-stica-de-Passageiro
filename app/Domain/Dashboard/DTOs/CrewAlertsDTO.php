@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Dashboard\DTOs;
 
-/** Alertas da tripulação. */
+/** Alertas da equipe. */
 final readonly class CrewAlertsDTO
 {
     public function __construct(

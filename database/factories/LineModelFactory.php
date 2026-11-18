@@ -25,8 +25,8 @@ final class LineModelFactory extends Factory
             'origin' => 'Curitiba',
             'destination' => fake()->unique()->city(),
             'distance_km' => $distance,
-            // Média de 65 km/h, arredondada para múltiplos de 5 minutos.
-            'estimated_duration_minutes' => (int) (round($distance / 65 * 60 / 5) * 5),
+            // Caminhão carregado a 55 km/h de média, arredondado para múltiplos de 5 minutos.
+            'estimated_duration_minutes' => (int) (round($distance / 55 * 60 / 5) * 5),
         ];
     }
 }

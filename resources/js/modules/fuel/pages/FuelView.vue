@@ -9,12 +9,12 @@ import SlideOver from '@/core/ui/SlideOver.vue';
 import StatCard from '@/core/ui/StatCard.vue';
 import TableSkeleton from '@/core/ui/TableSkeleton.vue';
 import { useToast } from '@/core/ui/useToast';
-import { formatCents, formatDateTime, formatKmPerLiter, formatLiters } from '@/core/utils/format';
+import { formatCents, formatDateTime, formatKmPerLiter, formatLiters, formatMetersPerLiter } from '@/core/utils/format';
 import { useAuthStore } from '@/modules/auth/stores/authStore';
 import FuelForm from '../components/FuelForm.vue';
 import FuelLogTable from '../components/FuelLogTable.vue';
 import { useFuelStore } from '../stores/fuelStore';
-import { LOW_EFFICIENCY_KM_PER_LITER, type FuelLog } from '../types/fuelLog';
+import type { FuelLog } from '../types/fuelLog';
 
 const store = useFuelStore();
 const auth = useAuthStore();
@@ -50,7 +50,7 @@ function onRecorded(log: FuelLog): void {
     const summary = `${formatLiters(log.liters_milliliters)} no veículo ${log.vehicle.plate}`;
 
     if (log.low_efficiency_alert && log.km_per_liter !== null) {
-        toast.warning(`${summary}, com rendimento de ${formatKmPerLiter(log.km_per_liter)}. Abaixo do padrão de ${formatKmPerLiter(LOW_EFFICIENCY_KM_PER_LITER)}.`, 'Consumo alto');
+        toast.warning(`${summary}, com rendimento de ${formatKmPerLiter(log.km_per_liter)}. Abaixo da meta de ${formatMetersPerLiter(log.min_meters_per_liter)} deste veículo.`, 'Consumo alto');
     } else {
         toast.success(`Abastecimento registrado: ${summary}${log.km_per_liter === null ? '' : `, ${formatKmPerLiter(log.km_per_liter)}`}.`);
     }
@@ -64,7 +64,7 @@ function onRecorded(log: FuelLog): void {
         <div>
             <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Abastecimento</h1>
             <p class="mt-1 text-sm text-ink-500">
-                Combustível por veículo, com o rendimento de cada trecho. Abaixo de <span class="num">{{ formatKmPerLiter(LOW_EFFICIENCY_KM_PER_LITER) }}</span> o consumo está fora do padrão.
+                Diesel por veículo, com o rendimento de cada trecho. Abaixo da meta de km/L do caminhão, o abastecimento aparece como consumo alto.
             </p>
         </div>
         <button v-if="canManage" type="button" class="btn btn-primary" data-test="new-fuel-log" @click="formOpen = true">

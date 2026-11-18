@@ -103,7 +103,7 @@ async function confirmCancel(): Promise<void> {
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="font-display text-2xl font-semibold tracking-tight text-ink-950">Operações</h1>
-            <p class="mt-1 text-sm text-ink-500">Viagens por linha, veículo e motorista, nos horários deste computador.</p>
+            <p class="mt-1 text-sm text-ink-500">Viagens por rota, veículo e motorista, nos horários deste computador.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             <div role="group" aria-label="Visualização da escala" class="segmented">
@@ -159,7 +159,7 @@ async function confirmCancel(): Promise<void> {
             data-test="empty"
             icon="route"
             title="Nenhuma viagem agendada"
-            :description="canManage ? 'Agende a primeira escolhendo linha, veículo e motorista.' : 'Ainda não há viagens na escala.'"
+            :description="canManage ? 'Agende a primeira escolhendo rota, veículo e motorista.' : 'Ainda não há viagens na escala.'"
         >
             <button v-if="canManage" type="button" class="btn btn-primary" @click="openForm()">Agendar viagem</button>
         </EmptyState>

@@ -23,7 +23,7 @@ final readonly class Line
     ) {}
 
     /**
-     * Monta a linha a partir dos dados do formulário. A sequência das paradas é a ordem em que
+     * Monta a rota a partir dos dados do formulário. A sequência das paradas é a ordem em que
      * elas chegam; cada parada fica depois da anterior e antes do destino, em distância e em tempo.
      */
     public static function define(string $id, LineDataDTO $data): self
@@ -48,7 +48,7 @@ final readonly class Line
             }
 
             if ($stop->estimatedMinutes < $previousMinutes || $stop->estimatedMinutes >= $data->estimatedDurationMinutes) {
-                throw new InvalidLineStopsException("O tempo até a parada {$position} ({$stop->cityName}) deve ficar entre {$previousMinutes} min e a duração da linha.");
+                throw new InvalidLineStopsException("O tempo até a parada {$position} ({$stop->cityName}) deve ficar entre {$previousMinutes} min e a duração da rota.");
             }
 
             $stops[] = new LineStop($position, $stop->cityName, $stop->cumulativeKm, $stop->estimatedMinutes);
@@ -60,7 +60,7 @@ final readonly class Line
     }
 
     /**
-     * Retrato da linha para a trilha de auditoria, só com valores simples.
+     * Retrato da rota para a trilha de auditoria, só com valores simples.
      *
      * @return array{origin: string, destination: string, distance_km: int, estimated_duration_minutes: int, stops: string}
      */

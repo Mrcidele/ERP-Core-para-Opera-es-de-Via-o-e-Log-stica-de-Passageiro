@@ -50,7 +50,7 @@ it('downloads the trip manifest as CSV, with times in the operation time zone', 
         ->assertHeader('Content-Disposition', 'attachment; filename=manifesto-de-viagens-2026-11-15.csv');
 
     expect(csvRows($response->streamedContent()))->toBe([
-        ['Linha', 'Distância (km)', 'Placa', 'Motorista', 'Partida', 'Chegada', 'Status'],
+        ['Rota', 'Distância (km)', 'Placa', 'Motorista', 'Partida', 'Chegada', 'Status'],
         ['Curitiba → Ourinhos', '400', 'ABC1D23', 'Ana Lima', '20/11/2026 08:00', '20/11/2026 14:30', 'Agendada'],
         // 02:30 UTC ainda é a noite anterior em Brasília.
         ['Curitiba → Londrina', '400', 'XYZ9K88', 'Bruno; Dias', '20/11/2026 23:30', '21/11/2026 06:00', 'Concluída'],
@@ -59,7 +59,7 @@ it('downloads the trip manifest as CSV, with times in the operation time zone', 
 
 it('exports every trip that matches the filters, not just one page', function (): void {
     foreach (range(1, 20) as $day) {
-        exportedTrip(sprintf('2026-12-%02d 11:00:00', $day), $day <= 18 ? 'completed' : 'canceled', "Cidade {$day}", sprintf('BUS%dA%02d', $day % 10, $day), "Motorista {$day}");
+        exportedTrip(sprintf('2026-12-%02d 11:00:00', $day), $day <= 18 ? 'completed' : 'canceled', "Cidade {$day}", sprintf('TRK%dA%02d', $day % 10, $day), "Motorista {$day}");
     }
 
     $all = csvRows($this->get('/api/v1/operations/trips/export?per_page=5&page=3')->assertOk()->streamedContent());

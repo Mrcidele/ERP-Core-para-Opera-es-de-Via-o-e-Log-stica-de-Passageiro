@@ -6,7 +6,7 @@ namespace App\Domain\Operations\Contracts;
 
 use DateTimeImmutable;
 
-/** O que Operations precisa saber da Tripulação, sem depender das classes do módulo Crew. */
+/** O que Operations precisa saber da Equipe, sem depender das classes do módulo Crew. */
 interface CrewGateway
 {
     /** O funcionário existe, não foi excluído, é motorista e está com status ativo? */
