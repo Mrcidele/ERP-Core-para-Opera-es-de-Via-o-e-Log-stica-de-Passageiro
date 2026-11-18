@@ -156,6 +156,9 @@ describe('FuelView', () => {
 
         expect(flat(wrapper.get('[data-test="odometer-hint"]').text())).toContain('No cadastro: 100.000 km');
         expect(flat(wrapper.get('[data-test="price-per-liter"]').text())).toBe('Preço por litro: R$ 5,99');
+        // A dica fica abaixo da grade de volume e valor, sem margem negativa puxando-a para cima dos campos.
+        const pricePerLiter = wrapper.get('[data-test="volume-cost-group"] > [data-test="price-per-liter"]');
+        expect(pricePerLiter.classes()).not.toContain('!-mt-3');
 
         logs = [recorded, normal];
         await wrapper.get('form').trigger('submit');

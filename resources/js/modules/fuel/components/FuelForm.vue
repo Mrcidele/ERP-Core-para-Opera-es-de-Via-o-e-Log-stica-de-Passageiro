@@ -129,39 +129,42 @@ async function submit(): Promise<void> {
             </p>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="field-label" for="fuel-liters">Volume (litros)</label>
-                <input
-                    id="fuel-liters"
-                    v-model="form.liters"
-                    data-test="liters"
-                    class="field-input num"
-                    inputmode="decimal"
-                    placeholder="350,5"
-                    autocomplete="off"
-                    :aria-invalid="Boolean(errors.liters)"
-                />
-                <p v-if="errors.liters" data-test="liters-error" class="field-error">{{ errors.liters }}</p>
+        <!-- Volume, valor e o preço por litro calculado ficam num bloco só, para a dica não invadir os campos. -->
+        <div data-test="volume-cost-group">
+            <div class="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+                <div class="min-w-0">
+                    <label class="field-label" for="fuel-liters">Volume (litros)</label>
+                    <input
+                        id="fuel-liters"
+                        v-model="form.liters"
+                        data-test="liters"
+                        class="field-input num"
+                        inputmode="decimal"
+                        placeholder="350,5"
+                        autocomplete="off"
+                        :aria-invalid="Boolean(errors.liters)"
+                    />
+                    <p v-if="errors.liters" data-test="liters-error" class="field-error">{{ errors.liters }}</p>
+                </div>
+                <div class="min-w-0">
+                    <label class="field-label" for="fuel-cost">Valor total (R$)</label>
+                    <input
+                        id="fuel-cost"
+                        v-model="form.total_cost"
+                        data-test="total_cost"
+                        class="field-input num"
+                        inputmode="decimal"
+                        placeholder="2.099,50"
+                        autocomplete="off"
+                        :aria-invalid="Boolean(errors.total_cost)"
+                    />
+                    <p v-if="errors.total_cost" data-test="total_cost-error" class="field-error">{{ errors.total_cost }}</p>
+                </div>
             </div>
-            <div>
-                <label class="field-label" for="fuel-cost">Valor total (R$)</label>
-                <input
-                    id="fuel-cost"
-                    v-model="form.total_cost"
-                    data-test="total_cost"
-                    class="field-input num"
-                    inputmode="decimal"
-                    placeholder="2.099,50"
-                    autocomplete="off"
-                    :aria-invalid="Boolean(errors.total_cost)"
-                />
-                <p v-if="errors.total_cost" data-test="total_cost-error" class="field-error">{{ errors.total_cost }}</p>
-            </div>
+            <p v-if="pricePerLiter !== null" data-test="price-per-liter" class="field-hint mt-2" aria-live="polite">
+                Preço por litro: <span class="num">{{ formatCents(pricePerLiter) }}</span>
+            </p>
         </div>
-        <p v-if="pricePerLiter !== null" data-test="price-per-liter" class="field-hint !-mt-3">
-            Preço por litro: <span class="num">{{ formatCents(pricePerLiter) }}</span>
-        </p>
 
         <div>
             <label class="field-label" for="fuel-station">Posto</label>

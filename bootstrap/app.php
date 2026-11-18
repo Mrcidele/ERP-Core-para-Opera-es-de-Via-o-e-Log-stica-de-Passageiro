@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Shared\Exceptions\DomainException;
 use App\Domain\Shared\Exceptions\NotFoundException;
 use App\Presentation\Console\Commands\CreateUserCommand;
+use App\Presentation\Console\Commands\SeedDemoCommand;
 use App\Presentation\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -22,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withCommands([CreateUserCommand::class])
+    ->withCommands([CreateUserCommand::class, SeedDemoCommand::class])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SecurityHeaders::class);
 

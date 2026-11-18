@@ -75,6 +75,24 @@ printf '%s\n' "$SENHA" | php artisan erp:create-user --name="Ana Souza" --email=
 
 A senha nunca é aceita como argumento, porque ficaria no histórico do shell e visível em `ps`: no terminal ela é pedida duas vezes sem eco; em automação, use `--password-stdin`. A senha precisa de 12 a 128 caracteres, com maiúsculas, minúsculas e números, e é gravada com Argon2id (contas antigas em bcrypt continuam entrando e passam para Argon2id no próximo login). `--role` (padrão `admin`) aceita `admin`, `dispatcher`, `fleet_manager` e `mechanic_supervisor`. E-mail já cadastrado é recusado, e cada criação entra na auditoria como "Usuário criado" (sem a senha).
 
+### Ambiente de demonstração
+
+Para apresentações comerciais, `erp:seed-demo` cria ou atualiza a conta `demo@frotacarga.com.br` com o papel **Gestão de frota** (sem acesso a auditoria e usuários) e monta uma frota de exemplo:
+
+- 9 caminhões com placa Mercosul, do utilitário ao cavalo mecânico;
+- 5 abastecimentos recentes por caminhão, com 2 deles abaixo da meta de km/L (`RHF2C19` e `FRT6G04`) para mostrar o alerta de consumo;
+- revisões preventivas vencidas ou perto de vencer;
+- uma OS aberta;
+- uma viagem em andamento e a escala das próximas 48 horas.
+
+```bash
+php artisan erp:seed-demo --generate-password    # gera a senha e mostra uma única vez
+php artisan erp:seed-demo                         # conta nova: pede a senha duas vezes; conta existente: mantém a senha
+printf '%s\n' "$SENHA" | php artisan erp:seed-demo --password-stdin --no-interaction
+```
+
+O comando pode rodar de novo antes de cada apresentação: refaz abastecimentos, OS e viagens a partir da data atual e só mexe nos próprios registros, reconhecidos por placa, chassi e CPF fixos. Ele nunca altera uma conta de Administração: se o e-mail de demonstração pertencer a um administrador, para sem gravar nada. Em produção, pede confirmação (ou `--force`). O cenário não usa factories nem Faker e também roda na imagem Docker.
+
 ### Role restrita da aplicação (opcional)
 
 Por padrão a aplicação conecta como `neondb_owner`, dona das tabelas. Para que ela só leia e grave dados, sem poder criar, alterar, esvaziar ou apagar tabelas nem mexer na auditoria, crie a role `erp_app` com [`docs/sql/erp_app_role.sql`](docs/sql/erp_app_role.sql) no SQL Editor do Neon (troque a senha antes de rodar). Depois, no Render:

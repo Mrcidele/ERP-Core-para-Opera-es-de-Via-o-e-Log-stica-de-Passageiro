@@ -45,9 +45,14 @@ describe('LandingView', () => {
     it('books a demo by WhatsApp or e-mail with the message already written', async () => {
         const wrapper = await mountPage();
 
-        expect(wrapper.get('[data-test="cta-whatsapp"]').attributes('href')).toBe(
-            'https://wa.me/5543996280596?text=Ol%C3%A1%2C%20Caio!%20Quero%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20ERP%20FrotaCarga.',
-        );
+        const whatsappLinks = wrapper.findAll('[data-test="cta-whatsapp"]');
+
+        expect(whatsappLinks).toHaveLength(2);
+        for (const link of whatsappLinks) {
+            expect(link.attributes('href')).toBe(
+                'https://wa.me/5543996280596?text=Ol%C3%A1%20Caio%2C%20vi%20a%20p%C3%A1gina%20do%20ERP%20FrotaCarga%20e%20quero%20saber%20mais%20sobre%20o%20piloto%20de%2030%20dias.',
+            );
+        }
         expect(wrapper.get('[data-test="cta-email"]').attributes('href')).toBe(
             'mailto:caiomarcidele@gmail.com?subject=Demonstra%C3%A7%C3%A3o%20do%20ERP%20FrotaCarga',
         );

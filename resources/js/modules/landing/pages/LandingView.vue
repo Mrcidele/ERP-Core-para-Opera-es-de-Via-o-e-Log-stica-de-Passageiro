@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
 import AppIcon, { type IconName } from '@/core/ui/AppIcon.vue';
-import { CONTACT } from '../contact';
+import { CONTACT, WHATSAPP_MESSAGE } from '../contact';
 
-const whatsappUrl = `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent('Olá, Caio! Quero agendar uma demonstração do ERP FrotaCarga.')}`;
+// O texto fixo identifica, na conversa do WhatsApp, o lead que veio por esta página.
+const whatsappUrl = `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 // Arquivos servidos de public/media: ligados por variável para o Vite não tentar empacotá-los.
 const media = { video: '/media/erp-frotacarga-demo.mp4', poster: '/media/demo-capa.jpg' };
 const emailUrl = `mailto:${CONTACT.email}?subject=${encodeURIComponent('Demonstração do ERP FrotaCarga')}`;
@@ -140,7 +141,7 @@ const notIncluded = [
                     ordens de serviço e as viagens recusadas.
                 </p>
                 <div class="mt-8 flex flex-wrap gap-3">
-                    <a :href="whatsappUrl" class="btn btn-primary !bg-signal-500 !text-ink-950 hover:!bg-signal-400" target="_blank" rel="noopener">Falar pelo WhatsApp</a>
+                    <a :href="whatsappUrl" data-test="cta-whatsapp" class="btn btn-primary !bg-signal-500 !text-ink-950 hover:!bg-signal-400" target="_blank" rel="noopener">Falar pelo WhatsApp</a>
                     <a :href="emailUrl" data-test="cta-email" class="btn btn-quiet !border-white/15 !bg-transparent !text-white hover:!bg-white/10">Mandar e-mail</a>
                 </div>
             </div>
