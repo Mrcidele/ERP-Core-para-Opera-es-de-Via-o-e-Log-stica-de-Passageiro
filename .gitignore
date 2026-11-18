@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Prospecção comercial: lista de leads, e-mails e log de envios ficam só na máquina.
+/docs/comercial/
