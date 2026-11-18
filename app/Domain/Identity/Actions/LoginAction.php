@@ -36,7 +36,8 @@ final readonly class LoginAction
 
         $passwordMatches = $this->hasher->verify($data->password, $user->passwordHash ?? self::UNKNOWN_USER_HASH);
 
-        if ($user === null || ! $passwordMatches) {
+        // Conta desativada recebe a mesma resposta de senha errada: não revela que o e-mail existe.
+        if ($user === null || ! $passwordMatches || ! $user->isActive()) {
             $this->events->dispatch(new LoginFailed($data->email, $user?->id));
 
             throw new InvalidCredentialsException;

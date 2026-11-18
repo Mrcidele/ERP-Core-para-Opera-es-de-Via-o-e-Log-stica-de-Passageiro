@@ -19,6 +19,9 @@ enum AuditAction: string
     case FuelLogRecorded = 'fuel_log.recorded';
     case FuelLogDeleted = 'fuel_log.deleted';
     case UserCreated = 'user.created';
+    case UserUpdated = 'user.updated';
+    case UserDeactivated = 'user.deactivated';
+    case UserReactivated = 'user.reactivated';
     case LoginSucceeded = 'auth.login';
     case LoginFailed = 'auth.login_failed';
 
@@ -37,6 +40,9 @@ enum AuditAction: string
             self::FuelLogRecorded => 'Abastecimento registrado',
             self::FuelLogDeleted => 'Abastecimento excluído',
             self::UserCreated => 'Usuário criado',
+            self::UserUpdated => 'Usuário alterado',
+            self::UserDeactivated => 'Usuário desativado',
+            self::UserReactivated => 'Usuário reativado',
             self::LoginSucceeded => 'Login realizado',
             self::LoginFailed => 'Login recusado',
         };

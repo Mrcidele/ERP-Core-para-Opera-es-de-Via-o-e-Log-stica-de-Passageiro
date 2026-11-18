@@ -9,6 +9,7 @@ use App\Presentation\Http\Controllers\Dashboard\DashboardController;
 use App\Presentation\Http\Controllers\Fleet\VehicleController;
 use App\Presentation\Http\Controllers\Fuel\FuelLogController;
 use App\Presentation\Http\Controllers\HealthController;
+use App\Presentation\Http\Controllers\Identity\UserController;
 use App\Presentation\Http\Controllers\Maintenance\MaintenanceOrderController;
 use App\Presentation\Http\Controllers\Operations\LineController;
 use App\Presentation\Http\Controllers\Operations\TripController;
@@ -70,5 +71,14 @@ Route::prefix('v1')->group(function (): void {
         });
 
         Route::get('audit-logs', [AuditLogController::class, 'index'])->can('audit.view')->name('audit-logs.index');
+
+        // Gestão de acessos: só administradores.
+        Route::prefix('identity')->group(function (): void {
+            Route::get('users', [UserController::class, 'index'])->can('users.manage')->name('identity.users.index');
+            Route::post('users', [UserController::class, 'store'])->can('users.manage')->name('identity.users.store');
+            Route::put('users/{user}', [UserController::class, 'update'])->can('users.manage')->name('identity.users.update');
+            Route::post('users/{user}/deactivate', [UserController::class, 'deactivate'])->can('users.manage')->name('identity.users.deactivate');
+            Route::post('users/{user}/reactivate', [UserController::class, 'reactivate'])->can('users.manage')->name('identity.users.reactivate');
+        });
     });
 });

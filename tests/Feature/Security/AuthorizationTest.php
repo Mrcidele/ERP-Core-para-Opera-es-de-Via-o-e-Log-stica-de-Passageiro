@@ -53,6 +53,11 @@ function protectedRoutes(): array
         'maintenance.orders.store' => ['POST', '/api/v1/maintenance/orders', Permission::MaintenanceManage],
         'maintenance.orders.update' => ['PATCH', "/api/v1/maintenance/orders/{$id}", Permission::MaintenanceManage],
         'audit-logs.index' => ['GET', '/api/v1/audit-logs', Permission::AuditView],
+        'identity.users.index' => ['GET', '/api/v1/identity/users', Permission::UsersManage],
+        'identity.users.store' => ['POST', '/api/v1/identity/users', Permission::UsersManage],
+        'identity.users.update' => ['PUT', "/api/v1/identity/users/{$id}", Permission::UsersManage],
+        'identity.users.deactivate' => ['POST', "/api/v1/identity/users/{$id}/deactivate", Permission::UsersManage],
+        'identity.users.reactivate' => ['POST', "/api/v1/identity/users/{$id}/reactivate", Permission::UsersManage],
     ];
 }
 

@@ -18,6 +18,9 @@ it('names every audited action in Portuguese', function (): void {
         ['fuel_log.recorded', 'Abastecimento registrado'],
         ['fuel_log.deleted', 'Abastecimento excluído'],
         ['user.created', 'Usuário criado'],
+        ['user.updated', 'Usuário alterado'],
+        ['user.deactivated', 'Usuário desativado'],
+        ['user.reactivated', 'Usuário reativado'],
         ['auth.login', 'Login realizado'],
         ['auth.login_failed', 'Login recusado'],
     ]);

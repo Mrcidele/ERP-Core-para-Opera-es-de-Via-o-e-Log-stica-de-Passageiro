@@ -66,6 +66,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/audit/pages/AuditLogsView.vue'),
         meta: { title: 'Auditoria', permission: 'audit.view' },
     },
+    {
+        path: '/usuarios',
+        name: 'users',
+        component: () => import('@/modules/users/pages/UsersView.vue'),
+        meta: { title: 'Usuários', permission: 'users.manage' },
+    },
     { path: '/:pathMatch(.*)*', redirect: { name: 'dashboard' } },
 ];
 

@@ -19,6 +19,9 @@ use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\TripScheduled;
 use App\Domain\Shared\Events\UserCreated;
+use App\Domain\Shared\Events\UserDeactivated;
+use App\Domain\Shared\Events\UserReactivated;
+use App\Domain\Shared\Events\UserUpdated;
 use App\Domain\Shared\Events\VehicleDeleted;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -132,6 +135,27 @@ final readonly class RecordAuditTrail
             'role' => $event->role,
             'channel' => $event->channel,
         ]);
+    }
+
+    public function userUpdated(UserUpdated $event): void
+    {
+        // A senha nunca entra na trilha: fica registrado só que ela foi redefinida.
+        $after = $event->after;
+        if ($event->passwordReset) {
+            $after['password_reset'] = true;
+        }
+
+        $this->record->execute(AuditAction::UserUpdated, 'user', $event->userId, $event->before === [] ? null : $event->before, $after);
+    }
+
+    public function userDeactivated(UserDeactivated $event): void
+    {
+        $this->record->execute(AuditAction::UserDeactivated, 'user', $event->userId, ['active' => true], ['active' => false, 'email' => $event->email]);
+    }
+
+    public function userReactivated(UserReactivated $event): void
+    {
+        $this->record->execute(AuditAction::UserReactivated, 'user', $event->userId, ['active' => false], ['active' => true, 'email' => $event->email]);
     }
 
     public function loginSucceeded(LoginSucceeded $event): void

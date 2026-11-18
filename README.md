@@ -61,6 +61,8 @@ O contêiner tem 512 MB: o PHP-FPM usa `pm = ondemand` com no máximo 5 processo
 
 ### Criar usuários
 
+No dia a dia, o administrador cria, edita, desativa e reativa usuários na tela **Usuários** (menu Controle). O comando abaixo serve para o primeiro administrador de uma instalação nova e para automação.
+
 ```bash
 php artisan erp:create-user                       # interativo; erp:create-admin é o mesmo comando
 php artisan erp:create-user --name="Ana Souza" --email=ana@viacao.com.br --role=dispatcher

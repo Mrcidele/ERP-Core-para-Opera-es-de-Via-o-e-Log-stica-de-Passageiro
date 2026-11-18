@@ -8,10 +8,9 @@ use App\Domain\Identity\Actions\CreateUserAction;
 use App\Domain\Identity\DTOs\CreateUserDTO;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Shared\Exceptions\DomainException;
+use App\Presentation\Http\Requests\Identity\UserRules;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Symfony\Component\Console\Input\StreamableInputInterface;
 
 /**
@@ -48,13 +47,8 @@ final class CreateUserCommand extends Command
 
         $validator = Validator::make(
             ['name' => $name, 'email' => $email, 'role' => $role, 'password' => $password],
-            [
-                'name' => ['required', 'string', 'max:255'],
-                // Caracteres de controle (CR/LF) ficam de fora antes da validação de formato.
-                'email' => ['required', 'string', 'max:254', 'not_regex:/[\x00-\x1F\x7F]/', 'email:rfc'],
-                'role' => ['required', Rule::enum(UserRole::class)],
-                'password' => ['required', 'string', 'max:128', Password::min(12)->letters()->mixedCase()->numbers()],
-            ],
+            // As mesmas regras da tela de usuários.
+            [...UserRules::profile(), 'password' => ['required', ...UserRules::password()]],
             ['role' => 'Papel inválido. Use um destes: '.implode(', ', array_column(UserRole::cases(), 'value')).'.'],
             ['name' => 'nome', 'email' => 'e-mail', 'role' => 'papel', 'password' => 'senha'],
         );

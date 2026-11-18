@@ -24,4 +24,9 @@ final class SanctumTokenService implements TokenService
     {
         PersonalAccessToken::findToken($plainTextToken)?->delete();
     }
+
+    public function revokeAllFor(string $userId): void
+    {
+        PersonalAccessToken::query()->where('tokenable_type', (new UserModel)->getMorphClass())->where('tokenable_id', $userId)->delete();
+    }
 }

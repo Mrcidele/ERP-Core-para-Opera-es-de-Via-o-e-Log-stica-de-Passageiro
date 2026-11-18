@@ -23,9 +23,13 @@ use App\Domain\Shared\Events\TripCanceled;
 use App\Domain\Shared\Events\TripCompleted;
 use App\Domain\Shared\Events\TripScheduled;
 use App\Domain\Shared\Events\UserCreated;
+use App\Domain\Shared\Events\UserDeactivated;
+use App\Domain\Shared\Events\UserReactivated;
+use App\Domain\Shared\Events\UserUpdated;
 use App\Domain\Shared\Events\VehicleDeleted;
 use App\Infrastructure\Database\ConnectionDatabaseProbe;
 use App\Infrastructure\Database\DatabaseTransactionRunner;
+use App\Infrastructure\Database\Models\UserModel;
 use App\Infrastructure\Database\StatementTimeoutPostgresConnector;
 use App\Infrastructure\Events\LaravelEventDispatcher;
 use App\Infrastructure\Support\InsecureConfigurationGuard;
@@ -34,6 +38,8 @@ use App\Infrastructure\Support\TrustedProxies;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -53,6 +59,12 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Defesa extra além da revogação na desativação: token de usuário desativado nunca autentica.
+        Sanctum::authenticateAccessTokensUsing(
+            fn (PersonalAccessToken $token, bool $isValid): bool => $isValid
+                && ! ($token->tokenable instanceof UserModel && $token->tokenable->deactivated_at !== null),
+        );
+
         // Produção com APP_DEBUG ligado ou sem APP_KEY válida não atende requisições. Comandos de
         // terminal ficam de fora (o build roda `package:discover` sem chave); no contêiner, o
         // entrypoint faz a mesma checagem antes de subir.
@@ -84,6 +96,9 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(TripCanceled::class, [RecordAuditTrail::class, 'tripCanceled']);
         Event::listen(MaintenanceOrderOpened::class, [RecordAuditTrail::class, 'maintenanceOrderOpened']);
         Event::listen(MaintenanceOrderCompleted::class, [RecordAuditTrail::class, 'maintenanceOrderCompleted']);
+        Event::listen(UserUpdated::class, [RecordAuditTrail::class, 'userUpdated']);
+        Event::listen(UserDeactivated::class, [RecordAuditTrail::class, 'userDeactivated']);
+        Event::listen(UserReactivated::class, [RecordAuditTrail::class, 'userReactivated']);
         Event::listen(LoginSucceeded::class, [RecordAuditTrail::class, 'loginSucceeded']);
         Event::listen(LoginFailed::class, [RecordAuditTrail::class, 'loginFailed']);
     }

@@ -33,6 +33,7 @@
 | `maintenance.view` | ✓ | | ✓ | ✓ |
 | `maintenance.manage` | ✓ | | ✓ | ✓ |
 | `audit.view` | ✓ | | | |
+| `users.manage` | ✓ | | | |
 
 A supervisão de oficina não tem `crew.view`; por isso o formulário de ordem de serviço busca os mecânicos em `GET /api/v1/maintenance/mechanics` (`maintenance.view`), que devolve só id e nome.
 
@@ -98,6 +99,8 @@ resources/js/
 | Identity | Login, logout e sessão (`/api/v1/auth/login`, `/logout`, `/me`) com tokens Sanctum; usuários com UUID e papel | Implementado |
 | Identity | RBAC: 4 papéis, 9 permissões, um Gate por permissão, 401/403 padronizados | Implementado |
 | Identity | Criação de usuário pelo comando `erp:create-user` (alias `erp:create-admin`), com auditoria | Implementado |
+| Identity | Gestão de usuários (`/api/v1/identity/users`, `users.manage`): listar, criar, editar perfil e senha, desativar e reativar; desativação encerra as sessões e bloqueia o login; nunca zero administradores ativos (Action com trava e trigger no banco); tudo auditado sem senha; tela Usuários | Implementado |
+| Todos | Mensagens da API em português (`lang/pt_BR`, locale padrão `pt_BR`), com o nome em português de cada campo | Implementado |
 | Segurança | Senhas Argon2id (bcrypt antigo migra no login), limite de login por conta e por IP, login realizado e recusado na auditoria, `audit_logs` somente inserção (trigger), CSP e cabeçalhos HTTP, contêiner sem root e com fail-fast de configuração | Implementado |
 | Segurança | Limite de 5 logins/min por e-mail + IP e 120 req/min por usuário; cabeçalhos de segurança | Implementado |
 | Audit | `audit_logs` (JSONB) gravado por eventos; consulta em `GET /api/v1/audit-logs` (`audit.view`) | Implementado |

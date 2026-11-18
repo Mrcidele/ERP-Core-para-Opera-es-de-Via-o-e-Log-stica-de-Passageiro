@@ -15,4 +15,5 @@ enum Permission: string
     case MaintenanceView = 'maintenance.view';
     case MaintenanceManage = 'maintenance.manage';
     case AuditView = 'audit.view';
+    case UsersManage = 'users.manage';
 }

@@ -18,7 +18,7 @@ const Blank = { template: '<div />' };
 async function mountShell(): Promise<{ wrapper: VueWrapper; router: Router }> {
     const router = createRouter({
         history: createMemoryHistory(),
-        routes: ['dashboard', 'fleet', 'fuel', 'operations', 'lines', 'crew', 'maintenance', 'audit', 'login'].map((name) => ({
+        routes: ['dashboard', 'fleet', 'fuel', 'operations', 'lines', 'crew', 'maintenance', 'users', 'audit', 'login'].map((name) => ({
             path: name === 'dashboard' ? '/' : `/${name}`,
             name,
             component: Blank,
@@ -41,7 +41,7 @@ describe('AppShell', () => {
     });
 
     it.each([
-        ['admin', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção', 'Auditoria']],
+        ['admin', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção', 'Usuários', 'Auditoria']],
         ['dispatcher', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação']],
         ['fleet_manager', ['Painel', 'Frota', 'Abastecimento', 'Operações', 'Linhas e rotas', 'Tripulação', 'Manutenção']],
         ['mechanic_supervisor', ['Painel', 'Frota', 'Abastecimento', 'Manutenção']],

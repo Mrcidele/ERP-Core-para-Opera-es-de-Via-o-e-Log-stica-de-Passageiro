@@ -216,8 +216,9 @@ it('shows the audit trail only to roles with audit.view', function (UserRole $ro
 it('keeps the record when the user who acted is deleted', function (): void {
     $this->deleteJson('/api/v1/fleet/vehicles/'.VehicleModel::factory()->create()->id)->assertNoContent();
 
-    $this->admin->delete();
+    // Outro administrador antes: o banco não deixa a empresa sem administrador ativo.
     actingAsRole(UserRole::Admin);
+    $this->admin->delete();
 
     $this->getJson('/api/v1/audit-logs')
         ->assertOk()

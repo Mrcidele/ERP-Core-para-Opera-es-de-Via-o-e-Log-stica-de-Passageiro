@@ -27,4 +27,9 @@ final class FakeTokenService implements TokenService
     {
         unset($this->active[$plainTextToken]);
     }
+
+    public function revokeAllFor(string $userId): void
+    {
+        $this->active = array_filter($this->active, fn (string $owner): bool => $owner !== $userId);
+    }
 }

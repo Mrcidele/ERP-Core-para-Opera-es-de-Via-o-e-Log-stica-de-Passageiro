@@ -11,4 +11,7 @@ interface TokenService
 
     /** Revoga o token informado (o texto puro enviado no cabeçalho Authorization). */
     public function revoke(string $plainTextToken): void;
+
+    /** Encerra todas as sessões do usuário (desativação, troca de senha pelo administrador). */
+    public function revokeAllFor(string $userId): void;
 }

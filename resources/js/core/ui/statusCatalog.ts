@@ -2,10 +2,11 @@ import { EMPLOYEE_STATUS_LABELS, type EmployeeStatus } from '@/modules/crew/type
 import { VEHICLE_STATUS_LABELS, type VehicleStatus } from '@/modules/fleet/types/vehicle';
 import { MAINTENANCE_STATUS_LABELS, type MaintenanceStatus } from '@/modules/maintenance/types/maintenance';
 import { TRIP_STATUS_LABELS, type TripStatus } from '@/modules/operations/types/trip';
+import { USER_STATUS_LABELS, type UserStatus } from '@/modules/users/types/user';
 
 export type StatusTone = 'positive' | 'attention' | 'neutral' | 'danger' | 'info';
 
-export type StatusKind = 'vehicle' | 'employee' | 'trip' | 'maintenance';
+export type StatusKind = 'vehicle' | 'employee' | 'trip' | 'maintenance' | 'user';
 
 interface StatusEntry {
     label: string;
@@ -18,6 +19,7 @@ export const STATUS_CATALOG: {
     employee: Record<EmployeeStatus, StatusEntry>;
     trip: Record<TripStatus, StatusEntry>;
     maintenance: Record<MaintenanceStatus, StatusEntry>;
+    user: Record<UserStatus, StatusEntry>;
 } = {
     vehicle: {
         active: { label: VEHICLE_STATUS_LABELS.active, tone: 'positive' },
@@ -40,6 +42,10 @@ export const STATUS_CATALOG: {
         in_progress: { label: MAINTENANCE_STATUS_LABELS.in_progress, tone: 'info' },
         completed: { label: MAINTENANCE_STATUS_LABELS.completed, tone: 'positive' },
         canceled: { label: MAINTENANCE_STATUS_LABELS.canceled, tone: 'neutral' },
+    },
+    user: {
+        active: { label: USER_STATUS_LABELS.active, tone: 'positive' },
+        inactive: { label: USER_STATUS_LABELS.inactive, tone: 'neutral' },
     },
 };
 

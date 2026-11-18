@@ -12,7 +12,7 @@ it('follows the access matrix', function (UserRole $role, array $expected): void
 })->with([
     'admin' => [UserRole::Admin, [
         'fleet.view', 'fleet.manage', 'crew.view', 'crew.manage', 'operations.view', 'operations.manage',
-        'maintenance.view', 'maintenance.manage', 'audit.view',
+        'maintenance.view', 'maintenance.manage', 'audit.view', 'users.manage',
     ]],
     'dispatcher' => [UserRole::Dispatcher, ['fleet.view', 'crew.view', 'operations.view', 'operations.manage']],
     'fleet manager' => [UserRole::FleetManager, [

@@ -31,7 +31,10 @@ const groups: { label: string; sections: Section[] }[] = [
     },
     {
         label: 'Controle',
-        sections: [{ name: 'audit', label: 'Auditoria', icon: 'shield', permission: 'audit.view' }],
+        sections: [
+            { name: 'users', label: 'Usuários', icon: 'users', permission: 'users.manage' },
+            { name: 'audit', label: 'Auditoria', icon: 'shield', permission: 'audit.view' },
+        ],
     },
 ];
 
