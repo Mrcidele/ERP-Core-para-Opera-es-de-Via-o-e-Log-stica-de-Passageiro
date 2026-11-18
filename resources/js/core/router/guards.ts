@@ -18,12 +18,17 @@ export function resolveNavigation(
     onDenied: (message: string) => void = () => undefined,
 ): true | RouteLocationRaw {
     if (to.meta.public) {
-        // Quem já entrou não vê a tela de login de novo.
+        // Quem já entrou não vê de novo o login nem a página do produto.
         return session.isAuthenticated ? { name: 'dashboard' } : true;
     }
 
     if (!session.isAuthenticated) {
-        return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } };
+        // Quem chega pelo endereço principal sem sessão conhece o produto; o resto vai para o login.
+        if (to.fullPath === '/') {
+            return { name: 'landing' };
+        }
+
+        return { name: 'login', query: { redirect: to.fullPath } };
     }
 
     if (to.meta.permission !== undefined && !session.can(to.meta.permission)) {

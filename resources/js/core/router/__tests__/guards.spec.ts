@@ -44,7 +44,7 @@ async function visit(router: Router, path: string): Promise<string> {
 describe('navigation guard', () => {
     beforeEach(() => setActivePinia(createPinia()));
 
-    it.each(['/', '/frota', '/operacoes', '/equipe', '/manutencao', '/qualquer-coisa'])('sends a visitor from %s to the login', async (path) => {
+    it.each(['/frota', '/operacoes', '/equipe', '/manutencao'])('sends a visitor from %s to the login', async (path) => {
         const router = makeRouter();
 
         await visit(router, path);
@@ -56,7 +56,18 @@ describe('navigation guard', () => {
         const router = makeRouter();
 
         expect(await visit(router, '/operacoes')).toBe('/login?redirect=/operacoes');
-        expect(await visit(router, '/')).toBe('/login');
+    });
+
+    it.each(['/', '/qualquer-coisa'])('shows the product page to a visitor who opens %s', async (path) => {
+        expect(await visit(makeRouter(), path)).toBe('/apresentacao');
+    });
+
+    it('lets a visitor open the product page, and sends someone signed in to the dashboard', async () => {
+        expect(await visit(makeRouter(), '/apresentacao')).toBe('/apresentacao');
+
+        signInAs('dispatcher');
+
+        expect(await visit(makeRouter(), '/apresentacao')).toBe('/');
     });
 
     it('lets a visitor open the login', async () => {

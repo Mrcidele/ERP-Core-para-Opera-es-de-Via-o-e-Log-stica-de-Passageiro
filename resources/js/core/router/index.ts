@@ -4,7 +4,7 @@ import type { Permission } from '@/modules/auth/types/auth';
 declare module 'vue-router' {
     interface RouteMeta {
         title: string;
-        /** Rota aberta a quem não entrou (só o login). As demais exigem sessão. */
+        /** Rota aberta a quem não entrou (login e página do produto). As demais exigem sessão. */
         public?: boolean;
         /** Permissão exigida para abrir a rota. */
         permission?: Permission;
@@ -17,6 +17,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'login',
         component: () => import('@/modules/auth/pages/LoginView.vue'),
         meta: { title: 'Entrar', public: true },
+    },
+    {
+        path: '/apresentacao',
+        name: 'landing',
+        component: () => import('@/modules/landing/pages/LandingView.vue'),
+        meta: { title: 'Gestão de frota para transportadoras', public: true },
     },
     {
         path: '/',
